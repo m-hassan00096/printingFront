@@ -1,33 +1,51 @@
 # طَبعة | Tabaa Frontend
 
-واجهة نظام إدارة طلبات الطباعة والإنتاج والتحصيلات، مبنية باستخدام React وTypeScript، ومهيأة للعمل مع Laravel API عبر Sanctum SPA authentication.
+واجهة نظام إدارة طلبات الطباعة والإنتاج والتسليمات والتحصيلات. مبنية باستخدام React وTypeScript، ومهيأة للتكامل مع Laravel API عبر Sanctum SPA authentication.
 
-## Product principles
-
-- Arabic-first interface with RTL layout.
-- Clear visual hierarchy and low cognitive load.
-- Consistent actions, forms, tables, empty states, loading states, and error feedback.
-- Feature-based architecture that can grow without turning into a monolith.
-- Server state belongs to TanStack Query; Zustand is reserved for shared client/UI state.
-- No bearer tokens in browser storage. Authentication uses Sanctum session cookies and CSRF protection.
-
-## Planned stack
+## التقنية
 
 - React + TypeScript + Vite
-- Tailwind CSS + shadcn/ui
-- TanStack Query
-- Zustand
-- React Router
-- Axios
-- React Hook Form + Zod
+- Tailwind CSS v4 + shadcn/ui
+- TanStack Query لإدارة بيانات الخادم
+- Zustand لحالة الواجهة المشتركة فقط
+- React Router للتنقل
+- Axios للاتصال بالـ API
+- React Hook Form + Zod للنماذج والتحقق من البيانات
+- Lucide للأيقونات وCairo للواجهة العربية
 
-## Local development
+## التشغيل المحلي
 
-```bash
+~~~bash
 npm install
+cp .env.example .env
 npm run dev
-```
+~~~
 
-## Project status
+على Windows يمكن نسخ ملف .env.example يدويًا إلى ملف باسم .env.
 
-The initial foundation and UI/UX standards are being established before implementing business features. See `docs/frontend-architecture.md` and `docs/ui-ux-guidelines.md`.
+## الأوامر
+
+~~~bash
+npm run dev
+npm run lint
+npm run typecheck
+npm run build
+npm run format
+~~~
+
+## المعمارية
+
+- app: تشغيل التطبيق، المسارات، الـ providers والـ layouts.
+- features: ميزات مستقلة، لكل منها API hooks ومكونات وصفحات وأنواع خاصة بها.
+- shared: أدوات ومكونات وخدمات مشتركة فعلًا بين الميزات.
+- docs: قرارات المعمارية وعقد الـ API ومعايير UI/UX.
+
+## مبادئ أساسية
+
+1. بيانات الخادم داخل TanStack Query، وليست نسخة مكررة داخل Zustand.
+2. لا نخزن Bearer Tokens في Local Storage أو Session Storage؛ المصادقة للويب تعتمد على Sanctum session cookies وCSRF.
+3. كل Feature مسؤولة عن منطقها، ولا تستورد تفاصيل داخلية من Feature أخرى.
+4. حالات التحميل والفراغ والأخطاء والصلاحيات جزء من التصميم وليست حالات ثانوية.
+5. الواجهة عربية RTL أولًا، مع تصميم هادئ ومتسق وقابل للوصول.
+
+اقرأ دليل [المعمارية](docs/frontend-architecture.md) و[معايير UI/UX](docs/ui-ux-guidelines.md) قبل إضافة أي شاشة أعمال.
