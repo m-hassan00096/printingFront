@@ -15,6 +15,16 @@ const LoginPage = lazy(async () => {
   return { default: module.LoginPage };
 });
 
+const UsersPage = lazy(async () => ({ default: (await import("@/features/identity/pages/users-page")).UsersPage }));
+const UserDetailPage = lazy(async () => ({ default: (await import("@/features/identity/pages/user-detail-page")).UserDetailPage }));
+const UserFormPage = lazy(async () => ({ default: (await import("@/features/identity/pages/user-form-page")).UserFormPage }));
+const RolesPage = lazy(async () => ({ default: (await import("@/features/identity/pages/roles-page")).RolesPage }));
+const RoleFormPage = lazy(async () => ({ default: (await import("@/features/identity/pages/role-form-page")).RoleFormPage }));
+
+function LazyIdentity({ children }: { children: React.ReactNode }) {
+  return <Suspense fallback={<AuthLoading />}>{children}</Suspense>;
+}
+
 const featurePaths = [
   { path: "orders", key: "orders" as const, permissions: featureAccessPolicy.orders },
   { path: "production", key: "production" as const, permissions: featureAccessPolicy.production },
@@ -50,6 +60,14 @@ export function AppRouter() {
                 }
               />
             ))}
+
+            <Route path="users" element={<RequirePermission anyOf={["identity.users.view"]}><LazyIdentity><UsersPage /></LazyIdentity></RequirePermission>} />
+            <Route path="users/new" element={<RequirePermission anyOf={["identity.users.create"]}><LazyIdentity><UserFormPage /></LazyIdentity></RequirePermission>} />
+            <Route path="users/:id" element={<RequirePermission anyOf={["identity.users.view"]}><LazyIdentity><UserDetailPage /></LazyIdentity></RequirePermission>} />
+            <Route path="users/:id/edit" element={<RequirePermission anyOf={["identity.users.update"]}><LazyIdentity><UserFormPage /></LazyIdentity></RequirePermission>} />
+            <Route path="roles" element={<RequirePermission anyOf={["identity.roles.view"]}><LazyIdentity><RolesPage /></LazyIdentity></RequirePermission>} />
+            <Route path="roles/new" element={<RequirePermission anyOf={["identity.roles.create"]}><LazyIdentity><RoleFormPage /></LazyIdentity></RequirePermission>} />
+            <Route path="roles/:id/edit" element={<RequirePermission anyOf={["identity.roles.update"]}><LazyIdentity><RoleFormPage /></LazyIdentity></RequirePermission>} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Route>

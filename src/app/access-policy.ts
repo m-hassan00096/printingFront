@@ -15,3 +15,13 @@ export const featureAccessPolicy: Record<FeatureKey, readonly string[]> = {
     "settings.selects.view",
   ],
 };
+
+/** Identity access is explicitly mapped to its backend permissions. */
+export const identityAccessPolicy = {
+  users: ["identity.users.view"],
+  createUser: ["identity.users.create"],
+  editUser: ["identity.users.update"],
+  roles: ["identity.roles.view"],
+  createRole: ["identity.roles.create"],
+  editRole: ["identity.roles.update"],
+} as const;

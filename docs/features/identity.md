@@ -3,7 +3,7 @@
 **Project:** طَبعة — printingFront  
 **Frontend branch:** `feature/identity`  
 **Backend reference:** `m-hassan00096/printingApi` → `develop` → `Modules/Identity`  
-**Status:** Specification and UI/UX plan only — **implementation not started**  
+**Status:** First implementation committed on `feature/identity`. Users CRUD/UI and Roles list/metadata UI. Permission catalog API still missing.  
 **Dependency:** Auth merged into frontend `develop` via PR #1.
 
 ## 1. Goal and boundaries

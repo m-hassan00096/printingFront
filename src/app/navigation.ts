@@ -2,7 +2,7 @@ import { featureAccessPolicy } from "@/app/access-policy";
 import { hasAnyPermission } from "@/features/auth/lib/auth-helpers";
 import {
   ClipboardList, LayoutDashboard, Layers, ReceiptText, Settings, Truck,
-  Users, Wallet, type LucideIcon,
+  Users, Wallet, ShieldCheck, type LucideIcon,
 } from "lucide-react";
 
 export type NavigationItem = {
@@ -37,6 +37,13 @@ export const navigationGroups: NavigationGroup[] = [
     ],
   },
   {
+    label: "المستخدمون والصلاحيات",
+    items: [
+      { to: "/users", label: "المستخدمون", icon: Users, anyOf: ["identity.users.view"] },
+      { to: "/roles", label: "الأدوار والصلاحيات", icon: ShieldCheck, anyOf: ["identity.roles.view"] },
+    ],
+  },
+  {
     label: "النظام",
     items: [
       {
@@ -56,5 +63,7 @@ export function getPageTitle(pathname: string): string {
     const item = group.items.find((nav) => nav.to === pathname);
     if (item) return item.label;
   }
+  if (pathname.startsWith("/users/")) return pathname.endsWith("/edit") ? "تعديل مستخدم" : pathname === "/users/new" ? "إضافة مستخدم" : "تفاصيل المستخدم";
+  if (pathname.startsWith("/roles/")) return pathname === "/roles/new" ? "إضافة دور" : "تعديل الدور";
   return pathname === "/" ? "نظرة عامة" : "طَبعة";
 }
