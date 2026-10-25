@@ -31,6 +31,13 @@ const adapter: AxiosAdapter = async (config) => {
   }
   if (url === "/orders" && config.method === "get") return response(config, { orders, pagination: page });
   if (url === "/orders" && config.method === "post") return response(config, null, 201);
+  if (url === "/selects" && query.get("selects") === "activeCustomers,printingServices")
+    return response(config, [
+      { label:"activeCustomers", options:[{value:5,label:"أحمد - 01012345678"}] },
+      { label:"printingServices", options:[{value:11,label:"كروت شخصية"}] },
+    ]);
+  if (url === "/customers/5" && config.method === "get")
+    return response(config, {id:5,name:"أحمد",phone:"01012345678",customerTypeId:21,status:1});
   if (url === "/customers" && config.method === "get") return response(config, {
     customers: [{id:5,name:"أحمد",phone:"01012345678",address:null,status:1,statusLabel:"نشط",
       customerTypeId:21,customerType:{id:21,name:"شركة"}}], pagination:page,
@@ -82,7 +89,7 @@ describe("Orders Laravel API workflow", () => {
     visit("/orders/new");
     expect(await screen.findByRole("heading",{name:"إضافة أوردر"})).toBeTruthy();
     const user=userEvent.setup();
-    await screen.findByRole("option", { name: /أحمد — 01012345678/ });
+    await screen.findByRole("option", { name: /أحمد - 01012345678/ });
     await user.selectOptions(await screen.findByRole("combobox",{name:"اختيار العميل"}),"5");
     await screen.findByRole("option", { name: "كروت شخصية" });
     await user.selectOptions(await screen.findByRole("combobox",{name:"خدمة العنصر 1"}),"11");
