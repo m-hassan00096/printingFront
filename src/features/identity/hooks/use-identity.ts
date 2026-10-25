@@ -21,10 +21,11 @@ export function useUsers(filters: UserFilters) {
 export function useUser(id: number) {
   return useQuery({ queryKey: identityKeys.user(id), queryFn: () => getUser(id), enabled: Number.isInteger(id) && id > 0 });
 }
-export function useRoles(filters: RoleFilters) {
+export function useRoles(filters: RoleFilters, enabled = true) {
   return useQuery({
     queryKey: [...identityKeys.roles, filters],
     queryFn: () => listRoles(filters),
+    enabled,
     placeholderData: (previous) => previous,
   });
 }
