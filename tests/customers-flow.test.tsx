@@ -1,0 +1,200 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { AxiosError, type AxiosAdapter, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
+import { App } from "@/App";
+import { apiClient } from "@/shared/api/http";
+import type { AuthUser } from "@/features/auth/types/auth.types";
+import type { Customer } from "@/features/customers/types/customers.types";
+
+const original = apiClient.defaults.adapter;
+const fullPermissions = [
+  "customers.view", "customers.create", "customers.update", "customers.delete",
+  "finance.balances.view", "finance.ledger.view", "orders.list",
+];
+let permissions: string[];
+let requests: Array<{ method: string; path: string; query: URLSearchParams; body: Record<string, unknown> }>;
+let customers: Customer[];
+let rejectDuplicate: boolean;
+
+function response(config: InternalAxiosRequestConfig, data: unknown, status = 200): AxiosResponse {
+  return { config, status, statusText: String(status), headers: {}, data: { success: true, message: "", data } };
+}
+const api: AxiosAdapter = async (config) => {
+  const path = config.url ?? "";
+  const body: Record<string, unknown> = typeof config.data === "string" ? JSON.parse(config.data) as Record<string, unknown> : {};
+  const query = config.params instanceof URLSearchParams
+    ? config.params : new URLSearchParams(config.params as Record<string, string>);
+  requests.push({ method: config.method ?? "", path, query, body });
+  if (path === "/auth/me") {
+    const user: AuthUser = { name: "Admin", username: "admin", role: "admin", roleAlias: "مدير النظام",
+      status: 1, statusLabel: "نشط", permissions };
+    return response(config, user);
+  }
+  if (path === "/selects" && query.get("selects") === "customerTypes") {
+    return response(config, [{
+      label: "customerTypes",
+      options: [{ value: 21, label: "شركة" }, { value: 22, label: "فرد" }],
+    }]);
+  }
+  if (path === "/customers" && config.method === "get") {
+    const search = query.get("filter[search]") ?? "";
+    return response(config, {
+      customers: customers.filter((customer) => customer.name.includes(search) || customer.phone.includes(search)),
+      pagination: { currentPage: 1, lastPage: 1, perPage: 15, total: customers.length },
+    });
+  }
+  if (path === "/customers" && config.method === "post") {
+    const created: Customer = {
+      id: 103, name: String(body.name), phone: String(body.phone),
+      address: body.address ? String(body.address) : null, customerTypeId: Number(body.customerTypeId),
+      customerType: { id: Number(body.customerTypeId), name: "شركة" },
+      status: Number(body.status) as 0 | 1, statusLabel: "فعال",
+    };
+    customers = [...customers, created];
+    return response(config, created, 201);
+  }
+  if (path === "/customers/101" && config.method === "get") return response(config, customers[0]);
+  if (path === "/customers/101" && config.method === "patch") {
+    if (rejectDuplicate) {
+      const failure: AxiosResponse = {
+        config, status: 422, statusText: "Unprocessable Entity", headers: {},
+        data: { success: false, message: "خطأ في البيانات", errors: { phone: ["رقم هاتف العميل مستخدم بالفعل."] } },
+      };
+      throw new AxiosError("Validation failed", "ERR_BAD_REQUEST", config, undefined, failure);
+    }
+    customers = customers.map((c) => c.id === 101 ? {
+      ...c, name: String(body.name), phone: String(body.phone), address: body.address === null ? null : String(body.address),
+    } : c);
+    return response(config, null);
+  }
+  if (path === "/customers/101" && config.method === "delete") {
+    customers = customers.filter((c) => c.id !== 101);
+    return response(config, null);
+  }
+  if (path === "/finance/customers/101/balance") {
+    return response(config, { customerId: 101, amount: "150.00", type: 1, typeLabel: "مدين" });
+  }
+  if (path === "/finance/customers/101/ledger") {
+    return response(config, {
+      entries: [{ id: 9, type: 1, typeLabel: "رصيد افتتاحي", amount: "150.00",
+        signedAmount: "150.00", orderId: null, collectionId: null, refundId: null,
+        effectiveDate: "2026-10-23", note: null, createdAt: "2026-10-23T12:00:00+03:00" }],
+      balance: { amount: "150.00", type: 1, typeLabel: "مدين" },
+      pagination: { currentPage: 1, lastPage: 1, perPage: 15, total: 1 },
+    });
+  }
+  throw Error(`Unexpected request ${config.method} ${path}`);
+};
+
+function visit(path: string) {
+  window.history.replaceState({}, "", path);
+  return render(<App />);
+}
+beforeEach(() => {
+  permissions = [...fullPermissions];
+  rejectDuplicate = false;
+  requests = [];
+  customers = [{ id: 101, name: "أحمد محمد", phone: "01012345678", address: "القاهرة",
+    customerTypeId: 21, customerType: { id: 21, name: "شركة" }, status: 1, statusLabel: "فعال" }];
+  apiClient.defaults.adapter = api;
+});
+afterEach(() => { apiClient.defaults.adapter = original; });
+
+describe("Customers Laravel integration", () => {
+  it("loads customers and searches by name using the real filter contract", async () => {
+    visit("/customers");
+    expect(await screen.findByText("أحمد محمد")).toBeTruthy();
+    await userEvent.setup().type(screen.getByPlaceholderText("بحث باسم العميل أو رقم الهاتف"), "أحمد");
+    await waitFor(() => expect(requests.some((r) => r.path === "/customers" && r.query.get("filter[search]") === "أحمد")).toBe(true));
+  });
+
+  it("creates customer using the shared customerTypes Selects API and camelCase fields", async () => {
+    visit("/customers");
+    expect(await screen.findByText("أحمد محمد")).toBeTruthy();
+    const u = userEvent.setup();
+    await u.click(screen.getByRole("button", { name: "إضافة عميل" }));
+    expect(await within(screen.getByRole("dialog")).findByRole("option", { name: "شركة" })).toBeTruthy();
+    expect(requests.some((r) => r.path === "/selects" && r.query.get("selects") === "customerTypes")).toBe(true);
+    expect(requests.some((r) => r.path === "/customers/customer-types")).toBe(false);
+    await u.type(screen.getByRole("textbox", { name: "اسم العميل" }), "مطبعة الندى");
+    await u.type(screen.getByRole("textbox", { name: "رقم الهاتف" }), "01112345678");
+    await u.selectOptions(screen.getByRole("combobox", { name: "نوع العميل" }), "21");
+    await u.click(screen.getByRole("button", { name: "إضافة العميل" }));
+    await waitFor(() => expect(requests.some((r) => r.path === "/customers" && r.method === "post")).toBe(true));
+    expect(requests.find((r) => r.path === "/customers" && r.method === "post")?.body).toMatchObject({
+      name: "مطبعة الندى", phone: "01112345678", customerTypeId: 21, status: 1, address: null,
+    });
+    expect(await screen.findByText("مطبعة الندى")).toBeTruthy();
+  });
+
+  it("maps backend duplicate phone validation below its field", async () => {
+    rejectDuplicate = true;
+    visit("/customers");
+    expect(await screen.findByText("أحمد محمد")).toBeTruthy();
+    const u = userEvent.setup();
+    await u.click(screen.getByRole("button", { name: "تعديل أحمد محمد" }));
+    const phone = screen.getByRole("textbox", { name: "رقم الهاتف" });
+    await u.clear(phone);
+    await u.type(phone, "01112345678");
+    await u.click(screen.getByRole("button", { name: "حفظ التعديلات" }));
+    expect(await screen.findByText("رقم هاتف العميل مستخدم بالفعل.")).toBeTruthy();
+    expect(phone.getAttribute("aria-invalid")).toBe("true");
+    await u.type(phone, "9");
+    expect(screen.queryByText("رقم هاتف العميل مستخدم بالفعل.")).toBeNull();
+  });
+
+  it("hides write actions when logged in as a read-only customer user", async () => {
+    permissions = ["customers.view"];
+    visit("/customers");
+    expect(await screen.findByText("أحمد محمد")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "إضافة عميل" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "تعديل أحمد محمد" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "حذف أحمد محمد" })).toBeNull();
+    await waitFor(() => expect(requests.some((request) =>
+      request.path === "/selects" && request.query.get("selects") === "customerTypes")).toBe(true));
+  });
+
+  it("renders details by default and loads ledger only when its tab is selected", async () => {
+    visit("/customers/101");
+    expect(await screen.findByRole("heading", { name: "أحمد محمد" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "بيانات العميل" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("tabpanel")).toBeTruthy();
+    expect(screen.getByText("القاهرة")).toBeTruthy();
+    expect(await screen.findByText("صافي المديونية الحالية")).toBeTruthy();
+    expect(screen.getByText("الرصيد الدائن الحالي")).toBeTruthy();
+    const heading = screen.getByRole("heading", { name: "أحمد محمد" });
+    const customerHeader = heading.closest("header");
+    expect(customerHeader).not.toBeNull();
+    expect(within(customerHeader!).queryByText(/رقم الهاتف/)).toBeNull();
+    expect(within(customerHeader!).queryByText(/نوع العميل/)).toBeNull();
+    expect(screen.getAllByText("فعال")).toHaveLength(1);
+    expect(within(screen.getByRole("tabpanel")).queryByText("الحالة")).toBeNull();
+    expect(screen.getByRole("button", { name: "تعديل العميل" })).toBeTruthy();
+    expect(requests.some((r) => r.path === "/finance/customers/101/balance")).toBe(true);
+    expect(requests.some((r) => r.path === "/finance/customers/101/ledger")).toBe(false);
+
+    await userEvent.setup().click(screen.getByRole("tab", { name: "كشف الحساب" }));
+    expect(await screen.findByText("رصيد افتتاحي")).toBeTruthy();
+    expect(requests.some((r) => r.path === "/finance/customers/101/ledger")).toBe(true);
+    expect(screen.getByRole("tab", { name: "كشف الحساب" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.queryByText("القاهرة")).toBeNull();
+
+    await userEvent.setup().click(screen.getByRole("tab", { name: "الأوردرات" }));
+    expect(await screen.findByText("حاليًا لا توجد قائمة أوردرات مربوطة بهذه الصفحة.")).toBeTruthy();
+    expect(requests.some((r) => r.path === "/orders")).toBe(false);
+    await userEvent.setup().click(screen.getByRole("tab", { name: "بيانات العميل" }));
+    expect(await screen.findByText("القاهرة")).toBeTruthy();
+  });
+
+  it("does not request or display finance when customer user lacks finance rights", async () => {
+    permissions = ["customers.view"];
+    visit("/customers/101");
+    expect(await screen.findByRole("heading", { name: "أحمد محمد" })).toBeTruthy();
+    expect(screen.queryByText("ملخص الحساب")).toBeNull();
+    expect(screen.queryByRole("tab", { name: "كشف الحساب" })).toBeNull();
+    expect(screen.queryByRole("tab", { name: "الأوردرات" })).toBeNull();
+    expect(screen.getByRole("tab", { name: "بيانات العميل" })).toBeTruthy();
+    expect(requests.filter((r) => r.path.startsWith("/finance/"))).toHaveLength(0);
+  });
+});

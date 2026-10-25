@@ -8,6 +8,7 @@ on:
       - feature/auth
       - feature/identity
       - feature/settings
+      - feature/customers
   pull_request:
     branches:
       - develop
