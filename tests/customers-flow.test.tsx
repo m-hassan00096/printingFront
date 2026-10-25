@@ -31,8 +31,11 @@ const api: AxiosAdapter = async (config) => {
       status: 1, statusLabel: "نشط", permissions };
     return response(config, user);
   }
-  if (path === "/customers/customer-types") {
-    return response(config, { customerTypes: [{ value: 21, label: "شركة" }, { value: 22, label: "فرد" }] });
+  if (path === "/selects" && query.get("selects") === "customerTypes") {
+    return response(config, [{
+      label: "customerTypes",
+      options: [{ value: 21, label: "شركة" }, { value: 22, label: "فرد" }],
+    }]);
   }
   if (path === "/customers" && config.method === "get") {
     const search = query.get("filter[search]") ?? "";
@@ -106,12 +109,14 @@ describe("Customers Laravel integration", () => {
     await waitFor(() => expect(requests.some((r) => r.path === "/customers" && r.query.get("filter[search]") === "أحمد")).toBe(true));
   });
 
-  it("creates customer using active-type endpoint and camelCase fields", async () => {
+  it("creates customer using the shared customerTypes Selects API and camelCase fields", async () => {
     visit("/customers");
     expect(await screen.findByText("أحمد محمد")).toBeTruthy();
     const u = userEvent.setup();
     await u.click(screen.getByRole("button", { name: "إضافة عميل" }));
     expect(await within(screen.getByRole("dialog")).findByRole("option", { name: "شركة" })).toBeTruthy();
+    expect(requests.some((r) => r.path === "/selects" && r.query.get("selects") === "customerTypes")).toBe(true);
+    expect(requests.some((r) => r.path === "/customers/customer-types")).toBe(false);
     await u.type(screen.getByRole("textbox", { name: "اسم العميل" }), "مطبعة الندى");
     await u.type(screen.getByRole("textbox", { name: "رقم الهاتف" }), "01112345678");
     await u.selectOptions(screen.getByRole("combobox", { name: "نوع العميل" }), "21");

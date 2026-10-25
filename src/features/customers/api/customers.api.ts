@@ -24,9 +24,16 @@ export async function getCustomer(id: number): Promise<Customer> {
   return data.data;
 }
 export async function getCustomerTypes(): Promise<CustomerOption[]> {
-  const { data } = await apiClient.get<ApiResponse<{ customerTypes: CustomerOption[] }>>("/customers/customer-types");
-  if (!Array.isArray(data.data?.customerTypes)) throw new Error("تعذّر تحميل أنواع العملاء.");
-  return data.data.customerTypes;
+  const { data } = await apiClient.get<ApiResponse<Array<{ label: string; options: CustomerOption[] }>>>("/selects", {
+    params: { selects: "customerTypes" },
+  });
+  const entry = data.data?.find((item) => item.label === "customerTypes");
+  if (!entry || !Array.isArray(entry.options) ||
+      !entry.options.every((option) =>
+        Number.isSafeInteger(option.value) && option.value > 0 && typeof option.label === "string")) {
+    throw new Error("تعذّر تحميل أنواع العملاء من قوائم الاختيار.");
+  }
+  return entry.options;
 }
 export async function createCustomer(payload: CustomerPayload): Promise<Customer> {
   const { data } = await apiClient.post<ApiResponse<Customer>>("/customers", payload);
