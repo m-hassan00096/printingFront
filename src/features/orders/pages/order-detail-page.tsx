@@ -203,6 +203,7 @@ export function OrderDetailPage() {
   const [editHeader, setEditHeader] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deposit, setDeposit] = useState("0");
+  const [overpaymentAcknowledged, setOverpaymentAcknowledged] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"0" | "1" | "2">("0");
   const [paymentDestinationId, setPaymentDestinationId] = useState("");
   const destinations = useQuery({
@@ -223,6 +224,9 @@ export function OrderDetailPage() {
   const mayCancel = perms.includes("orders.cancel");
   async function confirm() {
     if (!order.data || !moneyPattern.test(deposit)) {setError("أدخل مبلغًا صحيحًا.");return;}
+    if (Number(deposit) > Number(order.data.totalAmount) && !overpaymentAcknowledged) {
+      setError("العربون أعلى من إجمالي الأوردر؛ أكد تحويل الزيادة لرصيد العميل الدائن.");return;
+    }
     try {
       const hasDeposit = Number(deposit) > 0;
       if (hasDeposit && paymentMethod !== "0" && !paymentDestinationId) {
@@ -317,6 +321,11 @@ export function OrderDetailPage() {
           <input aria-label="قيمة العربون" dir="ltr" className={fieldClass + " mt-2"}
             value={deposit} onChange={(e) => setDeposit(e.target.value)} />
         </label>
+        {Number(deposit) > Number(item.totalAmount) && <label className="flex items-start gap-2 rounded-xl border border-amber-300 p-3 text-xs">
+          <input type="checkbox" checked={overpaymentAcknowledged} onChange={(e) => setOverpaymentAcknowledged(e.target.checked)}
+            aria-label="تأكيد الزيادة عن قيمة الأوردر" />
+          أؤكد أن العربون يتجاوز إجمالي الأوردر، وأن الزيادة ستُسجل كرصيد دائن للعميل وفق قواعد المالية.
+        </label>}
         {Number(deposit) > 0 && <div className="space-y-3">
           <label className="block text-sm font-semibold">طريقة الدفع
             <select aria-label="طريقة دفع العربون" className={fieldClass + " mt-2"} value={paymentMethod}
