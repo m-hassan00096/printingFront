@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { featureAccessPolicy, identityAccessPolicy } from "@/app/access-policy";
+import { featureAccessPolicy, identityAccessPolicy, printingServiceAccessPolicy } from "@/app/access-policy";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AppShell } from "@/app/layouts/app-shell";
 import { FeaturePlaceholderPage } from "@/app/pages/feature-placeholder-page";
@@ -23,6 +23,9 @@ const RoleFormPage = lazy(async () => ({ default: (await import("@/features/iden
 const SettingsPage = lazy(async () => ({ default: (await import("@/features/settings/pages/settings-page")).SettingsPage }));
 const CustomersPage = lazy(async () => ({ default: (await import("@/features/customers/pages/customers-page")).CustomersPage }));
 const CustomerDetailPage = lazy(async () => ({ default: (await import("@/features/customers/pages/customer-detail-page")).CustomerDetailPage }));
+const PrintingServicesPage = lazy(async () => ({ default: (await import("@/features/printing-services/pages/printing-services-page")).PrintingServicesPage }));
+const PrintingServiceDetailPage = lazy(async () => ({ default: (await import("@/features/printing-services/pages/printing-service-detail-page")).PrintingServiceDetailPage }));
+const PrintingServiceFormPage = lazy(async () => ({ default: (await import("@/features/printing-services/pages/printing-service-form-page")).PrintingServiceFormPage }));
 
 function LazyIdentity({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<AuthLoading />}>{children}</Suspense>;
@@ -59,6 +62,10 @@ export function AppRouter() {
               />
             ))}
 
+            <Route path="printing-services" element={<RequirePermission anyOf={printingServiceAccessPolicy.view}><Suspense fallback={<AuthLoading />}><PrintingServicesPage /></Suspense></RequirePermission>} />
+            <Route path="printing-services/new" element={<RequirePermission anyOf={printingServiceAccessPolicy.create}><Suspense fallback={<AuthLoading />}><PrintingServiceFormPage /></Suspense></RequirePermission>} />
+            <Route path="printing-services/:id" element={<RequirePermission anyOf={printingServiceAccessPolicy.view}><Suspense fallback={<AuthLoading />}><PrintingServiceDetailPage /></Suspense></RequirePermission>} />
+            <Route path="printing-services/:id/edit" element={<RequirePermission anyOf={printingServiceAccessPolicy.update}><Suspense fallback={<AuthLoading />}><PrintingServiceFormPage /></Suspense></RequirePermission>} />
             <Route path="customers" element={<RequirePermission anyOf={featureAccessPolicy.customers}><Suspense fallback={<AuthLoading />}><CustomersPage /></Suspense></RequirePermission>} />
             <Route path="customers/:id" element={<RequirePermission anyOf={featureAccessPolicy.customers}><Suspense fallback={<AuthLoading />}><CustomerDetailPage /></Suspense></RequirePermission>} />
             <Route path="settings" element={<RequirePermission anyOf={featureAccessPolicy.settings}><Suspense fallback={<AuthLoading />}><SettingsPage /></Suspense></RequirePermission>} />

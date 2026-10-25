@@ -25,3 +25,12 @@ export const identityAccessPolicy = {
   createRole: ["identity.roles.create"],
   editRole: ["identity.roles.update"],
 } as const;
+
+/** Printing Services UI uses the exact backend Spatie permission keys. */
+export const printingServiceAccessPolicy = {
+  view: ["printing_services.view"],
+  create: ["printing_services.create"],
+  update: ["printing_services.update"],
+  delete: ["printing_services.delete"],
+  preview: ["printing_services.price_preview.view"],
+} as const;
