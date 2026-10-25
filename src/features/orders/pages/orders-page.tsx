@@ -90,9 +90,12 @@ export function OrdersPage() {
                 <th scope="col" key={label} className="px-4 py-3 font-bold">{label}</th>)}
             </tr></thead>
             <tbody className="divide-y">{orders.data.orders.map((order) => <tr key={order.id} className="hover:bg-muted/30">
-              <td className="px-4 py-3"><Link className="flex items-center gap-2 font-bold hover:underline" to={`/orders/${order.id}`}>
-                <ClipboardList className="size-4 text-primary" /> {order.orderNumber ?? `مسودة #${order.id}`}
-              </Link></td>
+              <td className="px-4 py-3">{perms.includes("orders.view") ?
+                <Link className="flex items-center gap-2 font-bold hover:underline" to={`/orders/${order.id}`}>
+                  <ClipboardList className="size-4 text-primary" /> {order.orderNumber ?? `مسودة #${order.id}`}
+                </Link> :
+                <span className="inline-flex items-center gap-2 font-bold"><ClipboardList className="size-4 text-primary" />
+                  {order.orderNumber ?? `مسودة #${order.id}`}</span>}</td>
               <td className="px-4 py-3">{order.customerName}</td><td className="px-4 py-3 tabular-nums">{order.customerPhone}</td>
               <td className="px-4 py-3 font-semibold tabular-nums">{order.totalAmount} ج.م</td>
               <td className="px-4 py-3">{order.statusLabel}</td>

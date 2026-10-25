@@ -113,7 +113,7 @@ export function OrderCreatePage() {
     try {
       await actions.create.mutateAsync({ payload, key: idempotency.current });
       toast.success("تم حفظ مسودة الأوردر. افتحها من القائمة لاستكمال الملفات أو التأكيد.");
-      navigate("/orders");
+      navigate(permissions.includes("orders.list") ? "/orders" : "/");
     } catch (error: unknown) {
       if (axios.isAxiosError<ApiErrorResponse>(error) && error.response?.status === 422) {
         const server = error.response.data?.errors ?? {};
