@@ -3,7 +3,7 @@ import { ArrowRight, CheckCircle2, Paperclip, Pencil, Plus, Trash2, Upload } fro
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
-import { listPrintingServices } from "@/features/printing-services/api/printing-services.api";
+import { getOrderServiceOptions, getOrderPaymentOptions } from "../api/order-options.api";
 import { Button } from "@/shared/components/ui/button";
 import { getApiErrorMessage } from "@/shared/api/http";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
@@ -72,7 +72,7 @@ function ItemEditor({ order, item, onClose }: { order: Order; item?: OrderItem; 
   );
   const services = useQuery({
     queryKey: ["orders", "item-services", serviceSearch],
-    queryFn: () => listPrintingServices({ search: serviceSearch, status: "1", sort: "name", page: 1 }),
+    queryFn: getOrderServiceOptions,
     enabled: !item,
   });
   const [error, setError] = useState("");
@@ -112,13 +112,15 @@ function ItemEditor({ order, item, onClose }: { order: Order; item?: OrderItem; 
                 disabled={busy || services.isPending} value={serviceId}
                 onChange={(e) => {
                   setServiceId(e.target.value);
-                  const found = services.data?.printingServices.find((option) => String(option.id) === e.target.value);
-                  setSelectedService(found ? { id: found.id, name: found.name } : null);
+                  const found = services.data?.find((option) => String(option.value) === e.target.value);
+                  setSelectedService(found ? { id: found.value, name: found.label } : null);
                 }}>
                 <option value="">اختر الخدمة</option>
-                {selectedService && !services.data?.printingServices.some((option) => option.id === selectedService.id) &&
+                {services.data?.filter((option) => option.label.includes(serviceSearch.trim())).map((option) =>
+                  <option key={option.value} value={option.value}>{option.label}</option>)}
+                {selectedService && !services.data?.some((option) => option.value === selectedService.id &&
+                    option.label.includes(serviceSearch.trim())) &&
                   <option value={selectedService.id}>{selectedService.name}</option>}
-                {services.data?.printingServices.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
               </select>
             </label>
             {services.isError && <p role="alert" className="text-xs text-destructive">تعذّر تحميل الخدمات.</p>}
@@ -201,6 +203,13 @@ export function OrderDetailPage() {
   const [editHeader, setEditHeader] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deposit, setDeposit] = useState("0");
+  const [paymentMethod, setPaymentMethod] = useState<"0" | "1" | "2">("0");
+  const [paymentDestinationId, setPaymentDestinationId] = useState("");
+  const destinations = useQuery({
+    queryKey: ["orders", "payment-destinations"],
+    queryFn: getOrderPaymentOptions,
+    enabled: confirmOpen,
+  });
   const [reason, setReason] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
   const [deleteItem, setDeleteItem] = useState<OrderItem | null>(null);
@@ -215,8 +224,15 @@ export function OrderDetailPage() {
   async function confirm() {
     if (!order.data || !moneyPattern.test(deposit)) {setError("أدخل مبلغًا صحيحًا.");return;}
     try {
-      // Cash deposit; non-cash destinations require an active account selection.
-      await actions.confirm.mutateAsync({ id, key: confirmKey.current, payload: deposit === "0" || Number(deposit) === 0 ? {} : { depositAmount: deposit, paymentMethod: 0 } });
+      const hasDeposit = Number(deposit) > 0;
+      if (hasDeposit && paymentMethod !== "0" && !paymentDestinationId) {
+        setError("اختر حساب البنك أو المحفظة التي استلمت العربون.");return;
+      }
+      const payload: Parameters<typeof actions.confirm.mutateAsync>[0]["payload"] = hasDeposit
+        ? { depositAmount: deposit, paymentMethod: Number(paymentMethod) as 0 | 1 | 2,
+            ...(paymentMethod !== "0" ? { paymentDestinationId: Number(paymentDestinationId) } : {}) }
+        : {};
+      await actions.confirm.mutateAsync({ id, key: confirmKey.current, payload });
       toast.success("تم تأكيد الأوردر.");setConfirmOpen(false);setError("");
     } catch (e: unknown) {setError(getApiErrorMessage(e, "تعذّر تأكيد الأوردر."));}
   }
@@ -296,10 +312,30 @@ export function OrderDetailPage() {
     {confirmOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
       <section role="dialog" aria-modal="true" aria-label="تأكيد الأوردر" className="w-full max-w-md space-y-4 rounded-2xl bg-card p-6">
         <h2 className="font-bold">تأكيد الأوردر</h2>
-        <p className="text-sm text-muted-foreground">سيُثبت إجمالي الأوردر على حساب العميل ويُنشأ رقم الأوردر. يمكن تسجيل عربون نقدي الآن.</p>
-        <label className="block text-sm font-semibold">عربون نقدي (ج.م)
-          <input aria-label="عربون نقدي" dir="ltr" className={fieldClass + " mt-2"} value={deposit} onChange={(e) => setDeposit(e.target.value)} />
+        <p className="text-sm text-muted-foreground">سيُثبت إجمالي الأوردر على حساب العميل ويُنشأ رقم الأوردر. يمكن تسجيل العربون الآن.</p>
+        <label className="block text-sm font-semibold">قيمة العربون (ج.م)
+          <input aria-label="قيمة العربون" dir="ltr" className={fieldClass + " mt-2"}
+            value={deposit} onChange={(e) => setDeposit(e.target.value)} />
         </label>
+        {Number(deposit) > 0 && <div className="space-y-3">
+          <label className="block text-sm font-semibold">طريقة الدفع
+            <select aria-label="طريقة دفع العربون" className={fieldClass + " mt-2"} value={paymentMethod}
+              onChange={(e) => {setPaymentMethod(e.target.value as "0" | "1" | "2");setPaymentDestinationId("");}}>
+              <option value="0">نقدي</option><option value="1">تحويل بنكي</option><option value="2">محفظة إلكترونية</option>
+            </select>
+          </label>
+          {paymentMethod !== "0" && <label className="block text-sm font-semibold">وجهة التحصيل *
+            <select aria-label="وجهة تحصيل العربون" className={fieldClass + " mt-2"} value={paymentDestinationId}
+              disabled={destinations.isPending || destinations.isError}
+              onChange={(e) => setPaymentDestinationId(e.target.value)}>
+              <option value="">اختر وجهة التحصيل</option>
+              {(paymentMethod === "1" ? destinations.data?.banks : destinations.data?.wallets)?.map((option) =>
+                <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </label>}
+          {destinations.isError && paymentMethod !== "0" &&
+            <p role="alert" className="text-xs text-destructive">تعذّر تحميل وسائل التحصيل. اختر نقدي أو حاول مرة أخرى.</p>}
+        </div>}
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <div className="flex justify-end gap-2"><Button variant="outline" disabled={actions.confirm.isPending} onClick={() => setConfirmOpen(false)}>رجوع</Button>
           <Button disabled={actions.confirm.isPending} onClick={() => void confirm()}>تأكيد</Button></div>
