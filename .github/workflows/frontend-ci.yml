@@ -25,6 +25,7 @@ jobs:
           node-version-file: .nvmrc
       # Temporary: the committed legacy lockfile is incompatible with npm 10 resolution.
       # Regenerate and commit a synchronized lockfile before merging.
+      - run: npm install --global npm@11
       - run: rm -f package-lock.json && npm install --no-audit --no-fund
       - run: npm test
       - run: npm run typecheck
