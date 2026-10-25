@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import {
   safeReturnPath,
   hasAnyPermission,
-  shouldResetSession,
 } from "../src/features/auth/lib/auth-helpers.ts";
+import { shouldResetSession } from "../src/shared/api/session-policy.ts";
 import { loginSchema } from "../src/features/auth/schemas/login.schema.ts";
 
 test("safeReturnPath preserves legitimate protected destination and query", () => {

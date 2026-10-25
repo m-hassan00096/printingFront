@@ -1,5 +1,5 @@
 import axios from "axios";
-import { shouldResetSession } from "@/features/auth/lib/auth-helpers";
+import { shouldResetSession } from "@/shared/api/session-policy";
 
 const backendBaseURL = import.meta.env.VITE_BACKEND_URL || undefined;
 
