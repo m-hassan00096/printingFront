@@ -139,8 +139,8 @@ describe("Orders Laravel API workflow", () => {
     await user.clear(screen.getByRole("textbox",{name:"قيمة العربون"}));
     await user.type(screen.getByRole("textbox",{name:"قيمة العربون"}),"50.00");
     await user.selectOptions(screen.getByRole("combobox",{name:"طريقة دفع العربون"}),"1");
-    await screen.findByRole("option",{name:"بنك مصر - ****1234"});
-    await user.selectOptions(screen.getByRole("combobox",{name:"وجهة تحصيل العربون"}),"7");
+    await screen.findByRole("option",{name:"بنك مصر - ****1234 (افتراضي)"});
+    await waitFor(() => expect((screen.getByRole("combobox",{name:"وجهة تحصيل العربون"}) as HTMLSelectElement).value).toBe("7"));
     await user.click(screen.getByRole("button",{name:"تأكيد",exact:true}));
     await waitFor(() => expect(calls.some(c=>c.url==="/orders/101/confirm")).toBe(true));
     const confirmation=calls.find(c=>c.url==="/orders/101/confirm");
@@ -208,6 +208,21 @@ describe("Orders Laravel API workflow", () => {
     await user.click(screen.getByRole("checkbox",{name:"تأكيد الزيادة عن قيمة الأوردر"}));
     await user.click(screen.getByRole("button",{name:"تأكيد الأوردر"}));
     await waitFor(() => expect(calls.filter(c=>c.url==="/orders" && c.method==="post")).toHaveLength(1));
+  });
+
+  it("auto-selects the default wallet when confirming a saved draft", async () => {
+    visit("/orders/101");
+    expect(await screen.findByText("مسودة #101")).toBeTruthy();
+    const user=userEvent.setup();
+    await user.click(screen.getByRole("button",{name:"تأكيد الأوردر"}));
+    await user.clear(screen.getByRole("textbox",{name:"قيمة العربون"}));
+    await user.type(screen.getByRole("textbox",{name:"قيمة العربون"}),"75.00");
+    await user.selectOptions(screen.getByRole("combobox",{name:"طريقة دفع العربون"}),"2");
+    await waitFor(() => expect((screen.getByRole("combobox",{name:"وجهة تحصيل العربون"}) as HTMLSelectElement).value).toBe("9"));
+    await user.click(screen.getByRole("button",{name:"تأكيد",exact:true}));
+    await waitFor(() => expect(calls.some(c=>c.url==="/orders/101/confirm")).toBe(true));
+    expect(calls.find(c=>c.url==="/orders/101/confirm")?.body)
+      .toEqual({depositAmount:"75.00",paymentMethod:2,paymentDestinationId:9});
   });
 
 });
