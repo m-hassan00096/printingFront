@@ -107,7 +107,7 @@ describe("Printing Services API integration", () => {
     visit("/printing-services/new");
     expect(await screen.findByRole("heading", { name: "إضافة خدمة طباعة" })).toBeTruthy();
     const user = userEvent.setup();
-    await user.type(screen.getByRole("textbox", { name: "اسم الخدمة" }), "بوسترات");
+    await user.type(await screen.findByRole("textbox", { name: "اسم الخدمة" }), "بوسترات");
     await user.type(screen.getByRole("textbox", { name: "السعر الأساسي" }), "10.00");
     await user.click(screen.getByRole("button", { name: "إضافة شريحة" }));
     await user.selectOptions(screen.getByRole("combobox", { name: "نوع عميل الشريحة 1" }), "21");
@@ -128,7 +128,7 @@ describe("Printing Services API integration", () => {
     visit("/printing-services/11/edit");
     expect(await screen.findByRole("heading", { name: "تعديل خدمة طباعة" })).toBeTruthy();
     const user = userEvent.setup();
-    const price = screen.getByRole("textbox", { name: "سعر الشريحة 1" });
+    const price = await screen.findByRole("textbox", { name: "سعر الشريحة 1" });
     await user.clear(price);
     await user.type(price, "6.25");
     await user.click(screen.getByRole("button", { name: "حفظ التعديلات" }));
