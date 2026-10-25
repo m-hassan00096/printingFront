@@ -208,7 +208,7 @@ export function OrderDetailPage() {
   const destinations = useQuery({
     queryKey: ["orders", "payment-destinations"],
     queryFn: getOrderPaymentOptions,
-    enabled: confirmOpen,
+    enabled: confirmOpen && Number(deposit) > 0 && paymentMethod !== "0",
   });
   const [reason, setReason] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
