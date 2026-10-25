@@ -19,13 +19,13 @@
 | POST | `/api/v1/customers` | `Customer` (201) | `customers.create` |
 | PATCH | `/api/v1/customers/{id}` | `null` | `customers.update` |
 | DELETE | `/api/v1/customers/{id}` | `null` | `customers.delete` |
-| GET | `/api/v1/selects?selects=customerTypes` | `[{label:"customerTypes",options:[{value,label}]}]` | `settings.selects.view` (or customer read/write rights after ACL update) |
+| GET | `/api/v1/selects?selects=customerTypes` | `[{label:"customerTypes",options:[{value,label}]}]` | any of `settings.selects.view`, `customers.view`, `customers.create`, `customers.update` (backend PR #16) |
 | GET | `/api/v1/finance/customers/{id}/balance` | `{customerId,amount,type,typeLabel}` | `finance.balances.view` |
 | GET | `/api/v1/finance/customers/{id}/ledger` | `{entries,balance,pagination}` | `finance.ledger.view` |
 
 All amounts are decimal strings, **Finance balance type is integer enum 0=zero,1=debit,2=credit**. Do not derive an account balance from frontend summation. Ledger filters are `filter[dateFrom]`/`filter[dateTo]` and pagination.
 
-Customer type options come from the shared Selects registry and contain only active assignable types. The UI must locate the entry whose `label` is `customerTypes` and use its `options` array, not treat the Selects envelope as a flat list.\n\nThe Customer resource fields are `id,name,phone,address,customerTypeId,customerType:{id,name}|null,status,statusLabel`. Store requires `name,phone,customerTypeId,status`; address optional. Update supports partial PATCH and the UI sends only changed fields. Backend requires an assignable active type if `customerTypeId` changes.
+Customer type options come from the shared Selects registry and contain only active assignable types. The UI must locate the entry whose `label` is `customerTypes` and use its `options` array, not treat the Selects envelope as a flat list. This Selects key is available to customer staff without granting access to other Settings selects.\n\nThe Customer resource fields are `id,name,phone,address,customerTypeId,customerType:{id,name}|null,status,statusLabel`. Store requires `name,phone,customerTypeId,status`; address optional. Update supports partial PATCH and the UI sends only changed fields. Backend requires an assignable active type if `customerTypeId` changes.
 
 Search/filter keys: `filter[search]`, `filter[status]`, `filter[customerTypeId]`. Allowed sorts include `id`, `-id`, `name`, `-name`, `created_at`. Pagination is `page` and `perPage`.
 

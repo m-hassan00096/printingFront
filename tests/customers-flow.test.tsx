@@ -151,6 +151,8 @@ describe("Customers Laravel integration", () => {
     expect(screen.queryByRole("button", { name: "إضافة عميل" })).toBeNull();
     expect(screen.queryByRole("button", { name: "تعديل أحمد محمد" })).toBeNull();
     expect(screen.queryByRole("button", { name: "حذف أحمد محمد" })).toBeNull();
+    await waitFor(() => expect(requests.some((request) =>
+      request.path === "/selects" && request.query.get("selects") === "customerTypes")).toBe(true));
   });
 
   it("shows finance balance and ledger only if finance permissions are granted", async () => {
