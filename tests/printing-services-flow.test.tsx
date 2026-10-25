@@ -140,7 +140,7 @@ describe("Printing Services API integration", () => {
     }] });
   });
 
-  it("shows compact pricing only, with no preview UI or preview API calls", async () => {
+  it("shows compact pricing and calculates the suggested price using Laravel", async () => {
     visit("/printing-services/11");
     expect(await screen.findByRole("heading", { name: "كروت شخصية" })).toBeTruthy();
     const section = screen.getByRole("region", { name: "أسعار الخدمة" });
@@ -148,16 +148,31 @@ describe("Printing Services API integration", () => {
     expect(within(section).getByText("سعر الوحدة")).toBeTruthy();
     expect(within(section).getByText("5.50 ج.م")).toBeTruthy();
     expect(within(section).getByText("10.00 ج.م")).toBeTruthy();
-    expect(screen.queryByText("معاينة السعر المقترح")).toBeNull();
-    expect(screen.queryByText("معاينة السعر المقترح")).toBeNull();
+    expect(screen.getByRole("heading", { name: "حاسبة السعر المقترح" })).toBeTruthy();
     expect(calls.some((c) => c.url === "/printing-services/price-preview")).toBe(false);
+
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByRole("combobox", { name: "نوع عميل المعاينة" }), "21");
+    const quantity = screen.getByRole("spinbutton", { name: "كمية المعاينة" });
+    await user.clear(quantity);
+    await user.type(quantity, "200");
+    await user.click(screen.getByRole("button", { name: "حساب السعر المقترح" }));
+    await waitFor(() => expect(calls.some((c) => c.url === "/printing-services/price-preview")).toBe(true));
+    expect(calls.find((c) => c.url === "/printing-services/price-preview")?.body)
+      .toEqual({ serviceId: 11, customerTypeId: 21, quantity: 200 });
+    expect(await within(screen.getByLabelText("نتيجة معاينة السعر")).findByText(/1100.00/)).toBeTruthy();
+
+    await user.clear(quantity);
+    await user.type(quantity, "201");
+    expect(screen.queryByLabelText("نتيجة معاينة السعر")).toBeNull();
   });
 
-  it("hides update actions without permission and never renders a price preview", async () => {
+  it("hides update and calculator when their permissions are absent", async () => {
     permissions = ["printing_services.view"];
     visit("/printing-services/11");
     expect(await screen.findByRole("heading", { name: "كروت شخصية" })).toBeTruthy();
     expect(screen.queryByRole("link", { name: /تعديل الخدمة/ })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "حاسبة السعر المقترح" })).toBeNull();
     expect(screen.queryByRole("button", { name: "حساب السعر المقترح" })).toBeNull();
     expect(calls.some((c) => c.url === "/printing-services/price-preview")).toBe(false);
   });

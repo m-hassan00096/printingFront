@@ -8,7 +8,7 @@
 
 - `/printing-services` — searchable, sortable, filterable and paginated services table (permission: `printing_services.view`).
 - `/printing-services/new` — create service and initial price tiers in a compact form (`printing_services.create`).
-- `/printing-services/:id` — compact header and pricing table (only `printing_services.view`); price preview is deliberately **not shown** in the service UI.
+- `/printing-services/:id` — compact header and pricing table (`printing_services.view`) and a compact calculator shown only with `printing_services.price_preview.view`.
 - `/printing-services/:id/edit` — edit base fields and individual tiers in streamlined rows (`printing_services.update`).
 - Delete with confirmation is available only with `printing_services.delete`. A backend 409 remains authoritative when orders reference a service.
 - Customer type Selects: `GET /api/v1/selects?selects=customerTypes` -> `data: [{label:"customerTypes",options:[{value,label}]}]`. It is reused from Customers, not a new list/lookup API. Only active customer types are supplied; existing inactive type IDs remain visible in saved tiers and are not silently replaced.
@@ -22,7 +22,7 @@
 | POST | `/api/v1/printing-services` | created service resource (HTTP 201) |
 | PATCH | `/api/v1/printing-services/{id}` | updated service resource |
 | DELETE | `/api/v1/printing-services/{id}` | `null` |
-| POST | `/api/v1/printing-services/price-preview` | Backend pricing endpoint retained for other modules; **not called by Printing Services UI** |
+| POST | `/api/v1/printing-services/price-preview` | Backend price recommendation used by the optional calculator; never calculated in React |
 
 List queries support `filter[search]`, `filter[status]`, `sort` (`id,-id,name,-name`), `page` and `perPage`. List resource does **not guarantee** `priceTiers`; use the Show endpoint for tiers.
 
@@ -54,15 +54,15 @@ List queries support `filter[search]`, `filter[status]`, `sort` (`id,-id,name,-n
 ### Simplified UX
 
 - The service detail page shows only the service heading/status, a small optional base-price label, and a single tiers table.
-- No redundant tier-count/base-price cards or price-preview form. The pricing API is not removed from Laravel.
-- If base price is null, show a clear fallback note: manual total is required only when no tier matches.
+- No redundant tier-count/base-price cards. A compact price calculator appears below the tiers only with its preview permission and on active services.
+- If base price is null, show a clear fallback note: manual total is required only when no tier matches. The calculator displays `requiresManualTotal` from Laravel.
 - The create/edit form shows name, optional base price, status, and compact editable tier rows with one Add button.
 - Keep per-field Laravel validation errors and the backend's tier commands unchanged.
 
 ## Verification and follow-up
 
 - CI: `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`.
-- `tests/printing-services-flow.test.tsx` checks list queries, create payloads, tier change commands, absence of preview, and permission-limited pages.
+- `tests/printing-services-flow.test.tsx` checks list queries, create payloads, tier change commands, server-driven price preview, invalidation on field edits, and permission-limited pages.
 - Local browser smoke test still needed against MySQL/Laravel: conflicting tier boundaries, duplicate names, 422 translation, full create/update/delete workflow, inactive services, manual pricing fallback labels and 409 usage guards.
 - Keep frontend PR in Draft until user reviews UI and real data integration.
 

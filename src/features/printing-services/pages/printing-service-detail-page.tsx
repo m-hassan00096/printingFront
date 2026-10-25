@@ -5,6 +5,7 @@ import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { useCustomerTypes } from "@/features/customers/hooks/use-customers";
 import { ErrorState, IdentityStatus, LoadingState } from "@/features/identity/components/identity-ui";
 import { usePrintingService } from "../hooks/use-printing-services";
+import { PricePreviewCalculator } from "../components/price-preview-calculator";
 import type { ServiceTier } from "../types/printing-service.types";
 
 function QuantityRange({ tier }: { tier: ServiceTier }) {
@@ -28,6 +29,7 @@ export function PrintingServiceDetailPage() {
   const valid = Number.isSafeInteger(id) && id > 0;
   const { data: session } = useCurrentUser();
   const mayEdit = session?.permissions.includes("printing_services.update") ?? false;
+  const mayPreview = session?.permissions.includes("printing_services.price_preview.view") ?? false;
   const service = usePrintingService(valid ? id : 0);
   const types = useCustomerTypes(true);
 
@@ -99,5 +101,6 @@ export function PrintingServiceDetailPage() {
           : "إذا لم تنطبق أي شريحة، يُستخدم السعر الأساسي للخدمة."}
       </p>}
     </section>
+    {mayPreview && <PricePreviewCalculator key={item.id} serviceId={item.id} active={item.status === 1} />}
   </div>;
 }
