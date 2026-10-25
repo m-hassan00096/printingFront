@@ -1,4 +1,5 @@
 import axios from "axios";
+import { shouldResetSession } from "@/features/auth/lib/auth-helpers";
 
 const backendBaseURL = import.meta.env.VITE_BACKEND_URL || undefined;
 
@@ -21,6 +22,30 @@ const csrfClient = axios.create({
   headers: defaultHeaders,
 });
 
+/**
+ * Registered from the auth boundary. Keeping a callback avoids importing
+ * React Query or an auth store into the shared API client.
+ */
+let sessionExpiredHandler: (() => void) | null = null;
+
+export function onSessionExpired(callback: () => void): () => void {
+  sessionExpiredHandler = callback;
+  return () => {
+    if (sessionExpiredHandler === callback) sessionExpiredHandler = null;
+  };
+}
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => {
+    if (axios.isAxiosError(error) &&
+        shouldResetSession(error.response?.status, error.config?.url)) {
+      sessionExpiredHandler?.();
+    }
+    return Promise.reject(error);
+  },
+);
+
 export async function initializeCsrf(): Promise<void> {
   await csrfClient.get("/sanctum/csrf-cookie");
 }
@@ -30,8 +55,7 @@ export function getApiErrorMessage(
   fallback = "حدث خطأ غير متوقع. حاول مرة أخرى.",
 ): string {
   if (axios.isAxiosError<{ message?: string }>(error)) {
-    return error.response?.data?.message ?? fallback;
+    return error.response?.data?.message || fallback;
   }
-
   return fallback;
 }

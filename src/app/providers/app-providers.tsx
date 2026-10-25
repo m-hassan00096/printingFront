@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
+import { AuthSessionBoundary } from "@/features/auth/components/auth-session-boundary";
 
 type AppProvidersProps = {
   children: ReactNode;
@@ -26,7 +27,7 @@ export function AppProviders({ children }: AppProvidersProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
+      <AuthSessionBoundary>{children}</AuthSessionBoundary>
       <Toaster dir="rtl" position="top-left" richColors closeButton />
     </QueryClientProvider>
   );

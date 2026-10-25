@@ -23,9 +23,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      # package-lock.json is currently only on the developer machine.
-      # Switch to npm ci as soon as it is committed to the feature branch.
-      - run: npm install --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build

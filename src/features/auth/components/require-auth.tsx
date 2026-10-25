@@ -4,11 +4,11 @@ import { AuthLoading } from "./auth-loading";
 import { useCurrentUser } from "../hooks/use-current-user";
 
 export function RequireAuth() {
-  const { data: user, isPending, isError, refetch, isFetching } = useCurrentUser();
+  const { data: user, isPending, isError, error, refetch, isFetching } = useCurrentUser();
   const location = useLocation();
 
   if (isPending) return <AuthLoading />;
-  if (isError) return <AuthError onRetry={() => void refetch()} isRetrying={isFetching} />;
+  if (isError) return <AuthError error={error} onRetry={() => void refetch()} isRetrying={isFetching} />;
   if (!user) {
     return (
       <Navigate

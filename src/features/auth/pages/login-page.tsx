@@ -8,16 +8,8 @@ import { Button } from "@/shared/components/ui/button";
 import { getApiErrorMessage } from "@/shared/api/http";
 import type { ApiErrorResponse } from "@/shared/api/api-types";
 import { useLogin } from "../hooks/use-login";
+import { safeReturnPath } from "../lib/auth-helpers";
 import { loginSchema, type LoginFormValues } from "../schemas/login.schema";
-
-function safeReturnPath(value: unknown): string {
-  return typeof value === "string" &&
-    value.startsWith("/") &&
-    !value.startsWith("//") &&
-    value !== "/login"
-    ? value
-    : "/";
-}
 
 export function LoginPage() {
   const navigate = useNavigate();
