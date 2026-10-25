@@ -31,7 +31,7 @@
 
 A user with read-only permissions can browse without seeing edit/delete actions. Do not display disabled navigation items for unavailable modules; opening a route directly must still show a 403/permission page. Laravel authorization is authoritative.
 
-**Navigation UX:** one group **المستخدمون والصلاحيات** with **المستخدمون** and **الأدوار والصلاحيات**; show each link only when its corresponding `*.view` permission exists. Avoid a separate top-level **الصلاحيات** page unless backend adds a real catalog endpoint.
+**Navigation UX:** one group **المستخدمون والصلاحيات** with **المستخدمون** and **الأدوار والصلاحيات**; show each link only when its corresponding `*.view` permission exists. Avoid a separate top-level **الصلاحيات** page; the role editor uses the already registered global Selects API.
 
 ## 3. Real Backend API Contracts (verified against develop)
 
@@ -119,15 +119,7 @@ There is an existing global Selects API registered in `routes/api.php` and `Modu
 
 The editor uses this contract directly; no permission ID is hardcoded.
 
-**Next backend contract to agree/add before enabling role-permission edit:**
-
-`GET /api/v1/permissions` (suggestion only; NOT implemented)
-- Auth + `identity.permissions.view`
-- Return actual permissions `id`, technical `name`, Arabic `alias` and frontend-safe grouping metadata (`module` or prefix-derived groups); predictable ordering.
-- No permission-create/update/delete API required: permissions are code/seed managed.
-- Super-admin has visibility but cannot bypass admin-role backend protection.
-
-Until this backend endpoint exists, implement roles list/details and **do not ship a fake permission editor**. A real editor depends on real permission IDs.
+**Future enhancement:** The existing permission Selects response supplies `value` and Arabic `label` but no technical module key. Optional grouping metadata could be added compatibly; do not invent group names based on translated labels.
 
 ## 4. UI/UX decisions
 
@@ -163,7 +155,7 @@ Arabic RTL/Cairo, meaningful loading skeletons, empty search state, error retry 
 3. **Users read-side:** list, filters/search/pagination, details, status text and role labels.
 4. **Users mutations:** create, edit, status change, password reset through update, soft delete with confirm; React Query invalidation. If the current user is changed, invalidate `authQueryKeys.currentUser`.
 5. **Roles read-side:** list/details; independently render `usersCount`, status, protected admin role.
-6. **Backend permissions catalog:** settle response shape, add endpoint in backend **via a separate approved change**, then build role permission editor.
+6. **Permissions editor:** load real IDs/labels using the existing global Selects API; preserve/admin-protect permissions.
 7. **Roles mutations:** add/update/delete with safe full `permissionIds` replacements and confirmation, react to backend errors and refresh Auth current-user data as appropriate.
 8. **Quality:** realistic UI screenshot review for Arabic, browser smoke tests against Laravel, unit/integration tests, `npm ci && npm test && npm run typecheck && npm run lint && npm run build`.
 
@@ -184,7 +176,7 @@ Arabic RTL/Cairo, meaningful loading skeletons, empty search state, error retry 
 
 ## 7. Open questions / backend gaps (do not silently improvise)
 
-- Permissions catalog endpoint **does not yet exist**. Decide/backend implementation needed before role-editor delivery.
+- Permission IDs and Arabic labels are already available through global Selects; technical group keys would be a future optional addition.
 - No separate `activate`, `deactivate`, or `reset-password` endpoints exist in current Identity routes; use the real Update User API.
 - Backend user deletion currently soft deletes; make the impact clear in UI and respect backend rules.
 - The ability to upload a new avatar via method override on existing user update should be confirmed against the backend before enabling that workflow.
@@ -197,16 +189,16 @@ First frontend implementation on `feature/identity`:
 - [x] Users list with backend search/status (including `0`), role filtering, pagination and permission-aware actions.
 - [x] User detail, create/update forms with actual validation rules, optional avatar (5MB max), role selection from backend, password confirmation, status activate/deactivate and soft-delete confirmation.
 - [x] Users and Roles API clients, typed DTOs, TanStack Query cache keys and invalidation. No mirrored Identity data in Zustand.
-- [x] Role list with search/status/pagination; safe metadata edit and deletion. New roles can only be created with **zero** permissions and explicit acknowledgment — never guess a permission ID.
+- [x] Role list with filters, create/edit using backend permission IDs, and guarded deletion.
 - [x] Backend-named permission guards, navigation and lazy route loading. Existing Overview and Auth pages unchanged.
 - [x] Seven Identity React integration tests with simulated Axios response data; plus Auth regression, TypeScript, ESLint and production build verified in CI.
-- [ ] **Backend missing:** real permissions catalog endpoint (`identity.permissions.view`) for a permission selection UI. Until added, existing role permissions remain unchanged by the frontend. Backend permission CRUD is not part of this frontend work.
+- [x] `GET /api/v1/selects?selects=permissions` (requires `identity.roles.view`) supplies actual permission IDs and Arabic labels, enabling role permission selection and safe updates.
 - [ ] Real browser smoke-test of Identity mutations against locally running Laravel/real MySQL including multipart avatar update, backend 422/403 and server-protected role actions.
 - [ ] Final code review and PR to `develop`; no merge is implied by this implementation.
 
 ### Known backend review note
 
-`Modules/Identity/app/Actions/Users/DeleteUserAction.php` currently calls `$user->delete()` directly. The previously discussed safeguard against deleting the last active admin should be verified/enforced in backend before enabling destructive actions for general staff. Frontend checks do not replace backend protection. Likewise, backend role delete rejects assignments including soft-deleted users even when the displayed `usersCount` is zero.
+Backend PR #10 (https://github.com/m-hassan00096/printingApi/pull/10) adds last-active-admin protection with localized 409 responses and regression tests. It is **not merged yet**. Frontend status/role changes and deletion of admin accounts remain restricted until the backend safeguard is deployed. Frontend checks do not replace backend protection. Likewise, backend role delete rejects assignments including soft-deleted users even when the displayed `usersCount` is zero.
 
 ### Manual smoke tests
 
