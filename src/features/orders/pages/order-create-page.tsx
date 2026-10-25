@@ -7,8 +7,9 @@ import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
 import { getApiErrorMessage } from "@/shared/api/http";
 import type { ApiErrorResponse } from "@/shared/api/api-types";
-import { listCustomers } from "@/features/customers/api/customers.api";
-import { listPrintingServices, previewPrintingServicePrice } from "@/features/printing-services/api/printing-services.api";
+import { getCustomer } from "@/features/customers/api/customers.api";
+import { previewPrintingServicePrice } from "@/features/printing-services/api/printing-services.api";
+import { getOrderCreateOptions } from "../api/order-options.api";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { fieldClass, ErrorState } from "@/features/identity/components/identity-ui";
 import { useOrderActions } from "../hooks/use-orders";
@@ -37,18 +38,16 @@ export function OrderCreatePage() {
   const [suggestions, setSuggestions] = useState<Record<number, string>>({});
   const [previewPending, setPreviewPending] = useState<number | null>(null);
   const [previewError, setPreviewError] = useState<Record<number, string>>({});
-  const customers = useQuery({
-    queryKey: ["orders", "picker-customers", customerSearch],
-    queryFn: () => listCustomers({ search: customerSearch, status: "1", customerTypeId: "", sort: "-id", page: 1 }),
-    enabled: permissions.includes("customers.view"), staleTime: 15000,
+  const choices = useQuery({
+    queryKey: ["orders", "create-selects"],
+    queryFn: getOrderCreateOptions,
   });
-  const services = useQuery({
-    queryKey: ["orders", "picker-services", serviceSearch],
-    queryFn: () => listPrintingServices({ search: serviceSearch, status: "1", sort: "name", page: 1 }),
-    enabled: permissions.includes("printing_services.view"), staleTime: 15000,
+  const selectedCustomer = choices.data?.customers.find((option) => String(option.value) === customerId);
+  const customerDetails = useQuery({
+    queryKey: ["orders", "selected-customer", customerId],
+    queryFn: () => getCustomer(Number(customerId)),
+    enabled: !!customerId && permissions.includes("customers.view"),
   });
-  const [selectedCustomer, setSelectedCustomer] = useState<{ id: number; name: string; customerTypeId: number } | null>(null);
-  const [selectedServices, setSelectedServices] = useState<Record<number, { id: number; name: string }>>({});
   function changeItem(key: number, field: keyof Omit<ItemDraft, "key">, value: string) {
     setItems((old) => old.map((r) => r.key === key ? { ...r, [field]: value } : r));
     setErrors((old) => { const next = { ...old };delete next[`items.${key}.${field}`];return next; });
@@ -75,6 +74,10 @@ export function OrderCreatePage() {
   async function preview(key: number) {
     const row = items.find((x) => x.key === key);
     const quantity = Number(row?.quantity);
+    if (customerId && !customerDetails.data) {
+      setPreviewError((old) => ({ ...old, [key]: "معاينة السعر حسب نوع العميل تتطلب صلاحية عرض بيانات العميل. أدخل السعر يدويًا." }));
+      return;
+    }
     if (!row?.serviceId || !Number.isSafeInteger(quantity) || quantity < 1) {
       setPreviewError((old) => ({ ...old, [key]: "اختر الخدمة وأدخل كمية صحيحة أولًا." }));
       return;
@@ -84,7 +87,7 @@ export function OrderCreatePage() {
     try {
       const result = await previewPrintingServicePrice({
         serviceId: Number(row.serviceId),
-        customerTypeId: selectedCustomer?.customerTypeId ?? null,
+        customerTypeId: customerDetails.data?.customerTypeId ?? null,
         quantity,
       });
       if (result.requiresManualTotal || result.suggestedTotal === null) {
@@ -133,13 +136,13 @@ export function OrderCreatePage() {
   function message(key: string) {
     return errors[key] ? <p role="alert" className="mt-1 text-xs text-destructive">{errors[key]}</p> : null;
   }
-  const canPick = permissions.includes("customers.view") && permissions.includes("printing_services.view");
+  const canPick = permissions.includes("orders.create");
   return <div className="mx-auto max-w-6xl space-y-5">
     <Button variant="ghost" asChild><Link to="/orders"><ArrowRight /> العودة للأوردرات</Link></Button>
     <div><h1 className="text-2xl font-extrabold">إضافة أوردر</h1>
       <p className="text-sm text-muted-foreground">سيُحفظ كمسودة، ثم يمكن رفع الملفات وتأكيده. السعر المتفق عليه هو المعتمد.</p></div>
     {!canPick && <div role="alert" className="rounded-xl border p-4 text-sm text-destructive">
-      اختيار العملاء والخدمات يحتاج صلاحيات عرض العملاء وخدمات الطباعة. تواصل مع مدير النظام لتفعيلها.
+      ليس لديك صلاحية إنشاء الأوردر.
     </div>}
     <form noValidate onSubmit={(e) => void save(e)} className="space-y-4">
       <section className="rounded-2xl border bg-card p-5 shadow-sm">
@@ -148,21 +151,21 @@ export function OrderCreatePage() {
           <div className="space-y-2"><label htmlFor="order-customer-search" className="text-sm font-semibold">العميل المسجل *</label>
             <input id="order-customer-search" className={fieldClass} value={customerSearch}
               onChange={(e) => setCustomerSearch(e.target.value)} placeholder="ابحث عن اسم العميل أو هاتفه" />
-            <select aria-label="اختيار العميل" className={fieldClass} value={customerId} disabled={!canPick || customers.isPending}
+            <select aria-label="اختيار العميل" className={fieldClass} value={customerId}
+              disabled={!canPick || choices.isPending || choices.isError}
               onChange={(e) => {
-                const id = e.target.value;setCustomerId(id);
-                const customer = customers.data?.customers.find((c) => String(c.id) === id);
-                setSelectedCustomer(customer ? { id: customer.id, name: customer.name, customerTypeId: customer.customerTypeId } : null);
+                setCustomerId(e.target.value);
                 setSuggestions({});
                 setErrors((prev) => ({ ...prev, customerId: "" }));
               }}>
               <option value="">اختر العميل</option>
-              {selectedCustomer && !customers.data?.customers.some((c) => c.id === selectedCustomer.id) &&
-                <option value={selectedCustomer.id}>{selectedCustomer.name}</option>}
-              {customers.data?.customers.map((c) => <option key={c.id} value={c.id}>{c.name} — {c.phone}</option>)}
+              {choices.data?.customers.filter((c) => c.label.includes(customerSearch.trim())).map((c) =>
+                <option key={c.value} value={c.value}>{c.label}</option>)}
+              {selectedCustomer && !selectedCustomer.label.includes(customerSearch.trim()) &&
+                <option value={selectedCustomer.value}>{selectedCustomer.label}</option>}
             </select>
             {message("customerId")}
-            {customers.isError && <p role="alert" className="text-xs text-destructive">تعذّر تحميل العملاء.</p>}
+            {choices.isError && <p role="alert" className="text-xs text-destructive">تعذّر تحميل قائمة العملاء والخدمات.</p>}
           </div>
           <label className="text-sm font-semibold">مصدر الأوردر
             <select aria-label="مصدر الأوردر" className={fieldClass + " mt-2"} value={source} onChange={(e) => setSource(e.target.value as "0" | "1")}>
@@ -188,23 +191,24 @@ export function OrderCreatePage() {
             <input aria-label="البحث عن خدمة" className={fieldClass + " mt-2"} value={serviceSearch}
               onChange={(e) => setServiceSearch(e.target.value)} placeholder="اسم خدمة الطباعة" />
           </label>
-          {services.isError && <ErrorState error={services.error} retry={() => void services.refetch()} />}
+          {choices.isError && <ErrorState error={choices.error} retry={() => void choices.refetch()} />}
           {items.map((item, index) => <fieldset className="rounded-xl border p-4" key={item.key}>
             <legend className="px-2 text-sm font-bold">العنصر {index + 1}</legend>
             <div className="flex justify-end"><Button type="button" variant="ghost" size="icon-sm" disabled={items.length === 1}
               aria-label={`حذف العنصر ${index + 1}`} onClick={() => removeItem(item.key)}><Trash2 className="size-4 text-destructive" /></Button></div>
             <div className="grid gap-3 md:grid-cols-3">
               <div className="space-y-2 md:col-span-2"><label className="text-xs font-semibold">خدمة الطباعة *</label>
-                <select aria-label={`خدمة العنصر ${index + 1}`} className={fieldClass} value={item.serviceId}
-                  disabled={!canPick || services.isPending} onChange={(e) => {
-                    changeItem(item.key, "serviceId", e.target.value);
-                    const s = services.data?.printingServices.find((s) => String(s.id) === e.target.value);
-                    if (s) setSelectedServices((old) => ({ ...old, [item.key]: { id: s.id, name: s.name } }));
-                  }}>
+                <select aria-label={`خدمة العنصر ${index + 1}`} className={fieldClass}
+                  value={item.serviceId} disabled={!canPick || choices.isPending || choices.isError}
+                  onChange={(e) => changeItem(item.key, "serviceId", e.target.value)}>
                   <option value="">اختر الخدمة</option>
-                  {selectedServices[item.key] && !services.data?.printingServices.some((s) => s.id === selectedServices[item.key].id) &&
-                    <option value={selectedServices[item.key].id}>{selectedServices[item.key].name}</option>}
-                  {services.data?.printingServices.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  {choices.data?.services.filter((svc) => svc.label.includes(serviceSearch.trim())).map((svc) =>
+                    <option key={svc.value} value={svc.value}>{svc.label}</option>)}
+                  {item.serviceId && !choices.data?.services.some((svc) =>
+                    String(svc.value) === item.serviceId && svc.label.includes(serviceSearch.trim())) && (() => {
+                      const chosen = choices.data?.services.find((svc) => String(svc.value) === item.serviceId);
+                      return chosen ? <option value={chosen.value}>{chosen.label}</option> : null;
+                    })()}
                 </select>
                 {message(`items.${item.key}.serviceId`)}
               </div>
@@ -239,7 +243,7 @@ export function OrderCreatePage() {
       {generalError && <p role="alert" className="rounded-xl border bg-red-50 p-4 text-sm text-destructive">{generalError}</p>}
       <footer className="flex justify-end gap-3 pb-4">
         <Button asChild variant="outline"><Link to="/orders">إلغاء</Link></Button>
-        <Button disabled={!canPick || actions.create.isPending || customers.isPending || services.isPending} type="submit">
+        <Button disabled={!canPick || actions.create.isPending || choices.isPending || choices.isError} type="submit">
           {actions.create.isPending && <LoaderCircle className="size-4 animate-spin" />} حفظ مسودة الأوردر
         </Button>
       </footer>
