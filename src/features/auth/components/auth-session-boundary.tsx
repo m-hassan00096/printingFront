@@ -13,9 +13,15 @@ export function AuthSessionBoundary({ children }: { children: ReactNode }) {
       const previousUser = queryClient.getQueryData<AuthUser | null>(authQueryKeys.currentUser);
       if (!previousUser) return;
 
-      // Invalidate ALL private data when a formerly valid session is rejected.
-      void queryClient.cancelQueries();
-      queryClient.removeQueries();
+      // Keep the active /auth/me query observed. Removing it while its
+      // observers are mounted can leave React displaying stale protected UI.
+      // Remove only user-owned business data, then update the active session.
+      void queryClient.cancelQueries({
+        predicate: (query) => query.queryKey[0] !== "auth",
+      });
+      queryClient.removeQueries({
+        predicate: (query) => query.queryKey[0] !== "auth",
+      });
       queryClient.setQueryData(authQueryKeys.currentUser, null);
     });
 
