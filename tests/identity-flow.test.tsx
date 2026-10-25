@@ -141,13 +141,14 @@ describe("Identity feature browser workflows", () => {
     expect(await screen.findByText("عرض المستخدمين")).toBeTruthy();
     expect(screen.getByText("عرض الأدوار")).toBeTruthy();
     const user = userEvent.setup();
-    const checkboxes = screen.getAllByRole("checkbox");
-    expect(checkboxes).toHaveLength(3);
-    expect(checkboxes[0]).toHaveProperty("checked", true);
-    expect(checkboxes[1]).toHaveProperty("checked", true);
-    expect(checkboxes[2]).toHaveProperty("checked", false);
-    await user.click(checkboxes[1]);
-    await user.click(checkboxes[2]);
+    expect(screen.getAllByRole("checkbox")).toHaveLength(3);
+    await waitFor(() => {
+      expect(screen.getByRole("checkbox", { name: "عرض المستخدمين" })).toHaveProperty("checked", true);
+      expect(screen.getByRole("checkbox", { name: "عرض الأدوار" })).toHaveProperty("checked", true);
+    });
+    expect(screen.getByRole("checkbox", { name: "إنشاء طلب" })).toHaveProperty("checked", false);
+    await user.click(screen.getByRole("checkbox", { name: "عرض الأدوار" }));
+    await user.click(screen.getByRole("checkbox", { name: "إنشاء طلب" }));
     await user.click(screen.getByRole("button", { name: "حفظ الدور" }));
     await waitFor(() => expect(requests.some((r) => r.path === "/roles/2" && r.method === "patch")).toBe(true));
     expect(requests.find((r) => r.path === "/roles/2" && r.method === "patch")!.data)
@@ -160,9 +161,8 @@ describe("Identity feature browser workflows", () => {
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/اسم الدور بالعربي/), "عامل إنتاج");
     expect(await screen.findByText("عرض المستخدمين")).toBeTruthy();
-    const boxes = screen.getAllByRole("checkbox");
-    await user.click(boxes[0]);
-    await user.click(boxes[2]);
+    await user.click(screen.getByRole("checkbox", { name: "عرض المستخدمين" }));
+    await user.click(screen.getByRole("checkbox", { name: "إنشاء طلب" }));
     await user.click(screen.getByRole("button", { name: "حفظ الدور" }));
     await waitFor(() => expect(requests.some((r) => r.path === "/roles" && r.method === "post")).toBe(true));
     expect(requests.find((r) => r.path === "/roles" && r.method === "post")!.data)
