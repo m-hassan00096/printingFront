@@ -10,7 +10,7 @@ import type { Customer } from "@/features/customers/types/customers.types";
 const original = apiClient.defaults.adapter;
 const fullPermissions = [
   "customers.view", "customers.create", "customers.update", "customers.delete",
-  "finance.balances.view", "finance.ledger.view",
+  "finance.balances.view", "finance.ledger.view", "orders.list",
 ];
 let permissions: string[];
 let requests: Array<{ method: string; path: string; query: URLSearchParams; body: Record<string, unknown> }>;
@@ -155,21 +155,37 @@ describe("Customers Laravel integration", () => {
       request.path === "/selects" && request.query.get("selects") === "customerTypes")).toBe(true));
   });
 
-  it("shows finance balance and ledger only if finance permissions are granted", async () => {
+  it("renders details by default and loads ledger only when its tab is selected", async () => {
     visit("/customers/101");
     expect(await screen.findByRole("heading", { name: "أحمد محمد" })).toBeTruthy();
-    expect(await screen.findByText("مديونية على العميل")).toBeTruthy();
-    expect(await screen.findByText("رصيد افتتاحي")).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "بيانات العميل" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("tabpanel")).toBeTruthy();
+    expect(screen.getByText("القاهرة")).toBeTruthy();
+    expect(await screen.findByText("مديونية حالية")).toBeTruthy();
     expect(requests.some((r) => r.path === "/finance/customers/101/balance")).toBe(true);
+    expect(requests.some((r) => r.path === "/finance/customers/101/ledger")).toBe(false);
+
+    await userEvent.setup().click(screen.getByRole("tab", { name: "كشف الحساب" }));
+    expect(await screen.findByText("رصيد افتتاحي")).toBeTruthy();
     expect(requests.some((r) => r.path === "/finance/customers/101/ledger")).toBe(true);
+    expect(screen.getByRole("tab", { name: "كشف الحساب" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.queryByText("القاهرة")).toBeNull();
+
+    await userEvent.setup().click(screen.getByRole("tab", { name: "الأوردرات" }));
+    expect(await screen.findByText("حاليًا لا توجد قائمة أوردرات مربوطة بهذه الصفحة.")).toBeTruthy();
+    expect(requests.some((r) => r.path === "/orders")).toBe(false);
+    await userEvent.setup().click(screen.getByRole("tab", { name: "بيانات العميل" }));
+    expect(await screen.findByText("القاهرة")).toBeTruthy();
   });
 
   it("does not request or display finance when customer user lacks finance rights", async () => {
     permissions = ["customers.view"];
     visit("/customers/101");
     expect(await screen.findByRole("heading", { name: "أحمد محمد" })).toBeTruthy();
-    expect(screen.queryByText("رصيد العميل")).toBeNull();
-    expect(screen.queryByText("كشف الحساب")).toBeNull();
+    expect(screen.queryByText("ملخص الحساب")).toBeNull();
+    expect(screen.queryByRole("tab", { name: "كشف الحساب" })).toBeNull();
+    expect(screen.queryByRole("tab", { name: "الأوردرات" })).toBeNull();
+    expect(screen.getByRole("tab", { name: "بيانات العميل" })).toBeTruthy();
     expect(requests.filter((r) => r.path.startsWith("/finance/"))).toHaveLength(0);
   });
 });
