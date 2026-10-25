@@ -117,7 +117,7 @@ function ItemEditor({ order, item, onClose }: { order: Order; item?: OrderItem; 
                 }}>
                 <option value="">اختر الخدمة</option>
                 {services.data?.filter((option) => option.label.includes(serviceSearch.trim())).map((option) =>
-                  <option key={option.value} value={option.value}>{option.label}</option>)}
+                  <option key={option.value} value={option.value}>{option.label}{Number(option.isDefault) === 1 ? " (افتراضي)" : ""}</option>)}
                 {selectedService && !services.data?.some((option) => option.value === selectedService.id &&
                     option.label.includes(serviceSearch.trim())) &&
                   <option value={selectedService.id}>{selectedService.name}</option>}
@@ -211,6 +211,9 @@ export function OrderDetailPage() {
     queryFn: getOrderPaymentOptions,
     enabled: confirmOpen && Number(deposit) > 0 && paymentMethod !== "0",
   });
+  const activeDestinations = paymentMethod === "1" ? destinations.data?.banks ?? [] : destinations.data?.wallets ?? [];
+  const defaultDestination = activeDestinations.find((option) => Number(option.isDefault) === 1) ?? activeDestinations[0];
+  const chosenDestination = paymentDestinationId || (defaultDestination ? String(defaultDestination.value) : "");
   const [reason, setReason] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
   const [deleteItem, setDeleteItem] = useState<OrderItem | null>(null);
@@ -229,12 +232,12 @@ export function OrderDetailPage() {
     }
     try {
       const hasDeposit = Number(deposit) > 0;
-      if (hasDeposit && paymentMethod !== "0" && !paymentDestinationId) {
+      if (hasDeposit && paymentMethod !== "0" && !chosenDestination) {
         setError("اختر حساب البنك أو المحفظة التي استلمت العربون.");return;
       }
       const payload: Parameters<typeof actions.confirm.mutateAsync>[0]["payload"] = hasDeposit
         ? { depositAmount: deposit, paymentMethod: Number(paymentMethod) as 0 | 1 | 2,
-            ...(paymentMethod !== "0" ? { paymentDestinationId: Number(paymentDestinationId) } : {}) }
+            ...(paymentMethod !== "0" ? { paymentDestinationId: Number(chosenDestination) } : {}) }
         : {};
       await actions.confirm.mutateAsync({ id, key: confirmKey.current, payload });
       toast.success("تم تأكيد الأوردر.");setConfirmOpen(false);setError("");
@@ -334,11 +337,11 @@ export function OrderDetailPage() {
             </select>
           </label>
           {paymentMethod !== "0" && <label className="block text-sm font-semibold">وجهة التحصيل *
-            <select aria-label="وجهة تحصيل العربون" className={fieldClass + " mt-2"} value={paymentDestinationId}
+            <select aria-label="وجهة تحصيل العربون" className={fieldClass + " mt-2"} value={chosenDestination}
               disabled={destinations.isPending || destinations.isError}
               onChange={(e) => setPaymentDestinationId(e.target.value)}>
               <option value="">اختر وجهة التحصيل</option>
-              {(paymentMethod === "1" ? destinations.data?.banks : destinations.data?.wallets)?.map((option) =>
+              {activeDestinations.map((option) =>
                 <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
           </label>}
