@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authQueryKeys } from "@/features/auth/hooks/use-current-user";
 import {
-  createRole, createUser, deleteRole, deleteUser, getRole, getUser, listRoles, listUsers, updateRole, updateUser,
+  createRole, createUser, deleteRole, deleteUser, getRole, getUser, listPermissionOptions, listRoles, listUsers, updateRole, updateUser,
 } from "../api/identity.api";
 import type { RoleFilters, RolePayload, UserFilters, UserPayload } from "../types/identity.types";
 
 export const identityKeys = {
   users: ["identity", "users"] as const,
   roles: ["identity", "roles"] as const,
+  permissions: ["identity", "permissions"] as const,
   user: (id: number) => ["identity", "user", id] as const,
   role: (id: number) => ["identity", "role", id] as const,
 };
@@ -28,6 +29,9 @@ export function useRoles(filters: RoleFilters, enabled = true) {
     enabled,
     placeholderData: (previous) => previous,
   });
+}
+export function usePermissionOptions() {
+  return useQuery({ queryKey: identityKeys.permissions, queryFn: listPermissionOptions, staleTime: 5 * 60_000 });
 }
 export function useRole(id: number) {
   return useQuery({ queryKey: identityKeys.role(id), queryFn: () => getRole(id), enabled: Number.isInteger(id) && id > 0 });

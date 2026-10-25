@@ -3,7 +3,7 @@
 **Project:** طَبعة — printingFront  
 **Frontend branch:** `feature/identity`  
 **Backend reference:** `m-hassan00096/printingApi` → `develop` → `Modules/Identity`  
-**Status:** First implementation committed on `feature/identity`. Users CRUD/UI and Roles list/metadata UI. Permission catalog API still missing.  
+**Status:** First implementation committed on `feature/identity`. Users CRUD/UI and Roles list/metadata UI. Permission catalog resolved via the existing Selects API.  
 **Dependency:** Auth merged into frontend `develop` via PR #1.
 
 ## 1. Goal and boundaries
@@ -113,11 +113,11 @@ Update role: `nameAr`, `status`, `permissionIds` optional; if supplying permissi
 
 The technical `admin` role is protected: its Arabic alias may change but the API rejects deactivation/permission changes and deletion. An assigned role cannot be deleted (including assignments to soft-deleted users). Represent these restrictions in the UI, while still handling backend conflicts.
 
-### Permissions catalog — **backend integration gap**
+### Permissions catalog — existing Selects API
 
-The permission `identity.permissions.view` is seeded, but as of the inspected `Modules/Identity/routes/api.php` there is **no `GET /api/v1/permissions` endpoint** returning permission IDs, keys, localized labels, and module groups.
+There is an existing global Selects API registered in `routes/api.php` and `Modules/Identity/app/Providers/IdentitySelectServiceProvider.php`: **GET `/api/v1/selects?selects=permissions`**, requiring `identity.roles.view`. Its response is `data: [{label: "permissions", options: [{value: permissionId, label: ArabicAlias}]}]`. It supplies stable permission IDs and labels, but not grouping keys.
 
-A usable role editor **must not** hardcode permission IDs or make up this API.
+The editor uses this contract directly; no permission ID is hardcoded.
 
 **Next backend contract to agree/add before enabling role-permission edit:**
 
@@ -222,3 +222,9 @@ npm run dev
 ```
 
 **Safety temporary frontend measure:** status changes and delete actions are not offered for accounts assigned the technical `admin` role, and the edit form locks their role and status. This is UX defense-in-depth only: backend must independently enforce the last-admin invariant before merge or production use. Backend identity fixes are not included in this frontend branch.
+
+## UI update — 25 October 2026
+- Role editor now loads real options using `GET /api/v1/selects?selects=permissions` and sends exactly the selected `permissionIds` for create/update. Search, select-visible and clear-visible do not affect other filtered-out selections.
+- `admin` role stays protected and supports alias-only updates, with its current permissions read-only.
+- Users may choose an intentionally empty role permission list; the backend accepts it.
+- Existing select service returns `value`+`label`, not a technical permission key. Meaningful module grouping needs a backend contract extension; **do not invent categories** from display labels.

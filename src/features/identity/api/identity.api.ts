@@ -71,3 +71,19 @@ export async function updateRole(id: number, payload: RolePayload) {
 export async function deleteRole(id: number) {
   await apiClient.delete(`/roles/${id}`);
 }
+
+/** Shared Selects endpoint registered by IdentitySelectServiceProvider. */
+export type PermissionOption = { value: number; label: string };
+export async function listPermissionOptions(): Promise<PermissionOption[]> {
+  const response = await apiClient.get<ApiResponse<Array<{
+    label: string;
+    options: PermissionOption[];
+  }>>>("/selects", { params: { selects: "permissions" } });
+  const entry = response.data.data.find((item) => item.label === "permissions");
+  if (!entry || !Array.isArray(entry.options) ||
+      !entry.options.every((option) => Number.isSafeInteger(option.value) &&
+        option.value > 0 && typeof option.label === "string")) {
+    throw new Error("تعذّر قراءة قائمة الصلاحيات من الخادم.");
+  }
+  return [...entry.options].sort((a, b) => a.label.localeCompare(b.label, "ar"));
+}

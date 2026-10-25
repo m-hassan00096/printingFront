@@ -56,9 +56,6 @@ export function RolesPage() {
     <SectionHeader title="الأدوار والصلاحيات" detail="إدارة أدوار الفريق وحالة كل دور وعدد المستخدمين المرتبطين به."
       actions={permissions.includes("identity.roles.create") && <Button asChild><Link to="/roles/new"><Plus className="size-4" /> إضافة دور</Link></Button>}
     />
-    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
-      تعديل صلاحيات الدور يحتاج API تعرض قائمة الصلاحيات بمعرّفاتها من الباك. حاليًا يمكنك إدارة اسم الدور وحالته، لكن توزيع الصلاحيات لسه مش متاح من الواجهة.
-    </div>
     <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       <div className="flex flex-wrap items-center gap-3 border-b p-4">
         <SearchField value={draft} onChange={setDraft} placeholder="بحث باسم الدور" />
