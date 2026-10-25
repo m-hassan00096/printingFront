@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { Check, ChevronDown, Plus, Search } from "lucide-react";
 
 export type SearchOption = { value: number; label: string };
@@ -42,7 +42,7 @@ export function SearchableSelect({
     setQuery("");
     setOpen(false);
   }
-  function keyboard(event: React.KeyboardEvent<HTMLInputElement>) {
+  function keyboard(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Escape") {
       setOpen(false);
       setQuery("");

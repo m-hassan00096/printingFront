@@ -84,11 +84,10 @@ export function OrderCreatePage() {
     queryFn: () => getCustomerBalance(Number(customerId)),
     enabled: !!customerId && permissions.includes("finance.balances.view"),
   });
-  const [intent, setIntent] = useState<Mode>("draft");
   const paymentOptions = useQuery({
     queryKey: ["orders", "payment-destinations"],
     queryFn: getOrderPaymentOptions,
-    enabled: intent === "confirm" && canConfirm && Number(depositAmount) > 0 && paymentMethod !== "0",
+    enabled: canConfirm && Number(depositAmount) > 0 && paymentMethod !== "0",
   });
   const accounts = paymentMethod === "1" ? paymentOptions.data?.banks ?? [] : paymentOptions.data?.wallets ?? [];
   const defaultAccount = accounts.find((account) => Number(account.isDefault) === 1) ?? accounts[0];
