@@ -13,6 +13,53 @@ import { useOrder, useOrderActions, useOrderFiles, useOrderActivities } from "..
 import type { Order, OrderItem, OrderItemPayload } from "../types/orders.types";
 
 const moneyPattern = /^(?:0|[1-9][0-9]{0,9})(?:\.[0-9]{1,2})?$/;
+function OrderHeaderEditor({ order, onClose }: { order: Order; onClose: () => void }) {
+  const actions = useOrderActions();
+  const [dueDate, setDueDate] = useState(order.dueDate ?? "");
+  const [source, setSource] = useState<"0" | "1">(String(order.source) as "0" | "1");
+  const [notes, setNotes] = useState(order.notes ?? "");
+  const [error, setError] = useState("");
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const payload: Parameters<typeof actions.update.mutateAsync>[0]["payload"] = {};
+    if (dueDate !== (order.dueDate ?? "")) payload.dueDate = dueDate || null;
+    if (Number(source) !== order.source) payload.source = Number(source) as 0 | 1;
+    if ((notes.trim() || null) !== order.notes) payload.notes = notes.trim() || null;
+    if (!Object.keys(payload).length) {onClose();return;}
+    try {
+      await actions.update.mutateAsync({ id: order.id, payload });
+      toast.success("تم تعديل بيانات المسودة."); onClose();
+    } catch (e: unknown) {setError(getApiErrorMessage(e, "تعذّر تحديث المسودة."));}
+  }
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+    <section role="dialog" aria-modal="true" aria-label="تعديل بيانات المسودة" className="w-full max-w-lg rounded-2xl bg-card p-6 shadow-xl">
+      <h2 className="mb-5 text-lg font-bold">تعديل بيانات المسودة</h2>
+      <form onSubmit={(e) => void submit(e)} className="space-y-4">
+        <label className="block text-sm font-semibold">المصدر
+          <select aria-label="مصدر المسودة" className={fieldClass + " mt-2"} value={source}
+            onChange={(e) => setSource(e.target.value as "0" | "1")}>
+            <option value="0">الفرع</option><option value="1">أونلاين</option>
+          </select>
+        </label>
+        <label className="block text-sm font-semibold">موعد التسليم
+          <input aria-label="موعد تسليم المسودة" type="date" className={fieldClass + " mt-2"}
+            value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+        </label>
+        <label className="block text-sm font-semibold">الملاحظات
+          <textarea aria-label="ملاحظات المسودة" className={fieldClass + " mt-2 min-h-24 py-2"}
+            maxLength={10000} value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </label>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" type="button" disabled={actions.update.isPending} onClick={onClose}>إلغاء</Button>
+          <Button type="submit" disabled={actions.update.isPending}>حفظ التعديلات</Button>
+        </div>
+      </form>
+    </section>
+  </div>;
+}
+
 function ItemEditor({ order, item, onClose }: { order: Order; item?: OrderItem; onClose: () => void }) {
   const actions = useOrderActions();
   const [quantity, setQuantity] = useState(String(item?.quantity ?? 1));
@@ -151,6 +198,7 @@ export function OrderDetailPage() {
   const order = useOrder(valid ? id : 0);
   const actions = useOrderActions();
   const [editItem, setEditItem] = useState<OrderItem | "new" | null>(null);
+  const [editHeader, setEditHeader] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deposit, setDeposit] = useState("0");
   const [reason, setReason] = useState("");
@@ -196,6 +244,7 @@ export function OrderDetailPage() {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-lg bg-muted px-3 py-2 text-sm font-bold">{item.statusLabel}</span>
+        {draft && mayEdit && <Button variant="outline" onClick={() => setEditHeader(true)}><Pencil className="size-4" /> تعديل البيانات</Button>}
         {draft && mayConfirm && <Button onClick={() => {setError("");setConfirmOpen(true);}}><CheckCircle2 className="size-4" /> تأكيد الأوردر</Button>}
         {item.status === 1 && item.deliveredAt === null && mayCancel && <Button variant="outline" onClick={() => {setError("");setCancelOpen(true);}}>إلغاء الأوردر</Button>}
       </div>
@@ -238,6 +287,7 @@ export function OrderDetailPage() {
           <li key={a.id} className="border-b py-2">{a.eventType} — {a.createdAt}</li>)}</ul> :
         <p className="text-xs text-muted-foreground">لا توجد أنشطة.</p>}
     </section>}
+    {editHeader && <OrderHeaderEditor order={item} onClose={() => setEditHeader(false)} />}
     {editItem && <ItemEditor key={editItem === "new" ? "new" : editItem.id} order={item}
       item={editItem === "new" ? undefined : editItem} onClose={() => setEditItem(null)} />}
     {deleteItem && <ConfirmDialog title="حذف عنصر" description="سيُحذف العنصر من المسودة وستُؤرشف ملفاته. لا يمكن حذف آخر عنصر."
@@ -264,6 +314,5 @@ export function OrderDetailPage() {
           <Button disabled={actions.cancel.isPending} variant="destructive" onClick={() => void cancel()}>إلغاء الأوردر</Button></div>
       </section>
     </div>}
-    {mayEdit && draft && <p className="text-xs text-muted-foreground">تعديل بيانات رأس الأوردر متاح ضمن العمليات التالية للـ Draft، بينما تفاصيل العناصر محفوظة حسب كل عنصر.</p>}
   </div>;
 }
