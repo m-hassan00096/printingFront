@@ -1,3 +1,5 @@
+import { featureAccessPolicy } from "@/app/access-policy";
+import { hasAnyPermission } from "@/features/auth/lib/auth-helpers";
 import {
   ClipboardList, LayoutDashboard, Layers, ReceiptText, Settings, Truck,
   Users, Wallet, type LucideIcon,
@@ -21,17 +23,17 @@ export const navigationGroups: NavigationGroup[] = [
   {
     label: "إدارة العمل",
     items: [
-      { to: "/orders", label: "الطلبات", icon: ClipboardList, anyOf: ["orders.list"] },
-      { to: "/production", label: "الإنتاج", icon: Layers, anyOf: ["production.items.list"] },
-      { to: "/deliveries", label: "التسليمات", icon: Truck, anyOf: ["deliveries.ready.view", "deliveries.list"] },
+      { to: "/orders", label: "الطلبات", icon: ClipboardList, anyOf: featureAccessPolicy.orders },
+      { to: "/production", label: "الإنتاج", icon: Layers, anyOf: featureAccessPolicy.production },
+      { to: "/deliveries", label: "التسليمات", icon: Truck, anyOf: featureAccessPolicy.deliveries },
     ],
   },
   {
     label: "العملاء والمالية",
     items: [
-      { to: "/customers", label: "العملاء", icon: Users, anyOf: ["customers.view"] },
-      { to: "/collections", label: "التحصيلات", icon: ReceiptText, anyOf: ["finance.collections.view"] },
-      { to: "/finance", label: "الحسابات", icon: Wallet, anyOf: ["finance.balances.view", "finance.ledger.view"] },
+      { to: "/customers", label: "العملاء", icon: Users, anyOf: featureAccessPolicy.customers },
+      { to: "/collections", label: "التحصيلات", icon: ReceiptText, anyOf: featureAccessPolicy.collections },
+      { to: "/finance", label: "الحسابات", icon: Wallet, anyOf: featureAccessPolicy.finance },
     ],
   },
   {
@@ -39,17 +41,14 @@ export const navigationGroups: NavigationGroup[] = [
     items: [
       {
         to: "/settings", label: "الإعدادات", icon: Settings,
-        anyOf: [
-          "settings.view_parameter_values", "settings.bank_accounts.view",
-          "settings.e_wallets.view", "settings.selects.view",
-        ],
+        anyOf: featureAccessPolicy.settings
       },
     ],
   },
 ];
 
 export function canAccessNavigation(item: NavigationItem, permissions: readonly string[]): boolean {
-  return !item.anyOf || item.anyOf.some((permission) => permissions.includes(permission));
+  return !item.anyOf || hasAnyPermission(permissions, item.anyOf);
 }
 
 export function getPageTitle(pathname: string): string {

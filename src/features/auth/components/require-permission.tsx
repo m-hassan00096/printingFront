@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { hasAnyPermission } from "../lib/auth-helpers";
 import { ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
@@ -11,7 +12,7 @@ type RequirePermissionProps = {
 
 export function RequirePermission({ anyOf, children }: RequirePermissionProps) {
   const { data: user } = useCurrentUser();
-  const allowed = user !== null && user !== undefined && anyOf.some((p) => user.permissions.includes(p));
+  const allowed = hasAnyPermission(user?.permissions, anyOf);
 
   if (allowed) return <>{children}</>;
 

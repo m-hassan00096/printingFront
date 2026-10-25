@@ -22,5 +22,6 @@ export async function login(credentials: LoginCredentials): Promise<AuthUser> {
 }
 
 export async function logout(): Promise<void> {
+  await initializeCsrf();
   await apiClient.post<ApiResponse<null>>("/auth/logout");
 }

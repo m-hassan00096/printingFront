@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import { featureAccessPolicy } from "@/app/access-policy";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AppShell } from "@/app/layouts/app-shell";
 import { FeaturePlaceholderPage } from "@/app/pages/feature-placeholder-page";
@@ -15,15 +16,15 @@ const LoginPage = lazy(async () => {
 });
 
 const featurePaths = [
-  { path: "orders", key: "orders" as const, permissions: ["orders.list"] },
-  { path: "production", key: "production" as const, permissions: ["production.items.list"] },
-  { path: "deliveries", key: "deliveries" as const, permissions: ["deliveries.ready.view", "deliveries.list"] },
-  { path: "customers", key: "customers" as const, permissions: ["customers.view"] },
-  { path: "collections", key: "collections" as const, permissions: ["finance.collections.view"] },
-  { path: "finance", key: "finance" as const, permissions: ["finance.balances.view", "finance.ledger.view"] },
+  { path: "orders", key: "orders" as const, permissions: featureAccessPolicy.orders },
+  { path: "production", key: "production" as const, permissions: featureAccessPolicy.production },
+  { path: "deliveries", key: "deliveries" as const, permissions: featureAccessPolicy.deliveries },
+  { path: "customers", key: "customers" as const, permissions: featureAccessPolicy.customers },
+  { path: "collections", key: "collections" as const, permissions: featureAccessPolicy.collections },
+  { path: "finance", key: "finance" as const, permissions: featureAccessPolicy.finance },
   {
     path: "settings", key: "settings" as const,
-    permissions: ["settings.view_parameter_values", "settings.bank_accounts.view", "settings.e_wallets.view", "settings.selects.view"],
+    permissions: featureAccessPolicy.settings,
   },
 ];
 

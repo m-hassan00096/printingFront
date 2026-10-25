@@ -4,7 +4,7 @@ import {
   safeReturnPath,
   hasAnyPermission,
 } from "../src/features/auth/lib/auth-helpers.ts";
-import { shouldResetSession } from "../src/shared/api/session-policy.ts";
+import { shouldRefreshPermissions, shouldResetSession } from "../src/shared/api/session-policy.ts";
 import { loginSchema } from "../src/features/auth/schemas/login.schema.ts";
 
 test("safeReturnPath preserves legitimate protected destination and query", () => {
@@ -29,11 +29,19 @@ test("hasAnyPermission only allows a listed backend permission", () => {
 test("only protected API 401 resets the active session", () => {
   assert.equal(shouldResetSession(401, "/orders"), true);
   assert.equal(shouldResetSession(401, "/auth/logout"), true);
-  assert.equal(shouldResetSession(401, "/auth/me"), false);
+  assert.equal(shouldResetSession(401, "/auth/me"), true);
   assert.equal(shouldResetSession(401, "/auth/login"), false);
   assert.equal(shouldResetSession(403, "/orders"), false);
   assert.equal(shouldResetSession(422, "/auth/login"), false);
   assert.equal(shouldResetSession(500, "/orders"), false);
+});
+
+test("revoked business permission forces /auth/me revalidation", () => {
+  assert.equal(shouldRefreshPermissions(403, "/orders/3"), true);
+  assert.equal(shouldRefreshPermissions(403, "/deliveries"), true);
+  assert.equal(shouldRefreshPermissions(403, "/auth/me"), false);
+  assert.equal(shouldRefreshPermissions(403, "/auth/login"), false);
+  assert.equal(shouldRefreshPermissions(422, "/orders"), false);
 });
 
 test("login schema accepts valid values, trims username and never trims password", () => {

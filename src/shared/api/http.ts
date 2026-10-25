@@ -1,5 +1,5 @@
 import axios from "axios";
-import { shouldResetSession } from "@/shared/api/session-policy";
+import { shouldRefreshPermissions, shouldResetSession } from "@/shared/api/session-policy";
 
 const backendBaseURL = import.meta.env.VITE_BACKEND_URL || undefined;
 
@@ -27,11 +27,19 @@ const csrfClient = axios.create({
  * React Query or an auth store into the shared API client.
  */
 let sessionExpiredHandler: (() => void) | null = null;
+let permissionsChangedHandler: (() => void) | null = null;
 
 export function onSessionExpired(callback: () => void): () => void {
   sessionExpiredHandler = callback;
   return () => {
     if (sessionExpiredHandler === callback) sessionExpiredHandler = null;
+  };
+}
+
+export function onPermissionDenied(callback: () => void): () => void {
+  permissionsChangedHandler = callback;
+  return () => {
+    if (permissionsChangedHandler === callback) permissionsChangedHandler = null;
   };
 }
 
@@ -41,6 +49,10 @@ apiClient.interceptors.response.use(
     if (axios.isAxiosError(error) &&
         shouldResetSession(error.response?.status, error.config?.url)) {
       sessionExpiredHandler?.();
+    }
+    if (axios.isAxiosError(error) &&
+        shouldRefreshPermissions(error.response?.status, error.config?.url)) {
+      permissionsChangedHandler?.();
     }
     return Promise.reject(error);
   },
