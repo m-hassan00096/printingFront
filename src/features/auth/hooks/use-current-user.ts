@@ -13,8 +13,8 @@ export function useCurrentUser() {
     retry: false,
     refetchOnWindowFocus: "always",
     refetchOnReconnect: true,
-    // There is no permissions-version header in the backend yet. Recheck the
-    // logged-in user occasionally so revoked permissions disappear from the UI.
-    refetchInterval: (query) => query.state.status === "error" ? false : 60_000,
+    // Deliberately avoid polling /auth/me: every successful session request
+    // may extend Laravel's idle session lifetime while the user is away.
+    // Refetch on window focus/reconnect, or immediately after a business 403.
   });
 }

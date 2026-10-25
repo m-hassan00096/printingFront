@@ -71,7 +71,7 @@ The browser cannot read HttpOnly session cookie. It *can* send it automatically.
 
 - The global API response interceptor reacts to `401` from protected business APIs by purging user-scoped TanStack Query data and marking the user as logged out. `/auth/me` itself interprets 401 as a guest and login credential validation remains distinct.
 - On a normal login, the current-user query is updated and older in-flight `/auth/me` requests are cancelled so stale guest state cannot overwrite a successful session.
-- `GET /auth/me` refetches on window focus and at an approximately 60-second interval while the page is active, because the backend does not yet advertise a permissions-version change header. Permissions on the backend take effect immediately regardless of this UI refresh.
+- `GET /auth/me` refetches on window focus or reconnect, and whenever a business API returns 403. There is intentionally no periodic polling: background requests could extend the Laravel session idle lifetime. The backend enforces permission changes immediately.
 - `403` when fetching the current session is not treated as a network error or a guest: the UI explains that the account/role might be inactive and offers logout.
 - On logout, the entire Query cache is cleared; on denied logins no prior user state is accepted.
 - If a session expires during a future feature mutation, the API interceptor prevents old user-specific data from remaining in the app cache. The backend remains the sole authorization authority.
