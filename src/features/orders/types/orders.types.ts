@@ -29,7 +29,8 @@ export type OrderFilters = { search: string; status: string; productionStatus: s
 export type OrderItemPayload = { serviceId: number; quantity: number; specifications: string | null; agreedTotal: string };
 export type CreateOrderPayload = {
   customerId: number; source: 0 | 1; dueDate: string | null;
-  notes: string | null; items: OrderItemPayload[]; status: 0;
+  notes: string | null; items: OrderItemPayload[]; status: 0 | 1;
+  depositAmount?: string; paymentMethod?: 0 | 1 | 2; paymentDestinationId?: number;
 };
 export type UpdateOrderPayload = Partial<Pick<CreateOrderPayload, "customerId" | "source" | "dueDate" | "notes">>;
 export type ConfirmOrderPayload = {

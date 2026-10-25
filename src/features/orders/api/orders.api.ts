@@ -21,7 +21,7 @@ export async function getOrder(id: number): Promise<Order> {
   return data.data;
 }
 export async function createDraft(payload: CreateOrderPayload, key: string): Promise<void> {
-  // Orders returns data:null even on creation: do not invent a returned order ID.
+  // Both draft and confirmed creation return data:null; never assume an order ID.
   await apiClient.post<ApiResponse<null>>(path, payload, { headers: { "Idempotency-Key": key } });
 }
 export async function updateDraft(id: number, payload: UpdateOrderPayload): Promise<void> {

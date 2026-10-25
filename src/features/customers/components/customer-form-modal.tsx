@@ -27,7 +27,7 @@ function validate(form: Draft): Errors {
 export function CustomerFormModal({ customer, onClose, onSaved }: {
   customer?: Customer;
   onClose: () => void;
-  onSaved?: (customerId: number) => void;
+  onSaved?: (customerId: number, created?: Customer) => void;
 }) {
   const [draft, setDraft] = useState<Draft>({
     name: customer?.name ?? "", phone: customer?.phone ?? "",
@@ -77,7 +77,7 @@ export function CustomerFormModal({ customer, onClose, onSaved }: {
       } else {
         const created = await mutations.create.mutateAsync(payload);
         toast.success("تم إضافة العميل بنجاح.");
-        onSaved?.(created.id);
+        onSaved?.(created.id, created);
       }
       onClose();
     } catch (error: unknown) {
