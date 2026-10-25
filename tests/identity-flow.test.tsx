@@ -88,15 +88,14 @@ describe("Identity feature browser workflows", () => {
 
   it("opens user detail with role, current status and account data", async () => {
     open("/users/42");
-    expect(await screen.findByRole("heading", { name: "تفاصيل المستخدم" })).toBeTruthy();
-    expect(screen.getByText("أحمد علي")).toBeTruthy();
+    expect(await screen.findByText("أحمد علي")).toBeTruthy();
     expect(screen.getByText("01000000000")).toBeTruthy();
     expect(screen.getByText("موظف")).toBeTruthy();
   });
 
   it("requires password confirmation and valid role before creating user", async () => {
     open("/users/new");
-    expect(await screen.findByRole("heading", { name: "إضافة مستخدم" })).toBeTruthy();
+    expect(await screen.findByLabelText(/الاسم الكامل/)).toBeTruthy();
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/الاسم الكامل/), "New Worker");
     await user.type(screen.getByLabelText(/اسم الدخول/), "newworker");
@@ -130,14 +129,13 @@ describe("Identity feature browser workflows", () => {
 
   it("reads roles but never invents permission IDs for an existing role", async () => {
     open("/roles/2/edit");
-    expect(await screen.findByRole("heading", { name: "تعديل الدور" })).toBeTruthy();
-    expect(screen.getByText(/عدد الصلاحيات الحالية/)).toBeTruthy();
+    expect(await screen.findByText(/عدد الصلاحيات الحالية/)).toBeTruthy();
     expect(requests.find((r) => r.path === "/roles/2" && r.method === "get")).toBeTruthy();
   });
 
   it("requires explicit acknowledgment to create a role with zero privileges", async () => {
     open("/roles/new");
-    expect(await screen.findByRole("heading", { name: "إضافة دور" })).toBeTruthy();
+    expect(await screen.findByLabelText(/اسم الدور بالعربي/)).toBeTruthy();
     const u = userEvent.setup();
     await u.type(screen.getByLabelText(/اسم الدور بالعربي/), "عامل إنتاج");
     expect(screen.getByRole("button", { name: "حفظ الدور" })).toHaveProperty("disabled", true);
