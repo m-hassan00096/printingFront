@@ -50,19 +50,31 @@ function blankForm(kind: SettingsKind): SettingsPayload {
   if (kind === "e-wallets") return { name: "", phone: "", accountHolder: "", paymentLink: "", isDefault: 0, status: 1 };
   return { name: "", description: "", status: 1 };
 }
-function validate(kind: SettingsKind, form: SettingsPayload): string | null {
-  if (kind === "bank-accounts") {
-    if (!form.bankName?.trim() || !form.accountNumber?.trim()) return "اسم البنك ورقم الحساب مطلوبان.";
-    if (form.bankName.trim().length > 150 || form.accountNumber.trim().length > 50) return "اسم البنك أو رقم الحساب أطول من المسموح.";
-  } else if (kind === "e-wallets") {
-    if (!form.name?.trim() || !form.accountHolder?.trim()) return "اسم المحفظة واسم صاحب الحساب مطلوبان.";
-    if (!/^01[0125][0-9]{8}$/.test(form.phone?.trim() ?? "")) return "رقم المحفظة يجب أن يكون رقم موبايل مصري صحيح.";
-    if (form.name.trim().length > 150 || form.accountHolder.trim().length > 150) return "الاسم أطول من المسموح (150 حرف).";
-  } else {
-    if (!form.name?.trim()) return "الاسم مطلوب.";
-    if (form.name.trim().length > 150) return "الاسم يجب ألا يزيد عن 150 حرفًا.";
+type SettingsField = keyof SettingsPayload;
+type FieldErrors = Partial<Record<SettingsField, string>>;
+
+function validate(kind: SettingsKind, form: SettingsPayload): FieldErrors {
+  const errors: FieldErrors = {};
+  function required(field: SettingsField, value: string | undefined, label: string, max = 150) {
+    if (!value?.trim()) errors[field] = `حقل ${label} مطلوب.`;
+    else if (value.trim().length > max) errors[field] = `حقل ${label} يجب ألا يتجاوز ${max} حرفًا.`;
   }
-  return null;
+  if (kind === "bank-accounts") {
+    required("bankName", form.bankName, "اسم البنك");
+    required("accountNumber", form.accountNumber, "رقم الحساب", 50);
+  } else if (kind === "e-wallets") {
+    required("name", form.name, "اسم المحفظة");
+    required("accountHolder", form.accountHolder, "اسم صاحب الحساب");
+    if (!form.phone?.trim()) errors.phone = "رقم المحفظة مطلوب.";
+    else if (!/^01[0125][0-9]{8}$/.test(form.phone.trim()))
+      errors.phone = "رقم المحفظة يجب أن يكون رقم موبايل مصري صحيح.";
+  } else {
+    required("name", form.name, "الاسم");
+  }
+  return errors;
+}
+function FieldError({ field, errors }: { field: SettingsField; errors: FieldErrors }) {
+  return errors[field] ? <span role="alert" className="mt-1 block text-xs text-destructive">{errors[field]}</span> : null;
 }
 function cleanedForm(kind: SettingsKind, form: SettingsPayload): SettingsPayload {
   if (kind === "bank-accounts") return {
@@ -110,6 +122,7 @@ export function SettingsPage() {
   const [form, setForm] = useState<SettingsPayload | null>(null);
   const [editing, setEditing] = useState<number | null>(null);
   const [savingError, setSavingError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [removing, setRemoving] = useState<SettingsRecord | null>(null);
 
   const filters: SettingsFilters = {
@@ -146,15 +159,22 @@ export function SettingsPage() {
     setEditing(row?.id ?? null);
     setForm(row ? formFromRow(row) : blankForm(kind));
     setSavingError(null);
+    setFieldErrors({});
   }
   function change(changes: Partial<SettingsPayload>) {
     setForm((previous) => previous ? { ...previous, ...changes } : null);
+    setFieldErrors((previous) => {
+      const next = { ...previous };
+      for (const field of Object.keys(changes) as SettingsField[]) delete next[field];
+      return next;
+    });
   }
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!form) return;
-    const issue = validate(kind, form);
-    if (issue) { setSavingError(issue); return; }
+    const issues = validate(kind, form);
+    setFieldErrors(issues);
+    if (Object.keys(issues).length) { setSavingError(null); return; }
     setSavingError(null);
     const payload = cleanedForm(kind, form);
     try {
@@ -163,10 +183,22 @@ export function SettingsPage() {
       toast.success(editing !== null ? "تم حفظ التعديلات." : "تمت الإضافة بنجاح.");
       setForm(null);
     } catch (error: unknown) {
-      const fieldErrors = axios.isAxiosError<ApiErrorResponse>(error) && error.response?.status === 422
+      const serverErrors = axios.isAxiosError<ApiErrorResponse>(error) && error.response?.status === 422
         ? error.response.data?.errors : null;
-      setSavingError(fieldErrors && Object.keys(fieldErrors).length
-        ? Object.values(fieldErrors).flat().join(" ") : getApiErrorMessage(error, "تعذّر حفظ الإعداد."));
+      if (serverErrors && Object.keys(serverErrors).length) {
+        const next: FieldErrors = {};
+        const other: string[] = [];
+        for (const [key, messages] of Object.entries(serverErrors)) {
+          if (["name", "description", "status", "bankName", "accountNumber",
+            "phone", "accountHolder", "paymentLink", "isDefault"].includes(key)) {
+            next[key as SettingsField] = messages[0];
+          } else other.push(...messages);
+        }
+        setFieldErrors(next);
+        setSavingError(other.length ? other.join(" ") : null);
+      } else {
+        setSavingError(getApiErrorMessage(error, "تعذّر حفظ الإعداد."));
+      }
     }
   }
   async function confirmDelete() {
@@ -261,25 +293,26 @@ export function SettingsPage() {
     {form && <ModalFrame title={editing !== null ? `تعديل ${names[kind]}` : `إضافة ${names[kind]}`} busy={busy} onClose={() => setForm(null)}>
       <form onSubmit={(event) => void save(event)} className="space-y-4" noValidate>
         {kind === "bank-accounts" ? <>
-          <label className="block"><span className={fieldLabel}>اسم البنك *</span><input className={control} required maxLength={150} value={form.bankName ?? ""} onChange={(e) => change({ bankName: e.target.value })} disabled={busy} /></label>
-          <label className="block"><span className={fieldLabel}>رقم الحساب *</span><input dir="ltr" className={control} required maxLength={50} value={form.accountNumber ?? ""} onChange={(e) => change({ accountNumber: e.target.value })} disabled={busy} /></label>
+          <label className="block"><span className={fieldLabel}>اسم البنك *</span><input className={control} required maxLength={150} value={form.bankName ?? ""} onChange={(e) => change({ bankName: e.target.value })} disabled={busy} aria-invalid={!!fieldErrors.bankName} /><FieldError field="bankName" errors={fieldErrors} /></label>
+          <label className="block"><span className={fieldLabel}>رقم الحساب *</span><input dir="ltr" className={control} required maxLength={50} value={form.accountNumber ?? ""} onChange={(e) => change({ accountNumber: e.target.value })} disabled={busy} aria-invalid={!!fieldErrors.accountNumber} /><FieldError field="accountNumber" errors={fieldErrors} /></label>
         </> : kind === "e-wallets" ? <>
-          <label className="block"><span className={fieldLabel}>اسم المحفظة *</span><input className={control} required maxLength={150} value={form.name ?? ""} onChange={(e) => change({ name: e.target.value })} disabled={busy} /></label>
-          <label className="block"><span className={fieldLabel}>رقم المحفظة *</span><input dir="ltr" className={control} required inputMode="tel" value={form.phone ?? ""} onChange={(e) => change({ phone: e.target.value })} disabled={busy} /></label>
-          <label className="block"><span className={fieldLabel}>اسم صاحب الحساب *</span><input className={control} required maxLength={150} value={form.accountHolder ?? ""} onChange={(e) => change({ accountHolder: e.target.value })} disabled={busy} /></label>
-          <label className="block"><span className={fieldLabel}>رابط الدفع (اختياري)</span><input dir="ltr" className={control} value={form.paymentLink ?? ""} onChange={(e) => change({ paymentLink: e.target.value })} disabled={busy} /></label>
+          <label className="block"><span className={fieldLabel}>اسم المحفظة *</span><input className={control} required maxLength={150} value={form.name ?? ""} onChange={(e) => change({ name: e.target.value })} disabled={busy} aria-invalid={!!fieldErrors.name} /><FieldError field="name" errors={fieldErrors} /></label>
+          <label className="block"><span className={fieldLabel}>رقم المحفظة *</span><input dir="ltr" className={control} required inputMode="tel" value={form.phone ?? ""} onChange={(e) => change({ phone: e.target.value })} disabled={busy} aria-invalid={!!fieldErrors.phone} /><FieldError field="phone" errors={fieldErrors} /></label>
+          <label className="block"><span className={fieldLabel}>اسم صاحب الحساب *</span><input className={control} required maxLength={150} value={form.accountHolder ?? ""} onChange={(e) => change({ accountHolder: e.target.value })} disabled={busy} aria-invalid={!!fieldErrors.accountHolder} /><FieldError field="accountHolder" errors={fieldErrors} /></label>
+          <label className="block"><span className={fieldLabel}>رابط الدفع (اختياري)</span><input dir="ltr" className={control} value={form.paymentLink ?? ""} onChange={(e) => change({ paymentLink: e.target.value })} disabled={busy} aria-invalid={!!fieldErrors.paymentLink} /><FieldError field="paymentLink" errors={fieldErrors} /></label>
         </> : <>
-          <label className="block"><span className={fieldLabel}>الاسم *</span><input className={control} required maxLength={150} value={form.name ?? ""} onChange={(e) => change({ name: e.target.value })} disabled={busy} /></label>
-          <label className="block"><span className={fieldLabel}>الوصف (اختياري)</span><textarea className={control + " min-h-24 py-3"} value={form.description ?? ""} onChange={(e) => change({ description: e.target.value })} disabled={busy} /></label>
+          <label className="block"><span className={fieldLabel}>الاسم *</span><input className={control} required maxLength={150} value={form.name ?? ""} onChange={(e) => change({ name: e.target.value })} disabled={busy} aria-invalid={!!fieldErrors.name} /><FieldError field="name" errors={fieldErrors} /></label>
+          <label className="block"><span className={fieldLabel}>الوصف (اختياري)</span><textarea className={control + " min-h-24 py-3"} value={form.description ?? ""} onChange={(e) => change({ description: e.target.value })} disabled={busy} aria-invalid={!!fieldErrors.description} /><FieldError field="description" errors={fieldErrors} /></label>
         </>}
         <label className="block"><span className={fieldLabel}>الحالة</span><select className={control} value={form.status}
           onChange={(e) => change({ status: Number(e.target.value) as 0 | 1 })} disabled={busy}>
           <option value={1}>نشط</option><option value={0}>غير نشط</option>
-        </select></label>
+        </select><FieldError field="status" errors={fieldErrors} /></label>
         {!parameterKind && <label className="flex items-center gap-3 rounded-xl border p-3 text-sm font-semibold">
           <input type="checkbox" checked={form.isDefault === 1}
             onChange={(e) => change({ isDefault: e.target.checked ? 1 : 0 })} disabled={busy} />
           تعيين كوسيلة دفع افتراضية
+          <FieldError field="isDefault" errors={fieldErrors} />
         </label>}
         {savingError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{savingError}</p>}
         <div className="flex justify-end gap-2 border-t pt-4">

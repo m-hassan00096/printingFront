@@ -28,7 +28,7 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthSessionBoundary>{children}</AuthSessionBoundary>
-      <Toaster dir="rtl" position="top-left" richColors closeButton />
+      <Toaster dir="rtl" position="bottom-right" richColors closeButton />
     </QueryClientProvider>
   );
 }
