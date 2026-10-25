@@ -23,9 +23,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      # Lockfile currently needs regeneration to pass npm ci under CI npm version.
-      # Keep install until it is normalized and committed.
-      - run: npm install --no-audit --no-fund
+      # Temporary: the committed legacy lockfile is incompatible with npm 10 resolution.
+      # Regenerate and commit a synchronized lockfile before merging.
+      - run: rm -f package-lock.json && npm install --no-audit --no-fund
       - run: npm test
       - run: npm run typecheck
       - run: npm run lint
