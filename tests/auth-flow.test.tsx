@@ -68,6 +68,14 @@ const simulatedBackend: AxiosAdapter = async (config) => {
     return apiResponse(config, 200, { success: true, message: "", data: null });
   }
 
+  if (url === "/orders" && config.method === "get") {
+    return apiResponse(config, 200, {
+      success: true, message: "", data: {
+        orders: [], pagination: { currentPage: 1, lastPage: 1, perPage: 15, total: 0 },
+      },
+    });
+  }
+
   if (url === "/business/check") {
     if (businessResponse !== 200) {
       throw new AxiosError("Rejected", "ERR_BAD_RESPONSE", config, undefined,
@@ -113,7 +121,7 @@ describe("Auth browser workflows", () => {
     expect(await screen.findByRole("heading", { name: "مرحبًا بعودتك" })).toBeTruthy();
     expect(window.location.pathname).toBe("/login");
     await signIn();
-    expect(await screen.findByRole("heading", { name: "الطلبات", level: 2 })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "الأوردرات", level: 2 })).toBeTruthy();
     expect(window.location.pathname).toBe("/orders");
     expect(window.location.search).toBe("?page=2");
     expect(loginCalls).toBe(1);
@@ -149,7 +157,7 @@ describe("Auth browser workflows", () => {
     serverUser = { ...initialUser, permissions: [] };
     openPage("/orders");
     expect(await screen.findByRole("heading", { name: "ليس لديك صلاحية الوصول" })).toBeTruthy();
-    expect(screen.queryByRole("heading", { name: "الطلبات", level: 2 })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "الأوردرات", level: 2 })).toBeNull();
     expect(screen.queryByRole("link", { name: "الطلبات" })).toBeNull();
     expect(window.location.pathname).toBe("/orders");
   });
@@ -157,7 +165,7 @@ describe("Auth browser workflows", () => {
   it("immediately updates the sidebar and route guard after a revoked permission and backend 403", async () => {
     serverUser = { ...initialUser };
     openPage("/orders");
-    expect(await screen.findByRole("heading", { name: "الطلبات", level: 2 })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "الأوردرات", level: 2 })).toBeTruthy();
     serverUser = { ...initialUser, permissions: ["production.items.list", "deliveries.list"] };
     businessResponse = 403;
     await act(async () => {
@@ -172,7 +180,7 @@ describe("Auth browser workflows", () => {
   it("ends expired sessions immediately and no longer exposes protected cached content", async () => {
     serverUser = { ...initialUser };
     openPage("/orders");
-    expect(await screen.findByRole("heading", { name: "الطلبات", level: 2 })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "الأوردرات", level: 2 })).toBeTruthy();
     serverUser = null;
     businessResponse = 401;
     await act(async () => {
@@ -182,13 +190,13 @@ describe("Auth browser workflows", () => {
     });
     expect(await screen.findByRole("heading", { name: "مرحبًا بعودتك" })).toBeTruthy();
     expect(window.location.pathname).toBe("/login");
-    expect(screen.queryByRole("heading", { name: "الطلبات", level: 2 })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "الأوردرات", level: 2 })).toBeNull();
   });
 
   it("logs out, clears protected UI, and blocks a Back-style navigation into private routes", async () => {
     serverUser = { ...initialUser };
     openPage("/orders");
-    expect(await screen.findByRole("heading", { name: "الطلبات", level: 2 })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "الأوردرات", level: 2 })).toBeTruthy();
     await userEvent.setup().click(screen.getByRole("button", { name: "تسجيل الخروج" }));
     expect(await screen.findByRole("heading", { name: "مرحبًا بعودتك" })).toBeTruthy();
     expect(logoutCalls).toBe(1);
@@ -197,7 +205,7 @@ describe("Auth browser workflows", () => {
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
     await waitFor(() => expect(window.location.pathname).toBe("/login"));
-    expect(screen.queryByRole("heading", { name: "الطلبات", level: 2 })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "الأوردرات", level: 2 })).toBeNull();
   });
 
   it("keeps server outages separate from a guest and offers retry", async () => {
