@@ -75,11 +75,27 @@ List filters: `filter[search]` (name/phone/number), `filter[status]`, `filter[pr
 - Detailed balance, collections and refunds belong to Finance/Collections UI.
 - More advanced PDF/media file previews and customer search autocomplete may follow live testing.
 
+## Order creation UX (current)
+
+- Customer and service selection use **single searchable comboboxes**, not a separate search input plus native select. Customer search matches the text/phone label of the existing `activeCustomers` Selects API; service search is per order line.
+- Users with `customers.create` can open the shared Customer modal directly from the combobox. `POST /customers` returns the new resource, which is selected immediately; the Orders Selects cache is invalidated and refreshed.
+- The new form keeps individual order lines compact: service, quantity and agreed total on one row; optional specifications expand on demand.
+- Each line can request a price preview from the backend. Its suggested price **never replaces** `agreedTotal` until the user clicks “استخدام السعر”.
+- Local summary uses integer cents for *display only*: item count, order amount, paid-now amount and remainder. The backend still validates/posts all finance values.
+- Two explicit submit choices use the **same** `POST /api/v1/orders` route: “حفظ مسودة” = `status:0`; “تأكيد الأوردر” = `status:1` and requires `orders.confirm`. Payment data is included only in the confirmed operation with positive deposit.
+- Bank and wallet choices come from the existing Selects response. `isDefault:1` selects the default *automatically*, independently for each payment method. Staff can still change the choice. If there is no configured default, the first active destination is selected; with none available, confirmation is blocked with validation.
+- Existing draft confirmation also automatically chooses the default bank or wallet.
+- Larger-than-total deposits require a deliberate checkbox acknowledgement that the excess becomes customer credit, subject to authoritative backend accounting.
+- Customer's previous net ledger balance appears only with `finance.balances.view`, clearly separated from the amount outstanding on the *new* order.
+- Uploading files is still performed against a saved draft and is not part of immediate create-and-confirm; the UI explicitly tells staff to use the draft path when design files are required.
+- Order creation responses are `data:null`; redirect to list on success, never infer an ID. Retries reuse the same idempotency key for an unchanged request payload, and rotate it if the payload changes.
+- Arabic labels, per-field errors and sticky bottom action buttons are used throughout.
+
 ## QA before merging
 
-1. Create multiple items, search/select an existing customer and active services, validate 422 errors and agreed totals.
+1. Create multiple items using searchable comboboxes; create a customer inline and verify it is selected, validate 422 errors and agreed totals.
 2. Save draft, verify it appears without a number; modify header, edit/add/remove items, upload/download/archive files.
-3. Confirm with no deposit, cash deposit, bank and wallet destination; verify order number generated and Finance ledger updated.
+3. Confirm **directly from creation** with no deposit, cash deposit, bank and wallet (preselected defaults), and also confirm saved drafts; verify order number generated and Finance ledger updated.
 4. Try 409 actions: delete confirmed order, cancel already-delivered order, remove last item, reused idempotency key.
 5. Permission-check list/view/create/update/confirm/cancel and individual file actions; ensure no other Settings selects are exposed.
 6. Check date, pagination, lateOnly and production status filters.
