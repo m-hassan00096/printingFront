@@ -54,7 +54,7 @@ export function CustomerDetailPage() {
         <div className="flex flex-wrap items-end gap-3">
           <strong className="text-3xl font-extrabold tabular-nums">{balance.data.amount} ج.م</strong>
           <span className="text-sm font-semibold text-muted-foreground">
-            {balance.data.type === "debit" ? "مديونية على العميل" : balance.data.type === "credit" ? "رصيد دائن للعميل" : balance.data.typeLabel}
+            {balance.data.type === 1 ? "مديونية على العميل" : balance.data.type === 2 ? "رصيد دائن للعميل" : balance.data.typeLabel}
           </span>
         </div>}
       <p className="mt-3 text-xs text-muted-foreground">الرصيد محسوب من دفتر الأستاذ في النظام المالي.</p>

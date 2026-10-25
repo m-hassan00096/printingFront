@@ -29,7 +29,7 @@ export type CustomerOption = { value: number; label: string };
 export type CustomerBalance = {
   customerId: number;
   amount: string;
-  type: "debit" | "credit" | "zero" | string;
+  type: 0 | 1 | 2;
   typeLabel: string;
 };
 export type LedgerEntry = {
