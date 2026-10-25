@@ -112,9 +112,9 @@ export function UsersPage() {
                     {permissions.includes("identity.users.view") && <Button asChild size="icon-sm" variant="ghost" title="عرض التفاصيل"><Link aria-label={`عرض ${user.name}`} to={`/users/${user.id}`}><UserRound className="size-4" /></Link></Button>}
                     {permissions.includes("identity.users.update") && <>
                       <Button asChild size="icon-sm" variant="ghost" title="تعديل المستخدم"><Link aria-label={`تعديل ${user.name}`} to={`/users/${user.id}/edit`}><Pencil className="size-4" /></Link></Button>
-                      <Button size="icon-sm" variant="ghost" title={user.status ? "تعطيل المستخدم" : "تفعيل المستخدم"} aria-label={user.status ? `تعطيل ${user.name}` : `تفعيل ${user.name}`} onClick={() => setSelected({ user, operation: "status" })}><UserRoundCog className="size-4" /></Button>
+                      {user.role?.name !== "admin" && <Button size="icon-sm" variant="ghost" title={user.status ? "تعطيل المستخدم" : "تفعيل المستخدم"} aria-label={user.status ? `تعطيل ${user.name}` : `تفعيل ${user.name}`} onClick={() => setSelected({ user, operation: "status" })}><UserRoundCog className="size-4" /></Button>}
                     </>}
-                    {permissions.includes("identity.users.delete") && <Button size="icon-sm" variant="ghost" title="حذف المستخدم" aria-label={`حذف ${user.name}`} onClick={() => setSelected({ user, operation: "delete" })}><Trash2 className="size-4 text-destructive" /></Button>}
+                    {permissions.includes("identity.users.delete") && user.role?.name !== "admin" && <Button size="icon-sm" variant="ghost" title="حذف المستخدم" aria-label={`حذف ${user.name}`} onClick={() => setSelected({ user, operation: "delete" })}><Trash2 className="size-4 text-destructive" /></Button>}
                   </div>
                 </td>
               </tr>)}

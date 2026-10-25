@@ -88,9 +88,9 @@ export function UserFormPage() {
 
     const payload: UserPayload = {
       name: values.name, username: values.username, phone: values.phone || null,
-      address: values.address || null, status: Number(values.status) as 0 | 1,
+      address: values.address || null, status: !isNew && user.data?.role?.name === "admin" ? user.data.status : Number(values.status) as 0 | 1,
     };
-    if (isNew || (canReadRoles && values.roleId && Number(values.roleId) !== user.data?.role?.id)) {
+    if (isNew || (canReadRoles && user.data?.role?.name !== "admin" && values.roleId && Number(values.roleId) !== user.data?.role?.id)) {
       payload.roleId = Number(values.roleId);
     }
     if (values.password) {
@@ -172,7 +172,7 @@ export function UserFormPage() {
         <div className="border-b pb-4"><h3 className="text-base font-extrabold">الوصول للنظام</h3><p className="mt-1 text-xs text-muted-foreground">الدور يحدد الصلاحيات؛ تحقق من أنه مناسب قبل الحفظ.</p></div>
         <div className="grid gap-5 sm:grid-cols-2">
           <label className="space-y-2"><span className={fieldLabel}>الدور الوظيفي {isNew && "*"}</span>
-            <select className={fieldClass} {...register("roleId")} disabled={busy || !canReadRoles}>
+            <select className={fieldClass} {...register("roleId")} disabled={busy || !canReadRoles || user.data?.role?.name === "admin"}>
               <option value="">اختر الدور</option>
               {!roleAvailable && existingRole && <option value={existingRole.id}>{existingRole.alias} (الدور الحالي)</option>}
               {activeRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
@@ -181,9 +181,10 @@ export function UserFormPage() {
             {errors.roleId && <span role="alert" className="text-xs text-destructive">{errors.roleId.message}</span>}
           </label>
           <label className="space-y-2"><span className={fieldLabel}>الحالة</span>
-            <select className={fieldClass} {...register("status")} disabled={busy}><option value="1">نشط</option><option value="0">غير نشط</option></select>
+            <select className={fieldClass} {...register("status")} disabled={busy || user.data?.role?.name === "admin"}><option value="1">نشط</option><option value="0">غير نشط</option></select>
           </label>
         </div>
+        {user.data?.role?.name === "admin" && <p className="text-xs leading-6 text-amber-800">تغيير حالة ودور حساب Admin غير متاح من هذه الواجهة لحين التأكد من حماية الباك.</p>}
         {roles.isError && canReadRoles && <p role="alert" className="text-sm text-destructive">تعذّر تحميل الأدوار. أعد المحاولة قبل اختيار دور.</p>}
       </section>
       <section className="space-y-5 rounded-2xl border bg-card p-5 shadow-sm sm:p-7">

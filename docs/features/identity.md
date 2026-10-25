@@ -220,3 +220,5 @@ npm run lint
 npm run build
 npm run dev
 ```
+
+**Safety temporary frontend measure:** status changes and delete actions are not offered for accounts assigned the technical `admin` role, and the edit form locks their role and status. This is UX defense-in-depth only: backend must independently enforce the last-admin invariant before merge or production use. Backend identity fixes are not included in this frontend branch.
