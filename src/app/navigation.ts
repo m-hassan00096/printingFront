@@ -1,7 +1,7 @@
-import { featureAccessPolicy, identityAccessPolicy } from "@/app/access-policy";
+import { featureAccessPolicy, identityAccessPolicy, printingServiceAccessPolicy } from "@/app/access-policy";
 import { hasAnyPermission } from "@/features/auth/lib/auth-helpers";
 import {
-  ClipboardList, LayoutDashboard, Layers, ReceiptText, Settings, Truck,
+  ClipboardList, LayoutDashboard, Layers, Printer, ReceiptText, Settings, Truck,
   Users, Wallet, ShieldCheck, type LucideIcon,
 } from "lucide-react";
 
@@ -24,6 +24,7 @@ export const navigationGroups: NavigationGroup[] = [
     label: "إدارة العمل",
     items: [
       { to: "/orders", label: "الطلبات", icon: ClipboardList, anyOf: featureAccessPolicy.orders },
+      { to: "/printing-services", label: "خدمات الطباعة", icon: Printer, anyOf: printingServiceAccessPolicy.view },
       { to: "/production", label: "الإنتاج", icon: Layers, anyOf: featureAccessPolicy.production },
       { to: "/deliveries", label: "التسليمات", icon: Truck, anyOf: featureAccessPolicy.deliveries },
     ],
@@ -63,6 +64,8 @@ export function getPageTitle(pathname: string): string {
     const item = group.items.find((nav) => nav.to === pathname);
     if (item) return item.label;
   }
+  if (pathname === "/printing-services/new") return "إضافة خدمة طباعة";
+  if (pathname.startsWith("/printing-services/")) return pathname.endsWith("/edit") ? "تعديل خدمة طباعة" : "تفاصيل خدمة الطباعة";
   if (pathname.startsWith("/customers/")) return "تفاصيل العميل";
   if (pathname.startsWith("/users/")) return pathname.endsWith("/edit") ? "تعديل مستخدم" : pathname === "/users/new" ? "إضافة مستخدم" : "تفاصيل المستخدم";
   if (pathname.startsWith("/roles/")) return pathname === "/roles/new" ? "إضافة دور" : "تعديل الدور";

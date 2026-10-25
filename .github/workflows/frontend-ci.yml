@@ -9,6 +9,7 @@ on:
       - feature/identity
       - feature/settings
       - feature/customers
+      - feature/printing-services
   pull_request:
     branches:
       - develop

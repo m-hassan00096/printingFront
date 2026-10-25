@@ -1,0 +1,84 @@
+# Printing Services — Frontend implementation
+
+**Backend source:** `printingApi/develop` — `Modules/PrintingServices`.
+**Frontend branch:** `feature/printing-services` (created from `develop` after Customers PR #4).
+**Backend dependency:** PR #17 merged; the existing `customerTypes` Select now permits Printing Services staff.
+
+## Screens and permissions
+
+- `/printing-services` — searchable, sortable, filterable and paginated services table (permission: `printing_services.view`).
+- `/printing-services/new` — create service and initial price tiers in a compact form (`printing_services.create`).
+- `/printing-services/:id` — compact header and pricing table (`printing_services.view`) and a compact calculator shown only with `printing_services.price_preview.view`.
+- `/printing-services/:id/edit` — edit base fields and individual tiers in streamlined rows (`printing_services.update`).
+- Delete with confirmation is available only with `printing_services.delete`. A backend 409 remains authoritative when orders reference a service.
+- Customer type Selects: `GET /api/v1/selects?selects=customerTypes` -> `data: [{label:"customerTypes",options:[{value,label}]}]`. It is reused from Customers, not a new list/lookup API. Only active customer types are supplied; existing inactive type IDs remain visible in saved tiers and are not silently replaced.
+
+## Verified backend contracts
+
+| Method | Endpoint | data |
+|---|---|---|
+| GET | `/api/v1/printing-services` | `{printingServices, pagination}` |
+| GET | `/api/v1/printing-services/{id}` | `{id,name,basePrice,status,priceTiers}` |
+| POST | `/api/v1/printing-services` | created service resource (HTTP 201) |
+| PATCH | `/api/v1/printing-services/{id}` | updated service resource |
+| DELETE | `/api/v1/printing-services/{id}` | `null` |
+| POST | `/api/v1/printing-services/price-preview` | Backend price recommendation used by the optional calculator; never calculated in React |
+
+List queries support `filter[search]`, `filter[status]`, `sort` (`id,-id,name,-name`), `page` and `perPage`. List resource does **not guarantee** `priceTiers`; use the Show endpoint for tiers.
+
+### Create body
+```json
+{
+  "name":"كروت شخصية",
+  "basePrice":"10.00",
+  "status":1,
+  "priceTiers":[
+    {"customerTypeId":null,"minQuantity":100,"maxQuantity":500,"price":"5.50"}
+  ]
+}
+```
+
+- `basePrice` is a string decimal or `null`; `"0.00"` means free base pricing, `null` can require manual total on preview.
+- Tier prices must be **positive**, and quantity bounds can be null for catch-all/open-ended.
+- Tier ranges cannot overlap for the same customer type; server handles transactional validation and returns indexed `422 errors.priceTiers.0.price` etc.
+
+### Update body uses tier commands (not array replacement)
+
+- Create: `{actionStatus:1,customerTypeId,minQuantity,maxQuantity,price}`
+- Update: `{actionStatus:2,priceTierId,customerTypeId,minQuantity,maxQuantity,price}` (**full tier values required**)
+- Delete: `{actionStatus:3,priceTierId}`
+- Unchanged tiers can be omitted (server retains them).
+- Updating `name/basePrice/status` does not require sending the full tier list; only actual edits are posted.
+- The form maps Laravel field errors by *command array index* back to the correct UI row.
+
+### Simplified UX
+
+- The service detail page shows only the service heading/status, a small optional base-price label, and a single tiers table.
+- No redundant tier-count/base-price cards. A compact price calculator appears below the tiers only with its preview permission and on active services.
+- If base price is null, show a clear fallback note: manual total is required only when no tier matches. The calculator displays `requiresManualTotal` from Laravel.
+- The create/edit form shows name, optional base price, status, and compact editable tier rows with one Add button.
+- Keep per-field Laravel validation errors and the backend's tier commands unchanged.
+
+## Verification and follow-up
+
+- CI: `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`.
+- `tests/printing-services-flow.test.tsx` checks list queries, create payloads, tier change commands, server-driven price preview, invalidation on field edits, and permission-limited pages.
+- Local browser smoke test still needed against MySQL/Laravel: conflicting tier boundaries, duplicate names, 422 translation, full create/update/delete workflow, inactive services, manual pricing fallback labels and 409 usage guards.
+- Keep frontend PR in Draft until user reviews UI and real data integration.
+
+## Pull locally
+
+```powershell
+cd C:\xampp\htdocs\printingApi
+git switch develop
+git pull --ff-only origin develop
+php artisan optimize:clear
+
+cd C:\xampp\htdocs\printingFront
+git fetch origin
+git switch --track origin/feature/printing-services
+npm ci
+npm run dev
+```
+
+If `feature/printing-services` already exists locally, switch to it then use `git pull --ff-only origin feature/printing-services`. Preserve local edits before branch switching.
