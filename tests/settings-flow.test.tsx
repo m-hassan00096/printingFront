@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { AxiosAdapter, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import { AxiosError, type AxiosAdapter, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 import { App } from "@/App";
 import { apiClient } from "@/shared/api/http";
 import type { AuthUser } from "@/features/auth/types/auth.types";
@@ -42,6 +42,20 @@ const adapter: AxiosAdapter = async (config) => {
       ? [{ id: 5, parameterId: 57, name: "مطبعة رئيسية", description: null, status: 1 }]
       : [{ id: 7, parameterId: 31, name: "عميل جملة", description: null, status: 1 }],
     pagination: { currentPage: 1, lastPage: 1, perPage: 15, total: 1 } });
+  }
+  if (path === "/settings/parameter-values/7" && config.method === "patch") {
+    const validation: AxiosResponse = {
+      config,
+      status: 422,
+      statusText: "Unprocessable Content",
+      headers: {},
+      data: {
+        success: false,
+        message: "بيانات الإدخال غير صحيحة.",
+        errors: { name: ["قيمة الاسم مستخدمة بالفعل."] },
+      },
+    };
+    throw new AxiosError("Validation failed", "ERR_BAD_REQUEST", config, undefined, validation);
   }
   if (path === "/settings/bank-accounts" && config.method === "get")
     return envelope(config, { bankAccounts, pagination: {
@@ -126,4 +140,46 @@ describe("Settings permissions and backend integration", () => {
     await waitFor(() => expect(requests.some((r) => r.path === "/settings/bank-accounts/9" && r.method === "patch")).toBe(true));
     expect(await screen.findByText("بنك جديد")).toBeTruthy();
   });
+  it("shows required-field validation directly below each field", async () => {
+    visit("/settings?tab=bank-accounts");
+    expect(await screen.findByText("البنك الأهلي")).toBeTruthy();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "إضافة حساب بنكي" }));
+    await user.click(screen.getByRole("button", { name: "حفظ" }));
+    const bankField = screen.getByRole("textbox", { name: "اسم البنك *" });
+    const accountField = screen.getByRole("textbox", { name: "رقم الحساب *" });
+    expect(bankField.getAttribute("aria-invalid")).toBe("true");
+    expect(accountField.getAttribute("aria-invalid")).toBe("true");
+    expect(await screen.findByText("حقل اسم البنك مطلوب.")).toBeTruthy();
+    expect(screen.getByText("حقل رقم الحساب مطلوب.")).toBeTruthy();
+    expect(requests.filter((r) => r.path === "/settings/bank-accounts" && r.method === "post")).toHaveLength(0);
+    await user.type(bankField, "بنك مصر");
+    expect(screen.queryByText("حقل اسم البنك مطلوب.")).toBeNull();
+    expect(screen.getByText("حقل رقم الحساب مطلوب.")).toBeTruthy();
+  });
+
+  it("maps Laravel 422 name uniqueness error under customer type input", async () => {
+    visit("/settings?tab=customer-types");
+    expect(await screen.findByText("عميل جملة")).toBeTruthy();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "تعديل عميل جملة" }));
+    const name = screen.getByRole("textbox", { name: "الاسم *" });
+    await user.clear(name);
+    await user.type(name, "شركة");
+    await user.click(screen.getByRole("button", { name: "حفظ" }));
+    expect(await screen.findByText("قيمة الاسم مستخدمة بالفعل.")).toBeTruthy();
+    expect(name.getAttribute("aria-invalid")).toBe("true");
+    expect(requests.some((r) => r.path === "/settings/parameter-values/7" && r.method === "patch")).toBe(true);
+    await user.type(name, " أخرى");
+    expect(screen.queryByText("قيمة الاسم مستخدمة بالفعل.")).toBeNull();
+  });
+
+  it("places success and error toast notifications at bottom right", async () => {
+    visit("/settings?tab=bank-accounts");
+    expect(await screen.findByText("البنك الأهلي")).toBeTruthy();
+    const toaster = document.querySelector("[data-sonner-toaster]");
+    expect(toaster?.getAttribute("data-y-position")).toBe("bottom");
+    expect(toaster?.getAttribute("data-x-position")).toBe("right");
+  });
+
 });
