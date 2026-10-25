@@ -45,6 +45,13 @@ const backend: AxiosAdapter = async (config) => {
       currentPage: Number(filters.get("page") || 1), lastPage: 1, perPage: 15, total: selected.length,
     } });
   }
+  if (url === "/selects" && config.method === "get") {
+    return envelope(config, [{ label: "permissions", options: [
+      { value: 1, label: "عرض المستخدمين" },
+      { value: 5, label: "عرض الأدوار" },
+      { value: 9, label: "إنشاء طلب" },
+    ] }]);
+  }
   if (url === "/roles" && config.method === "get") return envelope(config, {
     roles: [role], pagination: { currentPage: 1, lastPage: 1, perPage: 15, total: 1 },
   });
@@ -52,6 +59,7 @@ const backend: AxiosAdapter = async (config) => {
   if (url === "/roles/2" && config.method === "get") return envelope(config, role);
   if (url === "/users" && config.method === "post") return envelope(config, { ...userRecord, id: 44 }, 201);
   if (url === "/roles" && config.method === "post") return envelope(config, { ...role, id: 4, key: "role_new" }, 201);
+  if (url === "/roles/2" && config.method === "patch") return envelope(config, { ...role, ...(body as object) });
   if (url === "/users/42" && config.method === "patch") return envelope(config, { ...userRecord, ...(body as object) });
   if (url === "/users/42" && config.method === "delete") return envelope(config, null);
   throw new Error(`Unexpected endpoint ${config.method} ${url}`);
@@ -127,22 +135,49 @@ describe("Identity feature browser workflows", () => {
     expect(requests.find((r) => r.path === "/users/42" && r.method === "patch")?.data).toMatchObject({ status: 0 });
   });
 
-  it("reads roles but never invents permission IDs for an existing role", async () => {
+
+  it("loads existing role permissionIds and updates only selected permissions", async () => {
     open("/roles/2/edit");
-    expect(await screen.findByText(/عدد الصلاحيات الحالية/)).toBeTruthy();
-    expect(requests.find((r) => r.path === "/roles/2" && r.method === "get")).toBeTruthy();
+    expect(await screen.findByText("عرض المستخدمين")).toBeTruthy();
+    expect(screen.getByText("عرض الأدوار")).toBeTruthy();
+    const user = userEvent.setup();
+    const checkboxes = screen.getAllByRole("checkbox");
+    expect(checkboxes).toHaveLength(3);
+    expect(checkboxes[0]).toHaveProperty("checked", true);
+    expect(checkboxes[1]).toHaveProperty("checked", true);
+    expect(checkboxes[2]).toHaveProperty("checked", false);
+    await user.click(checkboxes[1]);
+    await user.click(checkboxes[2]);
+    await user.click(screen.getByRole("button", { name: "حفظ الدور" }));
+    await waitFor(() => expect(requests.some((r) => r.path === "/roles/2" && r.method === "patch")).toBe(true));
+    expect(requests.find((r) => r.path === "/roles/2" && r.method === "patch")!.data)
+      .toMatchObject({ nameAr: "موظف", status: 1, permissionIds: [1, 9] });
   });
 
-  it("requires explicit acknowledgment to create a role with zero privileges", async () => {
+  it("creates role with exactly the selected real permission IDs", async () => {
     open("/roles/new");
     expect(await screen.findByLabelText(/اسم الدور بالعربي/)).toBeTruthy();
-    const u = userEvent.setup();
-    await u.type(screen.getByLabelText(/اسم الدور بالعربي/), "عامل إنتاج");
-    expect(screen.getByRole("button", { name: "حفظ الدور" })).toHaveProperty("disabled", true);
-    await u.click(screen.getByRole("checkbox"));
-    await u.click(screen.getByRole("button", { name: "حفظ الدور" }));
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/اسم الدور بالعربي/), "عامل إنتاج");
+    expect(await screen.findByText("عرض المستخدمين")).toBeTruthy();
+    const boxes = screen.getAllByRole("checkbox");
+    await user.click(boxes[0]);
+    await user.click(boxes[2]);
+    await user.click(screen.getByRole("button", { name: "حفظ الدور" }));
     await waitFor(() => expect(requests.some((r) => r.path === "/roles" && r.method === "post")).toBe(true));
-    const request = requests.find((r) => r.path === "/roles" && r.method === "post");
-    expect(request?.data).toMatchObject({ nameAr: "عامل إنتاج", permissionIds: [] });
+    expect(requests.find((r) => r.path === "/roles" && r.method === "post")!.data)
+      .toMatchObject({ nameAr: "عامل إنتاج", status: 1, permissionIds: [1, 9] });
+  });
+
+  it("keeps hidden checked permissions when selecting or clearing filtered visible options", async () => {
+    open("/roles/2/edit");
+    expect(await screen.findByText("عرض المستخدمين")).toBeTruthy();
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText("ابحث عن صلاحية..."), "إنشاء");
+    await user.click(screen.getByRole("button", { name: "تحديد الظاهر" }));
+    await user.click(screen.getByRole("button", { name: "حفظ الدور" }));
+    await waitFor(() => expect(requests.some((r) => r.path === "/roles/2" && r.method === "patch")).toBe(true));
+    expect(requests.find((r) => r.path === "/roles/2" && r.method === "patch")!.data)
+      .toMatchObject({ permissionIds: [1, 5, 9] });
   });
 });
