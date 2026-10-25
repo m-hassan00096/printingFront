@@ -12,7 +12,7 @@ type CustomerTab = "details" | "ledger" | "orders";
 const money = (value: string) => <span dir="ltr" className="inline-block tabular-nums">{value} ج.م</span>;
 
 function CustomerField({ label, value, ltr = false }: { label: string; value: string; ltr?: boolean }) {
-  return <div className="min-w-0 rounded-xl bg-muted/50 px-4 py-3">
+  return <div className="min-w-0 rounded-xl bg-muted/50 px-4 py-2.5">
     <dt className="mb-2 text-xs font-medium text-muted-foreground">{label}</dt>
     <dd className="break-words text-sm font-bold" dir={ltr ? "ltr" : undefined}>{value}</dd>
   </div>;
@@ -78,14 +78,11 @@ export function CustomerDetailPage() {
         <div className="space-y-2">
           <p className="text-xs font-semibold text-muted-foreground">إدارة الطباعة / العملاء</p>
           <h1 className="text-2xl font-extrabold sm:text-3xl">{value.name}</h1>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <span>رقم الهاتف: <b dir="ltr" className="inline-block text-foreground">{value.phone}</b></span>
-            <span aria-hidden="true">·</span>
-            <span>نوع العميل: <b className="text-foreground">{value.customerType?.name ?? "—"}</b></span>
+          <div className="pt-1">
             <IdentityStatus status={value.status} label={value.statusLabel} />
           </div>
         </div>
-        {mayEdit && <Button type="button" variant="outline" onClick={() => setEditing(true)}><Pencil className="size-4" /> تعديل العميل</Button>}
+        {mayEdit && <Button type="button" onClick={() => setEditing(true)}><Pencil className="size-4" /> تعديل العميل</Button>}
       </header>
     </div>
 
@@ -98,8 +95,8 @@ export function CustomerDetailPage() {
         <ErrorState error={balance.error} retry={() => void balance.refetch()} /> :
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <BalanceCard title="الرصيد الحالي" amount={balance.data.amount} />
-          <BalanceCard title="مديونية حالية" amount={currentDebt} tone="debit" />
-          <BalanceCard title="رصيد دائن" amount={currentCredit} tone="credit" />
+          <BalanceCard title="صافي المديونية الحالية" amount={currentDebt} tone="debit" />
+          <BalanceCard title="الرصيد الدائن الحالي" amount={currentCredit} tone="credit" />
         </div>}
     </section>}
 
@@ -118,14 +115,12 @@ export function CustomerDetailPage() {
       </div>
 
       <section role="tabpanel" id={`customer-panel-${activeTab}`}
-        aria-labelledby={`customer-tab-${activeTab}`} className="overflow-hidden rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
-        {activeTab === "details" && <dl className="grid gap-3 sm:grid-cols-2">
+        aria-labelledby={`customer-tab-${activeTab}`} className="overflow-hidden rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+        {activeTab === "details" && <dl className="grid gap-2.5 sm:grid-cols-2">
           <CustomerField label="الاسم" value={value.name} />
           <CustomerField label="الهاتف" value={value.phone} ltr />
           <CustomerField label="نوع العميل" value={value.customerType?.name ?? "—"} />
           <CustomerField label="العنوان" value={value.address || "—"} />
-          <div className="sm:col-span-2"><p className="mb-2 text-xs font-medium text-muted-foreground">الحالة</p>
-            <IdentityStatus status={value.status} label={value.statusLabel} /></div>
         </dl>}
 
         {activeTab === "ledger" && mayLedger && <div>

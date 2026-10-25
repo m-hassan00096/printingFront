@@ -161,7 +161,16 @@ describe("Customers Laravel integration", () => {
     expect(screen.getByRole("tab", { name: "بيانات العميل" }).getAttribute("aria-selected")).toBe("true");
     expect(screen.getByRole("tabpanel")).toBeTruthy();
     expect(screen.getByText("القاهرة")).toBeTruthy();
-    expect(await screen.findByText("مديونية حالية")).toBeTruthy();
+    expect(await screen.findByText("صافي المديونية الحالية")).toBeTruthy();
+    expect(screen.getByText("الرصيد الدائن الحالي")).toBeTruthy();
+    const heading = screen.getByRole("heading", { name: "أحمد محمد" });
+    const customerHeader = heading.closest("header");
+    expect(customerHeader).not.toBeNull();
+    expect(within(customerHeader!).queryByText(/رقم الهاتف/)).toBeNull();
+    expect(within(customerHeader!).queryByText(/نوع العميل/)).toBeNull();
+    expect(screen.getAllByText("فعال")).toHaveLength(1);
+    expect(within(screen.getByRole("tabpanel")).queryByText("الحالة")).toBeNull();
+    expect(screen.getByRole("button", { name: "تعديل العميل" })).toBeTruthy();
     expect(requests.some((r) => r.path === "/finance/customers/101/balance")).toBe(true);
     expect(requests.some((r) => r.path === "/finance/customers/101/ledger")).toBe(false);
 
