@@ -2,6 +2,8 @@ import { useRef, useState, type FormEvent } from "react";
 import { ArrowRight, CheckCircle2, Paperclip, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { listPrintingServices } from "@/features/printing-services/api/printing-services.api";
 import { Button } from "@/shared/components/ui/button";
 import { getApiErrorMessage } from "@/shared/api/http";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
@@ -17,6 +19,15 @@ function ItemEditor({ order, item, onClose }: { order: Order; item?: OrderItem; 
   const [agreedTotal, setAgreedTotal] = useState(item?.agreedTotal ?? "");
   const [specifications, setSpecifications] = useState(item?.specifications ?? "");
   const [serviceId, setServiceId] = useState(item?.serviceId ? String(item.serviceId) : "");
+  const [serviceSearch, setServiceSearch] = useState("");
+  const [selectedService, setSelectedService] = useState<{ id: number; name: string } | null>(
+    item ? { id: item.serviceId, name: item.serviceName } : null,
+  );
+  const services = useQuery({
+    queryKey: ["orders", "item-services", serviceSearch],
+    queryFn: () => listPrintingServices({ search: serviceSearch, status: "1", sort: "name", page: 1 }),
+    enabled: !item,
+  });
   const [error, setError] = useState("");
   const busy = actions.addItem.isPending || actions.editItem.isPending;
   async function save(event: FormEvent) {
@@ -43,10 +54,28 @@ function ItemEditor({ order, item, onClose }: { order: Order; item?: OrderItem; 
       className="w-full max-w-lg rounded-2xl bg-card p-6 shadow-xl">
       <h2 className="mb-4 text-lg font-bold">{item ? "تعديل عنصر" : "إضافة عنصر"}</h2>
       <form onSubmit={(e) => void save(e)} className="space-y-4">
-        <label className="block text-sm font-semibold">معرّف خدمة الطباعة *
-          <input aria-label="معرّف خدمة الطباعة" type="number" min="1" className={fieldClass + " mt-2"}
-            value={serviceId} disabled={!!item || busy} onChange={(e) => setServiceId(e.target.value)} />
-        </label>
+        {item ? <p className="text-sm">خدمة الطباعة: <strong>{item.serviceName}</strong></p> :
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold">ابحث عن خدمة
+              <input aria-label="البحث عن خدمة للعنصر" className={fieldClass + " mt-2"}
+                value={serviceSearch} onChange={(e) => setServiceSearch(e.target.value)} />
+            </label>
+            <label className="block text-sm font-semibold">خدمة الطباعة *
+              <select aria-label="خدمة الطباعة للعنصر" className={fieldClass + " mt-2"}
+                disabled={busy || services.isPending} value={serviceId}
+                onChange={(e) => {
+                  setServiceId(e.target.value);
+                  const found = services.data?.printingServices.find((option) => String(option.id) === e.target.value);
+                  setSelectedService(found ? { id: found.id, name: found.name } : null);
+                }}>
+                <option value="">اختر الخدمة</option>
+                {selectedService && !services.data?.printingServices.some((option) => option.id === selectedService.id) &&
+                  <option value={selectedService.id}>{selectedService.name}</option>}
+                {services.data?.printingServices.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
+              </select>
+            </label>
+            {services.isError && <p role="alert" className="text-xs text-destructive">تعذّر تحميل الخدمات.</p>}
+          </div>}
         <label className="block text-sm font-semibold">الكمية *
           <input aria-label="كمية العنصر" type="number" min="1" className={fieldClass + " mt-2"} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
         </label>
