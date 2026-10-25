@@ -185,54 +185,74 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
     <option value={id}>نوع العميل #{id} (غير متاح حاليًا)</option>
   );
 
-  return <div className="space-y-6">
-    <Button asChild variant="ghost"><Link to={service ? `/printing-services/${service.id}` : "/printing-services"}><ArrowRight /> العودة للخدمات</Link></Button>
-    <div><h1 className="text-2xl font-extrabold">{service ? "تعديل خدمة طباعة" : "إضافة خدمة طباعة"}</h1>
-      <p className="mt-1 text-sm text-muted-foreground">الأسعار والمبالغ بالجنيه المصري؛ تحديد الشرائح اختياري.</p></div>
-    <form onSubmit={(event) => void save(event)} noValidate className="space-y-5">
-      <section className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
-        <h2 className="mb-5 text-lg font-bold">بيانات الخدمة</h2>
-        <div className="grid gap-5 sm:grid-cols-2">
+  return <div className="mx-auto w-full max-w-6xl space-y-5">
+    <Button asChild variant="ghost" className="px-0">
+      <Link to={service ? `/printing-services/${service.id}` : "/printing-services"}>
+        <ArrowRight className="size-4" /> العودة لخدمات الطباعة
+      </Link>
+    </Button>
+    <header>
+      <h1 className="text-2xl font-extrabold">{service ? "تعديل خدمة طباعة" : "إضافة خدمة طباعة"}</h1>
+      <p className="mt-1 text-sm text-muted-foreground">حدد بيانات الخدمة وأسعارها بالجنيه المصري.</p>
+    </header>
+
+    <form onSubmit={(event) => void save(event)} noValidate className="space-y-4">
+      <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+        <h2 className="mb-4 font-bold">بيانات الخدمة</h2>
+        <div className="grid gap-4 md:grid-cols-3">
           <label className="block"><span className={fieldLabel}>اسم الخدمة *</span>
-            <input aria-label="اسم الخدمة" aria-invalid={!!errors.name} className={fieldClass + " mt-2"} maxLength={150}
-              value={name} onChange={(e) => { setName(e.target.value); clear("name"); }} disabled={busy} />{err("name")}
+            <input aria-label="اسم الخدمة" aria-invalid={!!errors.name} className={fieldClass + " mt-2"}
+              maxLength={150} value={name} disabled={busy}
+              onChange={(e) => { setName(e.target.value); clear("name"); }} />
+            {err("name")}
           </label>
           <label className="block"><span className={fieldLabel}>السعر الأساسي (اختياري)</span>
-            <input aria-label="السعر الأساسي" aria-invalid={!!errors.basePrice} type="text" inputMode="decimal" dir="ltr"
-              className={fieldClass + " mt-2"} placeholder="مثال: 12.50" value={basePrice}
-              onChange={(e) => { setBasePrice(e.target.value); clear("basePrice"); }} disabled={busy} />
+            <input aria-label="السعر الأساسي" aria-invalid={!!errors.basePrice} type="text"
+              inputMode="decimal" dir="ltr" className={fieldClass + " mt-2"}
+              placeholder="0.00" value={basePrice} disabled={busy}
+              onChange={(e) => { setBasePrice(e.target.value); clear("basePrice"); }} />
             {err("basePrice")}
-            <span className="mt-1 block text-xs text-muted-foreground">اتركه فارغًا لو السعر يتحدد يدويًا، أو اكتب 0 للخدمة المجانية.</span>
           </label>
           <label className="block"><span className={fieldLabel}>الحالة</span>
             <select aria-label="حالة الخدمة" className={fieldClass + " mt-2"} value={status}
-              onChange={(e) => { setStatus(e.target.value as "0" | "1"); clear("status"); }} disabled={busy}>
-              <option value="1">نشط</option><option value="0">غير نشط</option>
-            </select>{err("status")}
+              disabled={busy} onChange={(e) => { setStatus(e.target.value as "0" | "1"); clear("status"); }}>
+              <option value="1">نشط</option>
+              <option value="0">غير نشط</option>
+            </select>
+            {err("status")}
           </label>
         </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          السعر الأساسي يُستخدم إذا لم تنطبق أي شريحة. اتركه فارغًا للسعر اليدوي، أو أدخل 0 للخدمة المجانية.
+        </p>
       </section>
-      <section className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div><h2 className="text-lg font-bold">شرائح الأسعار</h2>
-            <p className="mt-1 text-xs leading-6 text-muted-foreground">يمكن تخصيص السعر لنوع عميل أو كمية. اترك نوع العميل فارغًا للشريحة العامة، والكمية فارغة لشريحة تشمل جميع الكميات.</p></div>
-          <Button type="button" variant="outline" disabled={busy}
-            onClick={() => setRows((old) => [...old, blankTier(nextKey.current--)])}><Plus /> إضافة شريحة</Button>
-        </div>
-        {types.isError && <p role="alert" className="mb-4 text-sm text-destructive">
-          تعذّر تحميل أنواع العملاء. <button type="button" className="underline" onClick={() => void types.refetch()}>إعادة المحاولة</button>
-        </p>}
-        {rows.length === 0 && <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">لم تُضف شرائح أسعار. سيُستخدم السعر الأساسي أو التسعير اليدوي.</p>}
-        <div className="space-y-3">
-          {rows.map((row, index) => <fieldset key={row.key} disabled={busy} className="rounded-xl border p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <legend className="text-sm font-bold">الشريحة {index + 1}</legend>
-              <Button type="button" variant="ghost" size="icon-sm" aria-label={`حذف الشريحة ${index + 1}`}
-                onClick={() => removeRow(row.key)}><Trash2 className="text-destructive" /></Button>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+      <section className="rounded-2xl border bg-card shadow-sm" aria-labelledby="tiers-form-title">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-4 sm:px-5">
+          <div>
+            <h2 id="tiers-form-title" className="font-bold">شرائح الأسعار</h2>
+            <p className="mt-1 text-xs text-muted-foreground">حدد نوع العميل ونطاق الكمية وسعر الوحدة لكل شريحة.</p>
+          </div>
+          <Button type="button" variant="outline" size="sm" disabled={busy}
+            onClick={() => setRows((old) => [...old, blankTier(nextKey.current--)])}>
+            <Plus className="size-4" /> إضافة شريحة
+          </Button>
+        </header>
+        <div className="space-y-3 p-4 sm:p-5">
+          {types.isError && <p role="alert" className="text-sm text-destructive">
+            تعذّر تحميل أنواع العملاء.{" "}
+            <button type="button" className="underline" onClick={() => void types.refetch()}>إعادة المحاولة</button>
+          </p>}
+          {rows.length === 0 && <p className="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+            لا توجد شرائح مضافة. اضغط «إضافة شريحة» لتخصيص الأسعار حسب العميل أو الكمية.
+          </p>}
+          {rows.map((row, index) => <fieldset key={row.key} disabled={busy}
+            className="min-w-0 rounded-xl border bg-muted/20 p-3 sm:p-4">
+            <legend className="px-1 text-xs font-bold text-muted-foreground">شريحة {index + 1}</legend>
+            <div className="grid items-start gap-3 md:grid-cols-[minmax(0,2fr)_repeat(2,minmax(0,1fr))_minmax(0,1.1fr)_auto]">
               <label className="block text-xs font-semibold">نوع العميل
-                <select aria-label={`نوع عميل الشريحة ${index + 1}`} className={fieldClass + " mt-2"} value={row.customerTypeId}
+                <select aria-label={`نوع عميل الشريحة ${index + 1}`} className={fieldClass + " mt-2"}
+                  value={row.customerTypeId}
                   onChange={(e) => editRow(row.key, "customerTypeId", e.target.value)}>
                   <option value="">كل أنواع العملاء</option>
                   {currentType(row.customerTypeId)}
@@ -240,33 +260,49 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
                 </select>{err(`row.${row.key}.customerTypeId`)}
               </label>
               <label className="block text-xs font-semibold">الكمية من
-                <input aria-label={`الكمية من للشريحة ${index + 1}`} className={fieldClass + " mt-2"} type="number" min="1"
-                  value={row.minQuantity} onChange={(e) => editRow(row.key, "minQuantity", e.target.value)} placeholder="بدون حد" />
+                <input aria-label={`الكمية من للشريحة ${index + 1}`} className={fieldClass + " mt-2"}
+                  type="number" min="1" value={row.minQuantity} placeholder="بدون حد"
+                  onChange={(e) => editRow(row.key, "minQuantity", e.target.value)} />
                 {err(`row.${row.key}.minQuantity`)}
               </label>
               <label className="block text-xs font-semibold">الكمية إلى
-                <input aria-label={`الكمية إلى للشريحة ${index + 1}`} className={fieldClass + " mt-2"} type="number" min="1"
-                  value={row.maxQuantity} onChange={(e) => editRow(row.key, "maxQuantity", e.target.value)} placeholder="بدون حد" />
+                <input aria-label={`الكمية إلى للشريحة ${index + 1}`} className={fieldClass + " mt-2"}
+                  type="number" min="1" value={row.maxQuantity} placeholder="بدون حد"
+                  onChange={(e) => editRow(row.key, "maxQuantity", e.target.value)} />
                 {err(`row.${row.key}.maxQuantity`)}
               </label>
               <label className="block text-xs font-semibold">سعر الوحدة *
-                <input aria-label={`سعر الشريحة ${index + 1}`} className={fieldClass + " mt-2"} dir="ltr"
-                  inputMode="decimal" value={row.price} onChange={(e) => editRow(row.key, "price", e.target.value)} placeholder="5.00" />
+                <input aria-label={`سعر الشريحة ${index + 1}`} className={fieldClass + " mt-2"}
+                  dir="ltr" inputMode="decimal" value={row.price} placeholder="0.00"
+                  onChange={(e) => editRow(row.key, "price", e.target.value)} />
                 {err(`row.${row.key}.price`)}
               </label>
+              <div className="flex justify-end md:pt-6">
+                <Button type="button" size="icon-sm" variant="ghost"
+                  aria-label={`حذف الشريحة ${index + 1}`} title="حذف الشريحة"
+                  onClick={() => removeRow(row.key)}>
+                  <Trash2 className="size-4 text-destructive" />
+                </Button>
+              </div>
             </div>
           </fieldset>)}
+          {err("priceTiers")}
+          <p className="text-xs text-muted-foreground">
+            ترك الكمية فارغة يعني بدون حد. لا يمكن تداخل نطاقات الكميات لنفس نوع العميل.
+          </p>
         </div>
-        {err("priceTiers")}
-        <p className="mt-4 text-xs text-muted-foreground">لا تسمح قواعد الباك بشرائح متداخلة لنفس نوع العميل، ويسمح بشريحة عامة واحدة لكل نوع.</p>
       </section>
-      {generalError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{generalError}</p>}
-      <div className="flex flex-wrap justify-end gap-3">
-        <Button asChild variant="outline"><Link to={service ? `/printing-services/${service.id}` : "/printing-services"}>إلغاء</Link></Button>
-        <Button type="submit" disabled={busy || types.isError}>
-          {busy && <LoaderCircle className="size-4 animate-spin" />}{service ? "حفظ التعديلات" : "حفظ الخدمة"}
+
+      {generalError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{generalError}</p>}
+      <footer className="flex flex-wrap justify-end gap-3 py-2">
+        <Button asChild variant="outline">
+          <Link to={service ? `/printing-services/${service.id}` : "/printing-services"}>إلغاء</Link>
         </Button>
-      </div>
+        <Button type="submit" disabled={busy || types.isError}>
+          {busy && <LoaderCircle className="size-4 animate-spin" />}
+          {service ? "حفظ التعديلات" : "حفظ الخدمة"}
+        </Button>
+      </footer>
     </form>
   </div>;
 }

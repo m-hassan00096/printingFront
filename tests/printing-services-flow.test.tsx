@@ -140,22 +140,20 @@ describe("Printing Services API integration", () => {
     }] });
   });
 
-  it("loads backend price preview instead of calculating total in React", async () => {
+  it("shows compact pricing only, with no preview UI or preview API calls", async () => {
     visit("/printing-services/11");
     expect(await screen.findByRole("heading", { name: "كروت شخصية" })).toBeTruthy();
-    const user = userEvent.setup();
-    await user.selectOptions(screen.getByRole("combobox", { name: "نوع عميل المعاينة" }), "21");
-    const quantity = screen.getByRole("spinbutton", { name: "كمية المعاينة" });
-    await user.clear(quantity);
-    await user.type(quantity, "200");
-    await user.click(screen.getByRole("button", { name: "حساب السعر المقترح" }));
-    await waitFor(() => expect(calls.some((c) => c.url === "/printing-services/price-preview")).toBe(true));
-    expect(calls.find((c) => c.url === "/printing-services/price-preview")?.body)
-      .toEqual({ serviceId: 11, customerTypeId: 21, quantity: 200 });
-    expect(await within(screen.getByLabelText("نتيجة معاينة السعر")).findByText(/1100.00/)).toBeTruthy();
+    const section = screen.getByRole("region", { name: "أسعار الخدمة" });
+    expect(within(section).getByText("شرائح الأسعار", { exact: false })).toBeNull();
+    expect(within(section).getByText("سعر الوحدة")).toBeTruthy();
+    expect(within(section).getByText("5.50 ج.م")).toBeTruthy();
+    expect(within(section).getByText("10.00 ج.م")).toBeTruthy();
+    expect(screen.queryByText("معاينة السعر المقترح")).toBeNull();
+    expect(screen.queryByText("معاينة السعر المقترح")).toBeNull();
+    expect(calls.some((c) => c.url === "/printing-services/price-preview")).toBe(false);
   });
 
-  it("hides write and preview actions without their permissions", async () => {
+  it("hides update actions without permission and never renders a price preview", async () => {
     permissions = ["printing_services.view"];
     visit("/printing-services/11");
     expect(await screen.findByRole("heading", { name: "كروت شخصية" })).toBeTruthy();

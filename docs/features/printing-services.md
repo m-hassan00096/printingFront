@@ -7,9 +7,9 @@
 ## Screens and permissions
 
 - `/printing-services` — searchable, sortable, filterable and paginated services table (permission: `printing_services.view`).
-- `/printing-services/new` — create service and initial price tiers (`printing_services.create`).
-- `/printing-services/:id` — service information, tier table and live price preview (`printing_services.view`; preview additionally requires `printing_services.price_preview.view`).
-- `/printing-services/:id/edit` — edit base fields and individual tiers (`printing_services.update`).
+- `/printing-services/new` — create service and initial price tiers in a compact form (`printing_services.create`).
+- `/printing-services/:id` — compact header and pricing table (only `printing_services.view`); price preview is deliberately **not shown** in the service UI.
+- `/printing-services/:id/edit` — edit base fields and individual tiers in streamlined rows (`printing_services.update`).
 - Delete with confirmation is available only with `printing_services.delete`. A backend 409 remains authoritative when orders reference a service.
 - Customer type Selects: `GET /api/v1/selects?selects=customerTypes` -> `data: [{label:"customerTypes",options:[{value,label}]}]`. It is reused from Customers, not a new list/lookup API. Only active customer types are supplied; existing inactive type IDs remain visible in saved tiers and are not silently replaced.
 
@@ -22,7 +22,7 @@
 | POST | `/api/v1/printing-services` | created service resource (HTTP 201) |
 | PATCH | `/api/v1/printing-services/{id}` | updated service resource |
 | DELETE | `/api/v1/printing-services/{id}` | `null` |
-| POST | `/api/v1/printing-services/price-preview` | `{serviceId,quantity,source,suggestedUnitPrice,suggestedTotal,requiresManualTotal}` |
+| POST | `/api/v1/printing-services/price-preview` | Backend pricing endpoint retained for other modules; **not called by Printing Services UI** |
 
 List queries support `filter[search]`, `filter[status]`, `sort` (`id,-id,name,-name`), `page` and `perPage`. List resource does **not guarantee** `priceTiers`; use the Show endpoint for tiers.
 
@@ -51,14 +51,19 @@ List queries support `filter[search]`, `filter[status]`, `sort` (`id,-id,name,-n
 - Updating `name/basePrice/status` does not require sending the full tier list; only actual edits are posted.
 - The form maps Laravel field errors by *command array index* back to the correct UI row.
 
-### Preview
-`POST /api/v1/printing-services/price-preview` with `{serviceId,customerTypeId:null|number,quantity:number}`. The backend determines the pricing precedence: customer-type quantity tier, customer-type catch-all, generic quantity tier, generic catch-all, then base price. The frontend **must not derive its own price**. `requiresManualTotal:true` is displayed explicitly without fabricating a number. Previews on inactive services are blocked.
+### Simplified UX
+
+- The service detail page shows only the service heading/status, a small optional base-price label, and a single tiers table.
+- No redundant tier-count/base-price cards or price-preview form. The pricing API is not removed from Laravel.
+- If base price is null, show a clear fallback note: manual total is required only when no tier matches.
+- The create/edit form shows name, optional base price, status, and compact editable tier rows with one Add button.
+- Keep per-field Laravel validation errors and the backend's tier commands unchanged.
 
 ## Verification and follow-up
 
 - CI: `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`.
-- `tests/printing-services-flow.test.tsx` checks list queries, create payloads, tier change commands, backend previews, and permission-limited pages.
-- Local browser smoke test still needed against MySQL/Laravel: conflicting tier boundaries, duplicate names, 422 translation, full create/update/delete workflow, inactive services, manual pricing and 409 usage guards.
+- `tests/printing-services-flow.test.tsx` checks list queries, create payloads, tier change commands, absence of preview, and permission-limited pages.
+- Local browser smoke test still needed against MySQL/Laravel: conflicting tier boundaries, duplicate names, 422 translation, full create/update/delete workflow, inactive services, manual pricing fallback labels and 409 usage guards.
 - Keep frontend PR in Draft until user reviews UI and real data integration.
 
 ## Pull locally
