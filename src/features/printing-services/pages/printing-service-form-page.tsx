@@ -1,0 +1,284 @@
+import { useRef, useState, type FormEvent } from "react";
+import axios from "axios";
+import { ArrowRight, LoaderCircle, Plus, Trash2 } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
+import { Button } from "@/shared/components/ui/button";
+import { getApiErrorMessage } from "@/shared/api/http";
+import type { ApiErrorResponse } from "@/shared/api/api-types";
+import { useCustomerTypes } from "@/features/customers/hooks/use-customers";
+import { ErrorState, fieldClass, fieldLabel, LoadingState } from "@/features/identity/components/identity-ui";
+import { usePrintingService, usePrintingServiceMutations } from "../hooks/use-printing-services";
+import type {
+  CreateServicePayload, PrintingService, ServiceTier, TierCommand,
+  TierValues, UpdateServicePayload,
+} from "../types/printing-service.types";
+
+type TierInput = {
+  key: number;
+  priceTierId?: number;
+  customerTypeId: string;
+  minQuantity: string;
+  maxQuantity: string;
+  price: string;
+};
+type Errors = Record<string, string>;
+const blankTier = (key: number): TierInput => ({
+  key, customerTypeId: "", minQuantity: "", maxQuantity: "", price: "",
+});
+function fromTier(tier: ServiceTier): TierInput {
+  return {
+    key: tier.priceTierId, priceTierId: tier.priceTierId,
+    customerTypeId: tier.customerTypeId?.toString() ?? "",
+    minQuantity: tier.minQuantity?.toString() ?? "",
+    maxQuantity: tier.maxQuantity?.toString() ?? "",
+    price: tier.price,
+  };
+}
+function toValues(input: TierInput): TierValues {
+  return {
+    customerTypeId: input.customerTypeId ? Number(input.customerTypeId) : null,
+    minQuantity: input.minQuantity ? Number(input.minQuantity) : null,
+    maxQuantity: input.maxQuantity ? Number(input.maxQuantity) : null,
+    price: input.price.trim(),
+  };
+}
+function equalTier(input: TierInput, original: ServiceTier): boolean {
+  const values = toValues(input);
+  return values.customerTypeId === original.customerTypeId &&
+    values.minQuantity === original.minQuantity &&
+    values.maxQuantity === original.maxQuantity &&
+    Number(values.price) === Number(original.price);
+}
+function validMoney(value: string, zeroAllowed: boolean): boolean {
+  if (!/^\d{1,10}(?:\.\d{1,2})?$/.test(value.trim())) return false;
+  const number = Number(value);
+  return Number.isFinite(number) && (zeroAllowed ? number >= 0 : number > 0);
+}
+
+function PrintingServiceForm({ service }: { service?: PrintingService }) {
+  const navigate = useNavigate();
+  const mutations = usePrintingServiceMutations();
+  const types = useCustomerTypes(true);
+  const nextKey = useRef(-1);
+  const [name, setName] = useState(service?.name ?? "");
+  const [basePrice, setBasePrice] = useState(service?.basePrice ?? "");
+  const [status, setStatus] = useState<"0" | "1">(service?.status === 0 ? "0" : "1");
+  const [rows, setRows] = useState<TierInput[]>(service?.priceTiers?.map(fromTier) ?? []);
+  const [removedIds, setRemovedIds] = useState<number[]>([]);
+  const [errors, setErrors] = useState<Errors>({});
+  const [generalError, setGeneralError] = useState<string | null>(null);
+  const busy = mutations.create.isPending || mutations.update.isPending;
+  const existing = new Map(service?.priceTiers?.map((tier) => [tier.priceTierId, tier]) ?? []);
+
+  function clear(key: string) {
+    setErrors((old) => {
+      const next = { ...old };
+      delete next[key];
+      return next;
+    });
+    setGeneralError(null);
+  }
+  function editRow(key: number, field: keyof Omit<TierInput, "key" | "priceTierId">, value: string) {
+    setRows((old) => old.map((row) => row.key === key ? { ...row, [field]: value } : row));
+    clear(`row.${key}.${field}`);
+  }
+  function removeRow(key: number) {
+    const row = rows.find((item) => item.key === key);
+    if (row?.priceTierId) setRemovedIds((old) => [...old, row.priceTierId!]);
+    setRows((old) => old.filter((item) => item.key !== key));
+    setErrors((old) => Object.fromEntries(Object.entries(old).filter(([name]) => !name.startsWith(`row.${key}.`))));
+  }
+  function validate(): Errors {
+    const issues: Errors = {};
+    if (!name.trim()) issues.name = "اسم الخدمة مطلوب.";
+    else if (name.trim().length > 150) issues.name = "اسم الخدمة يجب ألا يزيد عن 150 حرفًا.";
+    if (basePrice.trim() && !validMoney(basePrice, true)) issues.basePrice = "السعر الأساسي يجب أن يكون مبلغًا صحيحًا حتى منزلتين عشريتين.";
+    for (const row of rows) {
+      if (!validMoney(row.price, false)) issues[`row.${row.key}.price`] = "سعر الشريحة يجب أن يكون أكبر من صفر.";
+      for (const field of ["minQuantity", "maxQuantity"] as const) {
+        if (row[field] && (!/^\d+$/.test(row[field]) || !Number.isSafeInteger(Number(row[field])) || Number(row[field]) < 1))
+          issues[`row.${row.key}.${field}`] = "الكمية يجب أن تكون عددًا صحيحًا أكبر من صفر.";
+      }
+      if (row.minQuantity && row.maxQuantity && Number(row.minQuantity) > Number(row.maxQuantity))
+        issues[`row.${row.key}.maxQuantity`] = "الحد الأقصى أقل من الحد الأدنى.";
+    }
+    return issues;
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busy) return;
+    const issues = validate();
+    setErrors(issues);
+    if (Object.keys(issues).length) return;
+    const commands: TierCommand[] = [];
+    const commandKeys: (number | null)[] = [];
+
+    let payload: CreateServicePayload | UpdateServicePayload;
+    if (service) {
+      const update: UpdateServicePayload = {};
+      if (name.trim() !== service.name) update.name = name.trim();
+      if ((basePrice.trim() || null) !== service.basePrice) update.basePrice = basePrice.trim() || null;
+      if (Number(status) !== service.status) update.status = Number(status) as 0 | 1;
+      for (const row of rows) {
+        const original = row.priceTierId ? existing.get(row.priceTierId) : undefined;
+        if (!original) {
+          commands.push({ actionStatus: 1, ...toValues(row) });
+          commandKeys.push(row.key);
+        } else if (!equalTier(row, original)) {
+          commands.push({ actionStatus: 2, priceTierId: original.priceTierId, ...toValues(row) });
+          commandKeys.push(row.key);
+        }
+      }
+      for (const id of removedIds) {
+        commands.push({ actionStatus: 3, priceTierId: id });
+        commandKeys.push(null);
+      }
+      if (commands.length) update.priceTiers = commands;
+      if (!Object.keys(update).length) {
+        toast.message("لا توجد تغييرات للحفظ.");
+        navigate(`/printing-services/${service.id}`);
+        return;
+      }
+      payload = update;
+    } else {
+      payload = {
+        name: name.trim(), basePrice: basePrice.trim() || null,
+        status: Number(status) as 0 | 1, priceTiers: rows.map(toValues),
+      };
+      commandKeys.push(...rows.map((row) => row.key));
+    }
+    try {
+      const saved = service
+        ? await mutations.update.mutateAsync({ id: service.id, payload: payload as UpdateServicePayload })
+        : await mutations.create.mutateAsync(payload as CreateServicePayload);
+      toast.success(service ? "تم تعديل خدمة الطباعة." : "تم إضافة خدمة الطباعة.");
+      navigate(`/printing-services/${saved.id}`);
+    } catch (error: unknown) {
+      if (axios.isAxiosError<ApiErrorResponse>(error) && error.response?.status === 422) {
+        const byField = error.response.data?.errors;
+        if (byField && Object.keys(byField).length) {
+          const mapped: Errors = {};
+          const other: string[] = [];
+          for (const [key, messages] of Object.entries(byField)) {
+            const match = key.match(/^priceTiers\.(\d+)\.(\w+)$/);
+            if (match) {
+              const index = Number(match[1]);
+              const rowKey = commandKeys[index];
+              if (rowKey !== null && rowKey !== undefined)
+                mapped[`row.${rowKey}.${match[2]}`] = messages[0];
+              else other.push(...messages);
+            } else if (["name", "basePrice", "status"].includes(key)) mapped[key] = messages[0];
+            else other.push(...messages);
+          }
+          setErrors(mapped);
+          setGeneralError(other.length ? other.join(" ") : null);
+          return;
+        }
+      }
+      setGeneralError(getApiErrorMessage(error, "تعذّر حفظ خدمة الطباعة."));
+    }
+  }
+  const err = (key: string) => errors[key] ? <span role="alert" className="mt-1 block text-xs text-destructive">{errors[key]}</span> : null;
+  const currentType = (id: string) => !types.data?.some((x) => String(x.value) === id) && id !== "" && (
+    <option value={id}>نوع العميل #{id} (غير متاح حاليًا)</option>
+  );
+
+  return <div className="space-y-6">
+    <Button asChild variant="ghost"><Link to={service ? `/printing-services/${service.id}` : "/printing-services"}><ArrowRight /> العودة للخدمات</Link></Button>
+    <div><h1 className="text-2xl font-extrabold">{service ? "تعديل خدمة طباعة" : "إضافة خدمة طباعة"}</h1>
+      <p className="mt-1 text-sm text-muted-foreground">الأسعار والمبالغ بالجنيه المصري؛ تحديد الشرائح اختياري.</p></div>
+    <form onSubmit={(event) => void save(event)} noValidate className="space-y-5">
+      <section className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
+        <h2 className="mb-5 text-lg font-bold">بيانات الخدمة</h2>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <label className="block"><span className={fieldLabel}>اسم الخدمة *</span>
+            <input aria-label="اسم الخدمة" aria-invalid={!!errors.name} className={fieldClass + " mt-2"} maxLength={150}
+              value={name} onChange={(e) => { setName(e.target.value); clear("name"); }} disabled={busy} />{err("name")}
+          </label>
+          <label className="block"><span className={fieldLabel}>السعر الأساسي (اختياري)</span>
+            <input aria-label="السعر الأساسي" aria-invalid={!!errors.basePrice} type="text" inputMode="decimal" dir="ltr"
+              className={fieldClass + " mt-2"} placeholder="مثال: 12.50" value={basePrice}
+              onChange={(e) => { setBasePrice(e.target.value); clear("basePrice"); }} disabled={busy} />
+            {err("basePrice")}
+            <span className="mt-1 block text-xs text-muted-foreground">اتركه فارغًا لو السعر يتحدد يدويًا، أو اكتب 0 للخدمة المجانية.</span>
+          </label>
+          <label className="block"><span className={fieldLabel}>الحالة</span>
+            <select aria-label="حالة الخدمة" className={fieldClass + " mt-2"} value={status}
+              onChange={(e) => { setStatus(e.target.value as "0" | "1"); clear("status"); }} disabled={busy}>
+              <option value="1">نشط</option><option value="0">غير نشط</option>
+            </select>{err("status")}
+          </label>
+        </div>
+      </section>
+      <section className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div><h2 className="text-lg font-bold">شرائح الأسعار</h2>
+            <p className="mt-1 text-xs leading-6 text-muted-foreground">يمكن تخصيص السعر لنوع عميل أو كمية. اترك نوع العميل فارغًا للشريحة العامة، والكمية فارغة لشريحة تشمل جميع الكميات.</p></div>
+          <Button type="button" variant="outline" disabled={busy}
+            onClick={() => setRows((old) => [...old, blankTier(nextKey.current--)])}><Plus /> إضافة شريحة</Button>
+        </div>
+        {types.isError && <p role="alert" className="mb-4 text-sm text-destructive">
+          تعذّر تحميل أنواع العملاء. <button type="button" className="underline" onClick={() => void types.refetch()}>إعادة المحاولة</button>
+        </p>}
+        {rows.length === 0 && <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">لم تُضف شرائح أسعار. سيُستخدم السعر الأساسي أو التسعير اليدوي.</p>}
+        <div className="space-y-3">
+          {rows.map((row, index) => <fieldset key={row.key} disabled={busy} className="rounded-xl border p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <legend className="text-sm font-bold">الشريحة {index + 1}</legend>
+              <Button type="button" variant="ghost" size="icon-sm" aria-label={`حذف الشريحة ${index + 1}`}
+                onClick={() => removeRow(row.key)}><Trash2 className="text-destructive" /></Button>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <label className="block text-xs font-semibold">نوع العميل
+                <select aria-label={`نوع عميل الشريحة ${index + 1}`} className={fieldClass + " mt-2"} value={row.customerTypeId}
+                  onChange={(e) => editRow(row.key, "customerTypeId", e.target.value)}>
+                  <option value="">كل أنواع العملاء</option>
+                  {currentType(row.customerTypeId)}
+                  {types.data?.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
+                </select>{err(`row.${row.key}.customerTypeId`)}
+              </label>
+              <label className="block text-xs font-semibold">الكمية من
+                <input aria-label={`الكمية من للشريحة ${index + 1}`} className={fieldClass + " mt-2"} type="number" min="1"
+                  value={row.minQuantity} onChange={(e) => editRow(row.key, "minQuantity", e.target.value)} placeholder="بدون حد" />
+                {err(`row.${row.key}.minQuantity`)}
+              </label>
+              <label className="block text-xs font-semibold">الكمية إلى
+                <input aria-label={`الكمية إلى للشريحة ${index + 1}`} className={fieldClass + " mt-2"} type="number" min="1"
+                  value={row.maxQuantity} onChange={(e) => editRow(row.key, "maxQuantity", e.target.value)} placeholder="بدون حد" />
+                {err(`row.${row.key}.maxQuantity`)}
+              </label>
+              <label className="block text-xs font-semibold">سعر الوحدة *
+                <input aria-label={`سعر الشريحة ${index + 1}`} className={fieldClass + " mt-2"} dir="ltr"
+                  inputMode="decimal" value={row.price} onChange={(e) => editRow(row.key, "price", e.target.value)} placeholder="5.00" />
+                {err(`row.${row.key}.price`)}
+              </label>
+            </div>
+          </fieldset>)}
+        </div>
+        {err("priceTiers")}
+        <p className="mt-4 text-xs text-muted-foreground">لا تسمح قواعد الباك بشرائح متداخلة لنفس نوع العميل، ويسمح بشريحة عامة واحدة لكل نوع.</p>
+      </section>
+      {generalError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{generalError}</p>}
+      <div className="flex flex-wrap justify-end gap-3">
+        <Button asChild variant="outline"><Link to={service ? `/printing-services/${service.id}` : "/printing-services"}>إلغاء</Link></Button>
+        <Button type="submit" disabled={busy || types.isError}>
+          {busy && <LoaderCircle className="size-4 animate-spin" />}{service ? "حفظ التعديلات" : "حفظ الخدمة"}
+        </Button>
+      </div>
+    </form>
+  </div>;
+}
+
+export function PrintingServiceFormPage() {
+  const { id: rawId } = useParams();
+  const editing = rawId !== undefined;
+  const id = Number(rawId);
+  const service = usePrintingService(editing && Number.isSafeInteger(id) ? id : 0);
+  if (editing && (!Number.isSafeInteger(id) || id < 1))
+    return <p role="alert">معرّف الخدمة غير صحيح.</p>;
+  if (editing && service.isPending) return <LoadingState />;
+  if (editing && service.isError) return <ErrorState error={service.error} retry={() => void service.refetch()} />;
+  return <PrintingServiceForm key={editing ? String(id) : "new"} service={editing ? service.data : undefined} />;
+}
