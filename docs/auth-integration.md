@@ -85,3 +85,7 @@ Run `npm test` for pure auth helpers (local redirect safety, permission matching
 An HTTP 403 on a business API triggers a new `GET /auth/me` via React Query invalidation; it does **not** automatically log out a healthy session. A 403 on `/auth/me` renders the suspended-account screen. A 401 on `/auth/me` clears private data only when there was a cached authenticated user, not during an ordinary initial guest request.
 
 Backend permissions are always the real enforcement. The single `src/app/access-policy.ts` policy feeds both visible sidebar links and route guards so they cannot drift.
+
+## Browser workflow integration tests
+
+`npm test` includes isolated helper tests and React Testing Library workflow tests using an in-memory Axios adapter. These cover: incorrect credentials, protected redirect/intended destination, session restoration across an app remount, missing permissions, immediate 403 permission refresh, expired-session 401, logout with back-navigation, and offline retry. The Axios adapter simulates the API responses and intentionally does **not** claim to test real Laravel cookies; the actual cookie/CSRF/CORS workflow remains a separate manual browser smoke test.
