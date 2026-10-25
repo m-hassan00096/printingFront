@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AxiosError, type AxiosAdapter, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 import { App } from "@/App";
@@ -111,7 +111,7 @@ describe("Customers Laravel integration", () => {
     expect(await screen.findByText("أحمد محمد")).toBeTruthy();
     const u = userEvent.setup();
     await u.click(screen.getByRole("button", { name: "إضافة عميل" }));
-    expect(await screen.findByRole("option", { name: "شركة" })).toBeTruthy();
+    expect(await within(screen.getByRole("dialog")).findByRole("option", { name: "شركة" })).toBeTruthy();
     await u.type(screen.getByRole("textbox", { name: "اسم العميل" }), "مطبعة الندى");
     await u.type(screen.getByRole("textbox", { name: "رقم الهاتف" }), "01112345678");
     await u.selectOptions(screen.getByRole("combobox", { name: "نوع العميل" }), "21");
@@ -148,7 +148,7 @@ describe("Customers Laravel integration", () => {
 
   it("shows finance balance and ledger only if finance permissions are granted", async () => {
     visit("/customers/101");
-    expect(await screen.findByText("أحمد محمد")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "أحمد محمد" })).toBeTruthy();
     expect(await screen.findByText("مديونية على العميل")).toBeTruthy();
     expect(await screen.findByText("رصيد افتتاحي")).toBeTruthy();
     expect(requests.some((r) => r.path === "/finance/customers/101/balance")).toBe(true);
@@ -158,7 +158,7 @@ describe("Customers Laravel integration", () => {
   it("does not request or display finance when customer user lacks finance rights", async () => {
     permissions = ["customers.view"];
     visit("/customers/101");
-    expect(await screen.findByText("أحمد محمد")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "أحمد محمد" })).toBeTruthy();
     expect(screen.queryByText("رصيد العميل")).toBeNull();
     expect(screen.queryByText("كشف الحساب")).toBeNull();
     expect(requests.filter((r) => r.path.startsWith("/finance/"))).toHaveLength(0);
