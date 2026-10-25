@@ -20,6 +20,7 @@ const UserDetailPage = lazy(async () => ({ default: (await import("@/features/id
 const UserFormPage = lazy(async () => ({ default: (await import("@/features/identity/pages/user-form-page")).UserFormPage }));
 const RolesPage = lazy(async () => ({ default: (await import("@/features/identity/pages/roles-page")).RolesPage }));
 const RoleFormPage = lazy(async () => ({ default: (await import("@/features/identity/pages/role-form-page")).RoleFormPage }));
+const SettingsPage = lazy(async () => ({ default: (await import("@/features/settings/pages/settings-page")).SettingsPage }));
 
 function LazyIdentity({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<AuthLoading />}>{children}</Suspense>;
@@ -32,10 +33,6 @@ const featurePaths = [
   { path: "customers", key: "customers" as const, permissions: featureAccessPolicy.customers },
   { path: "collections", key: "collections" as const, permissions: featureAccessPolicy.collections },
   { path: "finance", key: "finance" as const, permissions: featureAccessPolicy.finance },
-  {
-    path: "settings", key: "settings" as const,
-    permissions: featureAccessPolicy.settings,
-  },
 ];
 
 export function AppRouter() {
@@ -61,6 +58,7 @@ export function AppRouter() {
               />
             ))}
 
+            <Route path="settings" element={<RequirePermission anyOf={featureAccessPolicy.settings}><Suspense fallback={<AuthLoading />}><SettingsPage /></Suspense></RequirePermission>} />
             <Route path="users" element={<RequirePermission anyOf={identityAccessPolicy.users}><LazyIdentity><UsersPage /></LazyIdentity></RequirePermission>} />
             <Route path="users/new" element={<RequirePermission anyOf={identityAccessPolicy.createUser}><LazyIdentity><UserFormPage /></LazyIdentity></RequirePermission>} />
             <Route path="users/:id" element={<RequirePermission anyOf={identityAccessPolicy.users}><LazyIdentity><UserDetailPage /></LazyIdentity></RequirePermission>} />
