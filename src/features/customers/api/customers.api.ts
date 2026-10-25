@@ -32,7 +32,7 @@ export async function createCustomer(payload: CustomerPayload): Promise<Customer
   const { data } = await apiClient.post<ApiResponse<Customer>>("/customers", payload);
   return data.data;
 }
-export async function updateCustomer(id: number, payload: CustomerPayload): Promise<void> {
+export async function updateCustomer(id: number, payload: Partial<CustomerPayload>): Promise<void> {
   // PATCH returns data: null. Refresh cache after update rather than expecting a customer in the response.
   await apiClient.patch<ApiResponse<null>>(`/customers/${id}`, payload);
 }

@@ -51,7 +51,7 @@ export function useCustomerMutations() {
     onSuccess: (customer) => invalidate(customer.id),
   });
   const update = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: CustomerPayload }) => updateCustomer(id, payload),
+    mutationFn: ({ id, payload }: { id: number; payload: Partial<CustomerPayload> }) => updateCustomer(id, payload),
     onSuccess: (_, { id }) => invalidate(id),
   });
   const remove = useMutation({ mutationFn: deleteCustomer, onSuccess: () => invalidate() });

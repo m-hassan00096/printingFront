@@ -129,8 +129,10 @@ describe("Customers Laravel integration", () => {
     expect(await screen.findByText("أحمد محمد")).toBeTruthy();
     const u = userEvent.setup();
     await u.click(screen.getByRole("button", { name: "تعديل أحمد محمد" }));
-    await u.click(screen.getByRole("button", { name: "حفظ التعديلات" }));
     const phone = screen.getByRole("textbox", { name: "رقم الهاتف" });
+    await u.clear(phone);
+    await u.type(phone, "01112345678");
+    await u.click(screen.getByRole("button", { name: "حفظ التعديلات" });
     expect(await screen.findByText("رقم هاتف العميل مستخدم بالفعل.")).toBeTruthy();
     expect(phone.getAttribute("aria-invalid")).toBe("true");
     await u.type(phone, "9");

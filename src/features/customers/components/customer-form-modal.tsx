@@ -60,9 +60,20 @@ export function CustomerFormModal({ customer, onClose, onSaved }: {
     setGeneralError(null);
     try {
       if (customer) {
-        await mutations.update.mutateAsync({ id: customer.id, payload });
-        toast.success("تم تعديل العميل بنجاح.");
-        onSaved?.(customer.id);
+        // The backend accepts PATCH. Avoid re-validating an unchanged legacy
+        // customerTypeId that may no longer be active or assignable.
+        const changed: Partial<CustomerPayload> = {};
+        for (const field of Object.keys(payload) as (keyof CustomerPayload)[]) {
+          if (payload[field] !== customer[field]) {
+            // Assignment through a common key is safe after narrowing by actual payload values.
+            Object.assign(changed, { [field]: payload[field] });
+          }
+        }
+        if (Object.keys(changed).length) {
+          await mutations.update.mutateAsync({ id: customer.id, payload: changed });
+          toast.success("تم تعديل العميل بنجاح.");
+          onSaved?.(customer.id);
+        }
       } else {
         const created = await mutations.create.mutateAsync(payload);
         toast.success("تم إضافة العميل بنجاح.");
