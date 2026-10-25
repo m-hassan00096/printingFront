@@ -82,7 +82,9 @@ describe("Orders Laravel API workflow", () => {
     visit("/orders/new");
     expect(await screen.findByRole("heading",{name:"إضافة أوردر"})).toBeTruthy();
     const user=userEvent.setup();
+    await screen.findByRole("option", { name: /أحمد — 01012345678/ });
     await user.selectOptions(await screen.findByRole("combobox",{name:"اختيار العميل"}),"5");
+    await screen.findByRole("option", { name: "كروت شخصية" });
     await user.selectOptions(await screen.findByRole("combobox",{name:"خدمة العنصر 1"}),"11");
     await user.clear(screen.getByRole("spinbutton",{name:"كمية العنصر 1"}));
     await user.type(screen.getByRole("spinbutton",{name:"كمية العنصر 1"}),"100");
