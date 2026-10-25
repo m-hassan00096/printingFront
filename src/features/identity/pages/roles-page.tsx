@@ -78,7 +78,7 @@ export function RolesPage() {
               {list.data.roles.map((role) => <tr key={role.id} className="hover:bg-muted/30">
                 <td className="px-5 py-4"><div className="flex items-center gap-3">
                   <span className="flex size-10 items-center justify-center rounded-xl bg-secondary text-primary"><ShieldCheck className="size-5" /></span>
-                  <div><p className="font-bold">{role.name}</p><p dir="ltr" className="text-right text-xs text-muted-foreground">{role.key}</p></div>
+                  <p className="font-bold">{role.name}</p>
                 </div></td>
                 <td className="px-5 py-4 text-muted-foreground">{role.usersCount.toLocaleString("ar-EG")}</td>
                 <td className="px-5 py-4"><IdentityStatus status={role.status} label={role.statusLabel} /></td>

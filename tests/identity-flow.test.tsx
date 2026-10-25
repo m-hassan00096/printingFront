@@ -136,6 +136,20 @@ describe("Identity feature browser workflows", () => {
   });
 
 
+  it("shows role names without exposing technical keys in the roles list", async () => {
+    open("/roles");
+    expect(await screen.findByText("موظف")).toBeTruthy();
+    expect(screen.queryByText("operator")).toBeNull();
+  });
+
+  it("hides the role technical key from the editor but keeps linked users visible", async () => {
+    open("/roles/2/edit");
+    expect(await screen.findByText("المستخدمون المرتبطون")).toBeTruthy();
+    expect(screen.queryByText("المعرّف التقني")).toBeNull();
+    expect(screen.queryByText("operator")).toBeNull();
+    expect(screen.getByText("2")).toBeTruthy();
+  });
+
   it("loads existing role permissionIds and updates only selected permissions", async () => {
     open("/roles/2/edit");
     expect(await screen.findByText("عرض المستخدمين")).toBeTruthy();

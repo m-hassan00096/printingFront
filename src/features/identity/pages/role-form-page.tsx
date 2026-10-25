@@ -110,9 +110,9 @@ export function RoleFormPage() {
           <input className={fieldClass} value={nameAr} maxLength={150} onChange={(e) => setNameAr(e.target.value)} disabled={busy} aria-invalid={!!fieldError} />
           {fieldError && <span role="alert" className="text-xs text-destructive">{fieldError}</span>}
         </label>
-        {role.data && <div className="grid gap-4 border-t pt-4 sm:grid-cols-2">
-          <div><p className="mb-2 text-xs text-muted-foreground">المعرّف التقني</p><p dir="ltr" className="text-right text-sm font-semibold">{role.data.key}</p></div>
-          <div><p className="mb-2 text-xs text-muted-foreground">المستخدمون المرتبطون</p><p className="text-sm font-semibold">{role.data.usersCount}</p></div>
+        {role.data && <div className="border-t pt-4">
+          <p className="mb-2 text-xs text-muted-foreground">المستخدمون المرتبطون</p>
+          <p className="text-sm font-semibold">{role.data.usersCount}</p>
         </div>}
         <label className="block space-y-2"><span className={fieldLabel}>الحالة</span>
           <select className={fieldClass} value={status} disabled={busy || protectedAdmin} onChange={(e) => setStatus(Number(e.target.value) as 0 | 1)}>
