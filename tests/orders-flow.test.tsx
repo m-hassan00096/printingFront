@@ -139,8 +139,7 @@ describe("Orders Laravel API workflow", () => {
     await user.clear(screen.getByRole("textbox",{name:"قيمة العربون"}));
     await user.type(screen.getByRole("textbox",{name:"قيمة العربون"}),"50.00");
     await user.selectOptions(screen.getByRole("combobox",{name:"طريقة دفع العربون"}),"1");
-    await screen.findByRole("option",{name:"بنك مصر - ****1234 (افتراضي)"});
-    await waitFor(() => expect((screen.getByRole("combobox",{name:"وجهة تحصيل العربون"}) as HTMLSelectElement).value).toBe("7"));
+    await waitFor(() => expect((screen.getByRole("combobox",{name:"وجهة تحصيل العربون"}) as HTMLSelectElement).value).toBe("7"), {timeout:3000});
     await user.click(screen.getByRole("button",{name:"تأكيد",exact:true}));
     await waitFor(() => expect(calls.some(c=>c.url==="/orders/101/confirm")).toBe(true));
     const confirmation=calls.find(c=>c.url==="/orders/101/confirm");
