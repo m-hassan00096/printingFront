@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import { AuthSessionBoundary } from "@/features/auth/components/auth-session-boundary";
 
@@ -7,7 +7,35 @@ type AppProvidersProps = {
   children: ReactNode;
 };
 
+/**
+ * Match the toast position to the current UI language.
+ * The app currently starts in Arabic; observing <html lang> also supports future
+ * client-side language changes without reloading the application.
+ */
+function getToastDirection(): "rtl" | "ltr" {
+  const lang = document.documentElement.lang.trim().toLowerCase();
+  return /^(ar|fa|he|ur)(-|$)/.test(lang) || (!lang && document.documentElement.dir === "rtl")
+    ? "rtl"
+    : "ltr";
+}
+
+function useToastDirection(): "rtl" | "ltr" {
+  const [direction, setDirection] = useState(getToastDirection);
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => setDirection(getToastDirection()));
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["lang", "dir"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  return direction;
+}
+
 export function AppProviders({ children }: AppProvidersProps) {
+  const toastDirection = useToastDirection();
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -28,7 +56,7 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthSessionBoundary>{children}</AuthSessionBoundary>
-      <Toaster dir="rtl" position="bottom-left" richColors closeButton />
+      <Toaster dir={toastDirection} position={toastDirection === "rtl" ? "bottom-left" : "bottom-right"} richColors closeButton />
     </QueryClientProvider>
   );
 }

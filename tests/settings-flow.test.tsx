@@ -174,12 +174,37 @@ describe("Settings permissions and backend integration", () => {
     expect(screen.queryByText("قيمة الاسم مستخدمة بالفعل.")).toBeNull();
   });
 
-  it("places success and error toast notifications at bottom left", async () => {
-    visit("/settings?tab=bank-accounts");
-    expect(await screen.findByText("البنك الأهلي")).toBeTruthy();
-    const toaster = document.querySelector("[data-sonner-toaster]");
-    expect(toaster?.getAttribute("data-y-position")).toBe("bottom");
-    expect(toaster?.getAttribute("data-x-position")).toBe("left");
+  it("positions notifications based on UI language and updates when it changes", async () => {
+    const root = document.documentElement;
+    const originalLang = root.lang;
+    const originalDir = root.dir;
+    try {
+      root.lang = "ar";
+      root.dir = "rtl";
+      visit("/settings?tab=bank-accounts");
+      expect(await screen.findByText("البنك الأهلي")).toBeTruthy();
+      const toaster = document.querySelector("[data-sonner-toaster]");
+      expect(toaster?.getAttribute("data-y-position")).toBe("bottom");
+      expect(toaster?.getAttribute("data-x-position")).toBe("left");
+      expect(toaster?.getAttribute("dir")).toBe("rtl");
+
+      root.lang = "en";
+      root.dir = "ltr";
+      await waitFor(() => {
+        expect(toaster?.getAttribute("data-x-position")).toBe("right");
+        expect(toaster?.getAttribute("dir")).toBe("ltr");
+      });
+
+      root.lang = "ar";
+      root.dir = "rtl";
+      await waitFor(() => {
+        expect(toaster?.getAttribute("data-x-position")).toBe("left");
+        expect(toaster?.getAttribute("dir")).toBe("rtl");
+      });
+    } finally {
+      root.lang = originalLang;
+      root.dir = originalDir;
+    }
   });
 
 });
