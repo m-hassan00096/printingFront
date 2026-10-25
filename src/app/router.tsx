@@ -21,6 +21,8 @@ const UserFormPage = lazy(async () => ({ default: (await import("@/features/iden
 const RolesPage = lazy(async () => ({ default: (await import("@/features/identity/pages/roles-page")).RolesPage }));
 const RoleFormPage = lazy(async () => ({ default: (await import("@/features/identity/pages/role-form-page")).RoleFormPage }));
 const SettingsPage = lazy(async () => ({ default: (await import("@/features/settings/pages/settings-page")).SettingsPage }));
+const CustomersPage = lazy(async () => ({ default: (await import("@/features/customers/pages/customers-page")).CustomersPage }));
+const CustomerDetailPage = lazy(async () => ({ default: (await import("@/features/customers/pages/customer-detail-page")).CustomerDetailPage }));
 
 function LazyIdentity({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<AuthLoading />}>{children}</Suspense>;
@@ -30,7 +32,6 @@ const featurePaths = [
   { path: "orders", key: "orders" as const, permissions: featureAccessPolicy.orders },
   { path: "production", key: "production" as const, permissions: featureAccessPolicy.production },
   { path: "deliveries", key: "deliveries" as const, permissions: featureAccessPolicy.deliveries },
-  { path: "customers", key: "customers" as const, permissions: featureAccessPolicy.customers },
   { path: "collections", key: "collections" as const, permissions: featureAccessPolicy.collections },
   { path: "finance", key: "finance" as const, permissions: featureAccessPolicy.finance },
 ];
@@ -58,6 +59,8 @@ export function AppRouter() {
               />
             ))}
 
+            <Route path="customers" element={<RequirePermission anyOf={featureAccessPolicy.customers}><Suspense fallback={<AuthLoading />}><CustomersPage /></Suspense></RequirePermission>} />
+            <Route path="customers/:id" element={<RequirePermission anyOf={featureAccessPolicy.customers}><Suspense fallback={<AuthLoading />}><CustomerDetailPage /></Suspense></RequirePermission>} />
             <Route path="settings" element={<RequirePermission anyOf={featureAccessPolicy.settings}><Suspense fallback={<AuthLoading />}><SettingsPage /></Suspense></RequirePermission>} />
             <Route path="users" element={<RequirePermission anyOf={identityAccessPolicy.users}><LazyIdentity><UsersPage /></LazyIdentity></RequirePermission>} />
             <Route path="users/new" element={<RequirePermission anyOf={identityAccessPolicy.createUser}><LazyIdentity><UserFormPage /></LazyIdentity></RequirePermission>} />
