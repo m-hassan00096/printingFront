@@ -64,6 +64,8 @@ export function getPageTitle(pathname: string): string {
     const item = group.items.find((nav) => nav.to === pathname);
     if (item) return item.label;
   }
+  if (pathname === "/orders/new") return "إضافة أوردر";
+  if (pathname.startsWith("/orders/")) return "تفاصيل الأوردر";
   if (pathname === "/printing-services/new") return "إضافة خدمة طباعة";
   if (pathname.startsWith("/printing-services/")) return pathname.endsWith("/edit") ? "تعديل خدمة طباعة" : "تفاصيل خدمة الطباعة";
   if (pathname.startsWith("/customers/")) return "تفاصيل العميل";

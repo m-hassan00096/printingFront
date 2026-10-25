@@ -37,5 +37,5 @@ export type ConfirmOrderPayload = {
 };
 export type OrderActivity = {
   id: number; eventType: string; actorId: number | null;
-  createdAt: string; metadata?: Record<string, unknown>;
+  createdAt: string | null; context: Record<string, unknown> | null;
 };

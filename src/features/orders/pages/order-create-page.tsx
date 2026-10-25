@@ -184,6 +184,11 @@ export function OrderCreatePage() {
           <h2 className="font-bold">عناصر الأوردر</h2><p className="mt-1 text-xs text-muted-foreground">تقدر تضيف نفس الخدمة بأكثر من مواصفات.</p>
         </div><Button variant="outline" type="button" onClick={addItem}><Plus /> إضافة عنصر</Button></header>
         <div className="space-y-3 p-4">
+          <label className="block max-w-sm text-xs font-semibold">البحث عن خدمة
+            <input aria-label="البحث عن خدمة" className={fieldClass + " mt-2"} value={serviceSearch}
+              onChange={(e) => setServiceSearch(e.target.value)} placeholder="اسم خدمة الطباعة" />
+          </label>
+          {services.isError && <ErrorState error={services.error} retry={() => void services.refetch()} />}
           {items.map((item, index) => <fieldset className="rounded-xl border p-4" key={item.key}>
             <legend className="px-2 text-sm font-bold">العنصر {index + 1}</legend>
             <div className="flex justify-end"><Button type="button" variant="ghost" size="icon-sm" disabled={items.length === 1}
@@ -239,10 +244,6 @@ export function OrderCreatePage() {
         </Button>
       </footer>
     </form>
-    <div className="sr-only">{serviceSearch}</div>
-    <label className="block text-xs font-semibold">البحث عن خدمة
-      <input aria-label="البحث عن خدمة" className={fieldClass + " mt-2"} value={serviceSearch} onChange={(e) => setServiceSearch(e.target.value)} />
-    </label>
-    {services.isError && <ErrorState error={services.error} retry={() => void services.refetch()} />}
+
   </div>;
 }

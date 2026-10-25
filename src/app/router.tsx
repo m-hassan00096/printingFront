@@ -26,13 +26,15 @@ const CustomerDetailPage = lazy(async () => ({ default: (await import("@/feature
 const PrintingServicesPage = lazy(async () => ({ default: (await import("@/features/printing-services/pages/printing-services-page")).PrintingServicesPage }));
 const PrintingServiceDetailPage = lazy(async () => ({ default: (await import("@/features/printing-services/pages/printing-service-detail-page")).PrintingServiceDetailPage }));
 const PrintingServiceFormPage = lazy(async () => ({ default: (await import("@/features/printing-services/pages/printing-service-form-page")).PrintingServiceFormPage }));
+const OrdersPage = lazy(async () => ({ default: (await import("@/features/orders/pages/orders-page")).OrdersPage }));
+const OrderCreatePage = lazy(async () => ({ default: (await import("@/features/orders/pages/order-create-page")).OrderCreatePage }));
+const OrderDetailPage = lazy(async () => ({ default: (await import("@/features/orders/pages/order-detail-page")).OrderDetailPage }));
 
 function LazyIdentity({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<AuthLoading />}>{children}</Suspense>;
 }
 
 const featurePaths = [
-  { path: "orders", key: "orders" as const, permissions: featureAccessPolicy.orders },
   { path: "production", key: "production" as const, permissions: featureAccessPolicy.production },
   { path: "deliveries", key: "deliveries" as const, permissions: featureAccessPolicy.deliveries },
   { path: "collections", key: "collections" as const, permissions: featureAccessPolicy.collections },
@@ -62,6 +64,9 @@ export function AppRouter() {
               />
             ))}
 
+            <Route path="orders" element={<RequirePermission anyOf={featureAccessPolicy.orders}><Suspense fallback={<AuthLoading />}><OrdersPage /></Suspense></RequirePermission>} />
+            <Route path="orders/new" element={<RequirePermission anyOf={["orders.create"]}><Suspense fallback={<AuthLoading />}><OrderCreatePage /></Suspense></RequirePermission>} />
+            <Route path="orders/:id" element={<RequirePermission anyOf={["orders.view"]}><Suspense fallback={<AuthLoading />}><OrderDetailPage /></Suspense></RequirePermission>} />
             <Route path="printing-services" element={<RequirePermission anyOf={printingServiceAccessPolicy.view}><Suspense fallback={<AuthLoading />}><PrintingServicesPage /></Suspense></RequirePermission>} />
             <Route path="printing-services/new" element={<RequirePermission anyOf={printingServiceAccessPolicy.create}><Suspense fallback={<AuthLoading />}><PrintingServiceFormPage /></Suspense></RequirePermission>} />
             <Route path="printing-services/:id" element={<RequirePermission anyOf={printingServiceAccessPolicy.view}><Suspense fallback={<AuthLoading />}><PrintingServiceDetailPage /></Suspense></RequirePermission>} />

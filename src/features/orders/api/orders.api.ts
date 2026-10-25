@@ -45,8 +45,8 @@ export async function confirmOrder(id: number, key: string, payload: ConfirmOrde
 export async function cancelOrder(id: number, key: string, reason: string): Promise<void> {
   await apiClient.post<ApiResponse<null>>(`${path}/${id}/cancel`, { reason }, { headers: { "Idempotency-Key": key } });
 }
-export async function getOrderActivities(id: number): Promise<OrderActivity[]> {
-  const { data } = await apiClient.get<ApiResponse<OrderActivity[]>>(`${path}/${id}/activities`);
+export async function getOrderActivities(id: number): Promise<{ activities: OrderActivity[]; pagination: Pagination }> {
+  const { data } = await apiClient.get<ApiResponse<{ activities: OrderActivity[]; pagination: Pagination }>>(`${path}/${id}/activities`);
   return data.data;
 }
 export async function getOrderFiles(id: number, itemId: number): Promise<OrderFile[]> {
