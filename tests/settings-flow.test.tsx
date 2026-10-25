@@ -174,12 +174,12 @@ describe("Settings permissions and backend integration", () => {
     expect(screen.queryByText("قيمة الاسم مستخدمة بالفعل.")).toBeNull();
   });
 
-  it("places success and error toast notifications at bottom right", async () => {
+  it("places success and error toast notifications at bottom left", async () => {
     visit("/settings?tab=bank-accounts");
     expect(await screen.findByText("البنك الأهلي")).toBeTruthy();
     const toaster = document.querySelector("[data-sonner-toaster]");
     expect(toaster?.getAttribute("data-y-position")).toBe("bottom");
-    expect(toaster?.getAttribute("data-x-position")).toBe("right");
+    expect(toaster?.getAttribute("data-x-position")).toBe("left");
   });
 
 });
