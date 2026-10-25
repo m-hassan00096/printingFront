@@ -144,7 +144,7 @@ describe("Printing Services API integration", () => {
     visit("/printing-services/11");
     expect(await screen.findByRole("heading", { name: "كروت شخصية" })).toBeTruthy();
     const section = screen.getByRole("region", { name: "أسعار الخدمة" });
-    expect(within(section).getByText("شرائح الأسعار", { exact: false })).toBeNull();
+    expect(within(section).queryByText("شرائح الأسعار")).toBeNull();
     expect(within(section).getByText("سعر الوحدة")).toBeTruthy();
     expect(within(section).getByText("5.50 ج.م")).toBeTruthy();
     expect(within(section).getByText("10.00 ج.م")).toBeTruthy();
