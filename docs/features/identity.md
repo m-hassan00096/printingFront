@@ -189,3 +189,34 @@ Arabic RTL/Cairo, meaningful loading skeletons, empty search state, error retry 
 - Backend user deletion currently soft deletes; make the impact clear in UI and respect backend rules.
 - The ability to upload a new avatar via method override on existing user update should be confirmed against the backend before enabling that workflow.
 - Some global specs may propose different contract shapes. **Current Identity routes/requests/resources are authoritative until an agreed backend change.**
+
+## 8. Implementation update
+
+First frontend implementation on `feature/identity`:
+
+- [x] Users list with backend search/status (including `0`), role filtering, pagination and permission-aware actions.
+- [x] User detail, create/update forms with actual validation rules, optional avatar (5MB max), role selection from backend, password confirmation, status activate/deactivate and soft-delete confirmation.
+- [x] Users and Roles API clients, typed DTOs, TanStack Query cache keys and invalidation. No mirrored Identity data in Zustand.
+- [x] Role list with search/status/pagination; safe metadata edit and deletion. New roles can only be created with **zero** permissions and explicit acknowledgment — never guess a permission ID.
+- [x] Backend-named permission guards, navigation and lazy route loading. Existing Overview and Auth pages unchanged.
+- [x] Seven Identity React integration tests with simulated Axios response data; plus Auth regression, TypeScript, ESLint and production build verified in CI.
+- [ ] **Backend missing:** real permissions catalog endpoint (`identity.permissions.view`) for a permission selection UI. Until added, existing role permissions remain unchanged by the frontend. Backend permission CRUD is not part of this frontend work.
+- [ ] Real browser smoke-test of Identity mutations against locally running Laravel/real MySQL including multipart avatar update, backend 422/403 and server-protected role actions.
+- [ ] Final code review and PR to `develop`; no merge is implied by this implementation.
+
+### Known backend review note
+
+`Modules/Identity/app/Actions/Users/DeleteUserAction.php` currently calls `$user->delete()` directly. The previously discussed safeguard against deleting the last active admin should be verified/enforced in backend before enabling destructive actions for general staff. Frontend checks do not replace backend protection. Likewise, backend role delete rejects assignments including soft-deleted users even when the displayed `usersCount` is zero.
+
+### Manual smoke tests
+
+```powershell
+git switch feature/identity
+git pull --ff-only origin feature/identity
+npm ci
+npm test
+npm run typecheck
+npm run lint
+npm run build
+npm run dev
+```

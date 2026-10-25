@@ -1,4 +1,4 @@
-import { featureAccessPolicy } from "@/app/access-policy";
+import { featureAccessPolicy, identityAccessPolicy } from "@/app/access-policy";
 import { hasAnyPermission } from "@/features/auth/lib/auth-helpers";
 import {
   ClipboardList, LayoutDashboard, Layers, ReceiptText, Settings, Truck,
@@ -39,8 +39,8 @@ export const navigationGroups: NavigationGroup[] = [
   {
     label: "المستخدمون والصلاحيات",
     items: [
-      { to: "/users", label: "المستخدمون", icon: Users, anyOf: ["identity.users.view"] },
-      { to: "/roles", label: "الأدوار والصلاحيات", icon: ShieldCheck, anyOf: ["identity.roles.view"] },
+      { to: "/users", label: "المستخدمون", icon: Users, anyOf: identityAccessPolicy.users },
+      { to: "/roles", label: "الأدوار والصلاحيات", icon: ShieldCheck, anyOf: identityAccessPolicy.roles },
     ],
   },
   {

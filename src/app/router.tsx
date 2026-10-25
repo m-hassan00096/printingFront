@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { featureAccessPolicy } from "@/app/access-policy";
+import { featureAccessPolicy, identityAccessPolicy } from "@/app/access-policy";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AppShell } from "@/app/layouts/app-shell";
 import { FeaturePlaceholderPage } from "@/app/pages/feature-placeholder-page";
@@ -61,13 +61,13 @@ export function AppRouter() {
               />
             ))}
 
-            <Route path="users" element={<RequirePermission anyOf={["identity.users.view"]}><LazyIdentity><UsersPage /></LazyIdentity></RequirePermission>} />
-            <Route path="users/new" element={<RequirePermission anyOf={["identity.users.create"]}><LazyIdentity><UserFormPage /></LazyIdentity></RequirePermission>} />
-            <Route path="users/:id" element={<RequirePermission anyOf={["identity.users.view"]}><LazyIdentity><UserDetailPage /></LazyIdentity></RequirePermission>} />
-            <Route path="users/:id/edit" element={<RequirePermission anyOf={["identity.users.update"]}><LazyIdentity><UserFormPage /></LazyIdentity></RequirePermission>} />
-            <Route path="roles" element={<RequirePermission anyOf={["identity.roles.view"]}><LazyIdentity><RolesPage /></LazyIdentity></RequirePermission>} />
-            <Route path="roles/new" element={<RequirePermission anyOf={["identity.roles.create"]}><LazyIdentity><RoleFormPage /></LazyIdentity></RequirePermission>} />
-            <Route path="roles/:id/edit" element={<RequirePermission anyOf={["identity.roles.update"]}><LazyIdentity><RoleFormPage /></LazyIdentity></RequirePermission>} />
+            <Route path="users" element={<RequirePermission anyOf={identityAccessPolicy.users}><LazyIdentity><UsersPage /></LazyIdentity></RequirePermission>} />
+            <Route path="users/new" element={<RequirePermission anyOf={identityAccessPolicy.createUser}><LazyIdentity><UserFormPage /></LazyIdentity></RequirePermission>} />
+            <Route path="users/:id" element={<RequirePermission anyOf={identityAccessPolicy.users}><LazyIdentity><UserDetailPage /></LazyIdentity></RequirePermission>} />
+            <Route path="users/:id/edit" element={<RequirePermission anyOf={identityAccessPolicy.editUser}><LazyIdentity><UserFormPage /></LazyIdentity></RequirePermission>} />
+            <Route path="roles" element={<RequirePermission anyOf={identityAccessPolicy.roles}><LazyIdentity><RolesPage /></LazyIdentity></RequirePermission>} />
+            <Route path="roles/new" element={<RequirePermission anyOf={identityAccessPolicy.createRole}><LazyIdentity><RoleFormPage /></LazyIdentity></RequirePermission>} />
+            <Route path="roles/:id/edit" element={<RequirePermission anyOf={identityAccessPolicy.editRole}><LazyIdentity><RoleFormPage /></LazyIdentity></RequirePermission>} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Route>
