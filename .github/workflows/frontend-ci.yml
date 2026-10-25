@@ -6,6 +6,7 @@ on:
       - main
       - develop
       - feature/auth
+      - feature/identity
   pull_request:
     branches:
       - develop
