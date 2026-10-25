@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AppShell } from "@/app/layouts/app-shell";
 import { FeaturePlaceholderPage } from "@/app/pages/feature-placeholder-page";
@@ -6,7 +7,12 @@ import { NotFoundPage } from "@/app/pages/not-found-page";
 import { GuestOnly } from "@/features/auth/components/guest-only";
 import { RequireAuth } from "@/features/auth/components/require-auth";
 import { RequirePermission } from "@/features/auth/components/require-permission";
-import { LoginPage } from "@/features/auth/pages/login-page";
+import { AuthLoading } from "@/features/auth/components/auth-loading";
+
+const LoginPage = lazy(async () => {
+  const module = await import("@/features/auth/pages/login-page");
+  return { default: module.LoginPage };
+});
 
 const featurePaths = [
   { path: "orders", key: "orders" as const, permissions: ["orders.list"] },
@@ -26,7 +32,7 @@ export function AppRouter() {
     <BrowserRouter>
       <Routes>
         <Route element={<GuestOnly />}>
-          <Route path="login" element={<LoginPage />} />
+          <Route path="login" element={<Suspense fallback={<AuthLoading />}><LoginPage /></Suspense>} />
         </Route>
 
         <Route element={<RequireAuth />}>
