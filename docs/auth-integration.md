@@ -62,3 +62,7 @@ The browser cannot read HttpOnly session cookie. It *can* send it automatically.
 7. Logout removes access to protected routes; the session is invalidated server-side.
 8. Simulate backend network failure on `GET /auth/me`: show an explicit retry action.
 9. Confirm no Bearer Token is written to Local Storage or Session Storage.
+
+## Local Vite origin is intentional
+
+`npm run dev` binds to `localhost:5173` with a strict port. This is deliberate: Laravel Sanctum must recognize the exact browser `Origin`, including port. If 5173 is already used, stop that process instead of silently falling back to 5174. Open `http://localhost:5173/login` (not a LAN IP such as `http://192.168.1.14:5174`). Keep the backend root as `http://localhost:8000`. `SANCTUM_STATEFUL_DOMAINS` should include `localhost:5173,localhost:8000` and CORS should allow `http://localhost:5173` with credential support. If LAN testing becomes necessary, choose and configure that exact origin and a compatible same-site cookie strategy first.
