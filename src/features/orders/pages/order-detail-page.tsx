@@ -205,7 +205,7 @@ export function OrderDetailPage() {
       <h2 className="mb-3 font-bold">سجل النشاط</h2>
       {activities.isPending ? <p className="text-xs">جاري تحميل النشاط...</p> : activities.isError ?
         <p role="alert" className="text-xs text-destructive">تعذّر تحميل النشاط.</p> :
-        activities.data?.length ? <ul className="space-y-2 text-xs">{activities.data.map((a) =>
+        activities.data?.activities.length ? <ul className="space-y-2 text-xs">{activities.data.activities.map((a) =>
           <li key={a.id} className="border-b py-2">{a.eventType} — {a.createdAt}</li>)}</ul> :
         <p className="text-xs text-muted-foreground">لا توجد أنشطة.</p>}
     </section>}
