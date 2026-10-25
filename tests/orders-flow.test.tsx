@@ -36,6 +36,11 @@ const adapter: AxiosAdapter = async (config) => {
       { label:"activeCustomers", options:[{value:5,label:"أحمد - 01012345678"}] },
       { label:"printingServices", options:[{value:11,label:"كروت شخصية"}] },
     ]);
+  if (url === "/selects" && query.get("selects") === "bankAccounts,eWallets")
+    return response(config, [
+      { label:"bankAccounts", options:[{value:7,label:"بنك مصر - ****1234",isDefault:1}] },
+      { label:"eWallets", options:[{value:9,label:"المحفظة - ****5678",isDefault:0}] },
+    ]);
   if (url === "/customers/5" && config.method === "get")
     return response(config, {id:5,name:"أحمد",phone:"01012345678",customerTypeId:21,status:1});
   if (url === "/customers" && config.method === "get") return response(config, {
@@ -118,4 +123,21 @@ describe("Orders Laravel API workflow", () => {
     expect(confirm?.key?.length).toBeGreaterThan(0);
     expect(await screen.findByText("ORD-2026-00001")).toBeTruthy();
   });
+  it("confirms with a bank deposit using the destination selected from the backend", async () => {
+    visit("/orders/101");
+    expect(await screen.findByText("مسودة #101")).toBeTruthy();
+    const user=userEvent.setup();
+    await user.click(screen.getByRole("button",{name:"تأكيد الأوردر"}));
+    await user.clear(screen.getByRole("textbox",{name:"قيمة العربون"}));
+    await user.type(screen.getByRole("textbox",{name:"قيمة العربون"}),"50.00");
+    await user.selectOptions(screen.getByRole("combobox",{name:"طريقة دفع العربون"}),"1");
+    await screen.findByRole("option",{name:"بنك مصر - ****1234"});
+    await user.selectOptions(screen.getByRole("combobox",{name:"وجهة تحصيل العربون"}),"7");
+    await user.click(screen.getByRole("button",{name:"تأكيد",exact:true}));
+    await waitFor(() => expect(calls.some(c=>c.url==="/orders/101/confirm")).toBe(true));
+    const confirmation=calls.find(c=>c.url==="/orders/101/confirm");
+    expect(confirmation?.body).toEqual({ depositAmount:"50.00",paymentMethod:1,paymentDestinationId:7 });
+    expect(confirmation?.key?.length).toBeGreaterThan(0);
+  });
+
 });
