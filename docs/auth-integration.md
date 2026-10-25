@@ -78,7 +78,7 @@ The browser cannot read HttpOnly session cookie. It *can* send it automatically.
 
 ## Automated tests
 
-Run `npm test` for pure auth helpers (local redirect safety, permission matching, session-expiry response classification, and login validation). GitHub Actions currently uses `npm install` because the committed lockfile needs normalization with the CI npm version. Update/commit the lockfile, then switch to `npm ci`. It runs tests, typecheck, lint and build. React interaction tests / full browser Sanctum login remain on the manual integration checklist.
+Run `npm test` for pure auth helpers (local redirect safety, permission matching, session-expiry response classification, and login validation). GitHub Actions uses Node 22, npm 11, and reproducible `npm ci` with a committed synchronized `package-lock.json`. It runs the 7 helper unit tests, 8 React integration tests, typecheck, lint and production build. React interaction tests / full browser Sanctum login remain on the manual integration checklist.
 
 ## Instant permission-revocation refresh
 
