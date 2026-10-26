@@ -90,7 +90,7 @@ export function ProductionItemCard({item,permissions,selected,busy,onSelect,onAc
             title={item.designerName ?? "غير محدد"}>{item.designerName || "غير محدد"}</p>
         </div>
       </div>
-      {completed && item.designCompletedByName &&
+      {completed && item.designCompletedByName && item.designCompletedByName !== item.designerName &&
         <p className="mt-1 text-xs text-muted-foreground">أنهى التصميم: <span dir="auto">{item.designCompletedByName}</span></p>}
     </div>}
     <div className="flex flex-wrap items-center gap-2">
