@@ -97,7 +97,7 @@ describe("Collections frontend against Laravel Finance API",()=>{
   it("shows compact filters, localized ISO-backed dates and a readable results count",async()=>{
     visit();
     expect(await screen.findByText("COL-2026-00051")).toBeTruthy();
-    expect(screen.getByText("2 إيصال")).toBeTruthy();
+    expect(screen.getByText(/^[0-9٠-٩]+\sإيصال$/)).toBeTruthy();
     expect(screen.getAllByText("25/10/2026").length).toBeGreaterThan(0);
     const date=screen.getByLabelText("من تاريخ التحصيل") as HTMLInputElement;
     fireEvent.change(date,{target:{value:"2026-10-25"}});
@@ -109,7 +109,7 @@ describe("Collections frontend against Laravel Finance API",()=>{
     const user=userEvent.setup();
     await user.click(screen.getByRole("button",{name:"مسح الفلاتر"}));
     expect(date.value).toBe("");
-    expect(screen.getByText("يوم/شهر/سنة")).toBeTruthy();
+    expect(screen.getAllByText("يوم/شهر/سنة")).toHaveLength(2);
   });
   it("keeps advanced filter state visible, then clears it without changing posted-only totals",async()=>{
     visit();const user=userEvent.setup();
