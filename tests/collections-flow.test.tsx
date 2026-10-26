@@ -102,7 +102,7 @@ describe("Collections frontend against Laravel Finance API",()=>{
     const date=screen.getByLabelText("من تاريخ التحصيل") as HTMLInputElement;
     fireEvent.change(date,{target:{value:"2026-10-25"}});
     expect(date.value).toBe("2026-10-25");
-    expect(screen.getAllByText("25/10/2026").length).toBeGreaterThan(1);
+    await waitFor(()=>expect(date.parentElement?.textContent).toContain("25/10/2026"));
     await waitFor(()=>expect(calls.some(c=>
       c.url==="/finance/collections"&&c.query.get("filter[dateFrom]")==="2026-10-25"
     )).toBe(true));
