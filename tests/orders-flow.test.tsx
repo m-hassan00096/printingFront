@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { AxiosAdapter, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { App } from "@/App";
@@ -62,7 +62,19 @@ const adapter: AxiosAdapter = async (config) => {
     return response(config, {id:5,name:"أحمد",phone:"01012345678",customerTypeId:21,status:1,
       address:null,statusLabel:"نشط",customerType:{id:21,name:"شركة"}});
   if (url === "/customers/5" && config.method === "patch") return response(config, null);
-  if (url === "/orders/101" && config.method === "patch") return response(config, null);
+  if (url === "/orders/101" && config.method === "patch") {
+    orders[0] = { ...orders[0],
+      plannedDepositAmount: typeof body.plannedDepositAmount === "string"
+        ? body.plannedDepositAmount : orders[0].plannedDepositAmount,
+      plannedPaymentMethod: typeof body.plannedPaymentMethod === "number"
+        ? body.plannedPaymentMethod as 0 | 1 | 2 : body.plannedPaymentMethod === null
+          ? null : orders[0].plannedPaymentMethod,
+      plannedPaymentDestinationId: typeof body.plannedPaymentDestinationId === "number"
+        ? body.plannedPaymentDestinationId : body.plannedPaymentDestinationId === null
+          ? null : orders[0].plannedPaymentDestinationId,
+    };
+    return response(config, null);
+  }
   if (url === "/orders/101/items/9" && config.method === "patch") return response(config, null);
   if (url === "/customers" && config.method === "get") return response(config, {
     customers: [{id:5,name:"أحمد",phone:"01012345678",address:null,status:1,statusLabel:"نشط",
@@ -140,32 +152,37 @@ describe("Orders Laravel API workflow", () => {
     expect(await screen.findByText("مسودة #101")).toBeTruthy();
   });
 
-  it("confirms a draft using a new idempotent backend operation", async () => {
+
+  it("confirms a draft from a read-only review with no deposit", async () => {
     visit("/orders/101");
     expect(await screen.findByText("مسودة #101")).toBeTruthy();
     await userEvent.setup().click(screen.getByRole("button",{name:"تأكيد الأوردر"}));
-    expect(await screen.findByRole("dialog",{name:"تأكيد الأوردر"})).toBeTruthy();
-    await userEvent.setup().click(screen.getByRole("button",{name:"تأكيد",exact:true}));
+    const review = await screen.findByRole("dialog",{name:"تأكيد الأوردر"});
+    expect(within(review).queryByRole("textbox",{name:"قيمة العربون"})).toBeNull();
+    expect(within(review).getByText("بدون عربون")).toBeTruthy();
+    await userEvent.setup().click(within(review).getByRole("button",{name:"تأكيد الأوردر"}));
     await waitFor(() => expect(calls.some(c=>c.url==="/orders/101/confirm")).toBe(true));
     const confirm=calls.find(c=>c.url==="/orders/101/confirm");
     expect(confirm?.body).toEqual({});
     expect(confirm?.key?.length).toBeGreaterThan(0);
     expect(await screen.findByText("ORD-2026-00001")).toBeTruthy();
   });
-  it("confirms with a bank deposit using the destination selected from the backend", async () => {
+
+
+  it("shows the saved bank and its destination at review, without editable payment inputs", async () => {
+    orders[0] = {...orders[0],plannedDepositAmount:"50.00",plannedPaymentMethod:1,plannedPaymentDestinationId:7};
     visit("/orders/101");
     expect(await screen.findByText("مسودة #101")).toBeTruthy();
-    const user=userEvent.setup();
-    await user.click(screen.getByRole("button",{name:"تأكيد الأوردر"}));
-    await user.clear(screen.getByRole("textbox",{name:"قيمة العربون"}));
-    await user.type(screen.getByRole("textbox",{name:"قيمة العربون"}),"50.00");
-    await user.selectOptions(screen.getByRole("combobox",{name:"طريقة دفع العربون"}),"1");
-    await waitFor(() => expect((screen.getByRole("combobox",{name:"وجهة تحصيل العربون"}) as HTMLSelectElement).value).toBe("7"), {timeout:3000});
-    await user.click(screen.getByRole("button",{name:"تأكيد",exact:true}));
+    await userEvent.setup().click(screen.getByRole("button",{name:"تأكيد الأوردر"}));
+    const review = await screen.findByRole("dialog",{name:"تأكيد الأوردر"});
+    expect(within(review).queryByRole("textbox",{name:"قيمة العربون"})).toBeNull();
+    expect(within(review).getByText("تحويل بنكي")).toBeTruthy();
+    expect(within(review).getByText("50.00 ج.م")).toBeTruthy();
+    expect(await within(review).findByText("بنك مصر - ****1234")).toBeTruthy();
+    await userEvent.setup().click(within(review).getByRole("button",{name:"تأكيد الأوردر وتسجيل العربون"}));
     await waitFor(() => expect(calls.some(c=>c.url==="/orders/101/confirm")).toBe(true));
-    const confirmation=calls.find(c=>c.url==="/orders/101/confirm");
-    expect(confirmation?.body).toEqual({ depositAmount:"50.00",paymentMethod:1,paymentDestinationId:7 });
-    expect(confirmation?.key?.length).toBeGreaterThan(0);
+    expect(calls.find(c=>c.url==="/orders/101/confirm")?.body)
+      .toEqual({depositAmount:"50.00",paymentMethod:1,paymentDestinationId:7});
   });
 
   it("creates and selects a new customer without leaving the order form", async () => {
@@ -230,16 +247,16 @@ describe("Orders Laravel API workflow", () => {
     await waitFor(() => expect(calls.filter(c=>c.url==="/orders" && c.method==="post")).toHaveLength(1));
   });
 
-  it("auto-selects the default wallet when confirming a saved draft", async () => {
+
+  it("reviews a saved wallet deposit using its stored destination, without changing it", async () => {
+    orders[0] = {...orders[0],plannedDepositAmount:"75.00",plannedPaymentMethod:2,plannedPaymentDestinationId:9};
     visit("/orders/101");
     expect(await screen.findByText("مسودة #101")).toBeTruthy();
-    const user=userEvent.setup();
-    await user.click(screen.getByRole("button",{name:"تأكيد الأوردر"}));
-    await user.clear(screen.getByRole("textbox",{name:"قيمة العربون"}));
-    await user.type(screen.getByRole("textbox",{name:"قيمة العربون"}),"75.00");
-    await user.selectOptions(screen.getByRole("combobox",{name:"طريقة دفع العربون"}),"2");
-    await waitFor(() => expect((screen.getByRole("combobox",{name:"وجهة تحصيل العربون"}) as HTMLSelectElement).value).toBe("9"));
-    await user.click(screen.getByRole("button",{name:"تأكيد",exact:true}));
+    await userEvent.setup().click(screen.getByRole("button",{name:"تأكيد الأوردر"}));
+    const review = await screen.findByRole("dialog",{name:"تأكيد الأوردر"});
+    expect(within(review).getByText("محفظة إلكترونية")).toBeTruthy();
+    expect(await within(review).findByText("المحفظة - ****5678")).toBeTruthy();
+    await userEvent.setup().click(within(review).getByRole("button",{name:"تأكيد الأوردر وتسجيل العربون"}));
     await waitFor(() => expect(calls.some(c=>c.url==="/orders/101/confirm")).toBe(true));
     expect(calls.find(c=>c.url==="/orders/101/confirm")?.body)
       .toEqual({depositAmount:"75.00",paymentMethod:2,paymentDestinationId:9});
@@ -295,22 +312,70 @@ describe("Orders Laravel API workflow", () => {
     expect(screen.getByRole("button",{name:"تعديل البيانات"})).toBeTruthy();
   });
 
-  it("saves editable draft payment intention without confirming the order", async () => {
+
+  it("edits and saves intended deposit in the details tab without any collection", async () => {
     visit("/orders/101");
     expect(await screen.findByText("مسودة #101")).toBeTruthy();
     const user=userEvent.setup();
-    await user.click(screen.getByRole("button",{name:"تعديل العربون وطريقة الدفع"}));
-    expect(await screen.findByRole("dialog",{name:"تعديل خطة العربون"})).toBeTruthy();
+    expect(screen.getByText("الدفع عند التأكيد")).toBeTruthy();
+    await user.click(screen.getByRole("button",{name:"تعديل",exact:true}));
+    expect(await screen.findByRole("dialog",{name:"تعديل بيانات العربون"})).toBeTruthy();
     await user.clear(screen.getByRole("textbox",{name:"قيمة العربون"}));
     await user.type(screen.getByRole("textbox",{name:"قيمة العربون"}),"100.00");
     await user.selectOptions(screen.getByRole("combobox",{name:"طريقة دفع العربون"}),"1");
     await waitFor(() => expect((screen.getByRole("combobox",{name:"وجهة تحصيل العربون"}) as HTMLSelectElement).value).toBe("7"));
-    await user.click(screen.getByRole("button",{name:"حفظ خطة الدفع"}));
+    await user.click(screen.getByRole("button",{name:"حفظ بيانات العربون"}));
     await waitFor(() => expect(calls.some(c=>c.method==="patch" && c.url==="/orders/101")).toBe(true));
     expect(calls.find(c=>c.method==="patch"&&c.url==="/orders/101")?.body).toEqual({
       plannedDepositAmount:"100.00",plannedPaymentMethod:1,plannedPaymentDestinationId:7
     });
     expect(calls.filter(c=>c.url==="/orders/101/confirm")).toHaveLength(0);
+    expect(await screen.findByText("الدفع عند التأكيد")).toBeTruthy();
+  });
+
+
+  it("allows returning from review to change the amount then resumes review before posting", async () => {
+    orders[0] = {...orders[0],plannedDepositAmount:"10.00",plannedPaymentMethod:0,plannedPaymentDestinationId:null};
+    visit("/orders/101");
+    expect(await screen.findByText("مسودة #101")).toBeTruthy();
+    const user=userEvent.setup();
+    await user.click(screen.getByRole("button",{name:"تأكيد الأوردر"}));
+    let review=await screen.findByRole("dialog",{name:"تأكيد الأوردر"});
+    expect(within(review).getByText("10.00 ج.م")).toBeTruthy();
+    await user.click(within(review).getByRole("button",{name:"رجوع للتعديل"}));
+    const edit=await screen.findByRole("dialog",{name:"تعديل بيانات العربون"});
+    await user.clear(within(edit).getByRole("textbox",{name:"قيمة العربون"}));
+    await user.type(within(edit).getByRole("textbox",{name:"قيمة العربون"}),"25.00");
+    await user.click(within(edit).getByRole("button",{name:"حفظ بيانات العربون"}));
+    review=await screen.findByRole("dialog",{name:"تأكيد الأوردر"});
+    expect(within(review).getByText("25.00 ج.م")).toBeTruthy();
+    expect(calls.filter(c=>c.url==="/orders/101/confirm")).toHaveLength(0);
+    await user.click(within(review).getByRole("button",{name:"تأكيد الأوردر وتسجيل العربون"}));
+    await waitFor(() => expect(calls.some(c=>c.url==="/orders/101/confirm")).toBe(true));
+    expect(calls.find(c=>c.url==="/orders/101/confirm")?.body)
+      .toEqual({depositAmount:"25.00",paymentMethod:0});
+  });
+
+  it("prevents confirmation when a saved bank destination is no longer active", async () => {
+    orders[0] = {...orders[0],plannedDepositAmount:"50.00",plannedPaymentMethod:1,plannedPaymentDestinationId:999};
+    visit("/orders/101");
+    expect(await screen.findByText("مسودة #101")).toBeTruthy();
+    await userEvent.setup().click(screen.getByRole("button",{name:"تأكيد الأوردر"}));
+    const review=await screen.findByRole("dialog",{name:"تأكيد الأوردر"});
+    expect(await within(review).findByText(/حساب التحصيل المحفوظ غير متاح/)).toBeTruthy();
+    expect(within(review).getByRole("button",{name:"تأكيد الأوردر وتسجيل العربون"}).hasAttribute("disabled")).toBe(true);
+    expect(calls.filter(c=>c.url==="/orders/101/confirm")).toHaveLength(0);
+  });
+
+  it("shows planned payment only under order details, not the activity tab", async () => {
+    orders[0] = {...orders[0],plannedDepositAmount:"30.00",plannedPaymentMethod:0};
+    visit("/orders/101");
+    expect(await screen.findByText("مسودة #101")).toBeTruthy();
+    expect(screen.getByText("الدفع عند التأكيد")).toBeTruthy();
+    await userEvent.setup().click(screen.getByRole("tab",{name:"سجل الأحداث"}));
+    expect(screen.queryByText("الدفع عند التأكيد")).toBeNull();
+    await userEvent.setup().click(screen.getByRole("tab",{name:"تفاصيل الأوردر"}));
+    expect(screen.getByText("الدفع عند التأكيد")).toBeTruthy();
   });
 
   it("stores a proposed cash deposit with draft creation rather than a posted deposit", async () => {
