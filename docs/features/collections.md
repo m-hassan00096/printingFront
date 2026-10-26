@@ -20,3 +20,11 @@ Backend contract verified from printingApi `develop`: `GET /finance/collections`
 Manual before merge: real MySQL/Sanctum API + Cairo dates, positive amounts/valid destinations, inactive-customer selection permission, duplicate submit and retry, unrelated collections vs delivery reversal, locked customer credit/debt, role visibility, mobile RTL and empty states.
 
 Deferred: source-specific order-linked general collection picker; employee name in the list (API currently exposes `createdBy` ID only); the standalone Finance customer ledger module.
+
+## UI refinement (October 26, 2026)
+- Filters use a compact single-row layout on wide screens. Search, period and payment method are immediately visible; source, status and sort live under an expandable "فلاتر إضافية" group. Active advanced criteria remain indicated by a count after collapsing, and "مسح الفلاتر" resets both groups.
+- Summary cards are explicitly labeled "ملخص التحصيلات المعتمدة فقط", clarifying that they exclude reversed transactions. They respect all supported filters except status, per Laravel's summary endpoint contract.
+- The receipt register shows the result count **above** the rows, retains readable details controls, aligns numeric values, and dims—but never hides, zeroes or strikes—the original amount of a reversed receipt.
+- Cairo UI dates are displayed in `DD/MM/YYYY` with a native date picker. API request/response values remain `YYYY-MM-DD`. Format changes are presentation-only, including the create form and receipt details.
+- Secondary text contrast and compact form heights have been tuned; no new backend endpoints are needed.
+- Tests cover advanced filters, summary-status independence, ISO-backed localized dates, result count, permissions and existing finance flows.
