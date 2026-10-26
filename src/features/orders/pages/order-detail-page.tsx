@@ -2,10 +2,8 @@ import { useRef, useState } from "react";
 import { ArrowRight, CheckCircle2, Pencil, Plus, Trash2 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { getOrderPaymentOptions } from "../api/order-options.api";
-import { getCustomer } from "@/features/customers/api/customers.api";
-import { CustomerFormModal } from "@/features/customers/components/customer-form-modal";
 import { Button } from "@/shared/components/ui/button";
 import { getApiErrorMessage } from "@/shared/api/http";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
@@ -31,8 +29,7 @@ export function OrderDetailPage() {
   const perms = session?.permissions ?? [];
   const order = useOrder(valid ? id : 0);
   const actions = useOrderActions();
-  const qc = useQueryClient();
-  const [customerModal, setCustomerModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<"order" | "activity">("order");
   const [editItem, setEditItem] = useState<OrderItem | "new" | null>(null);
   const [editHeader, setEditHeader] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -55,12 +52,6 @@ export function OrderDetailPage() {
   const confirmKey = useRef(crypto.randomUUID());
   const cancelKey = useRef(crypto.randomUUID());
   const showActivities = perms.includes("orders.activities.view");
-  const canEditCustomer = perms.includes("customers.update") && perms.includes("customers.view");
-  const currentCustomer = useQuery({
-    queryKey: ["orders", "customer-to-edit", order.data?.customerId],
-    queryFn: () => getCustomer(order.data!.customerId),
-    enabled: customerModal && canEditCustomer && !!order.data?.customerId,
-  });
   const mayEdit = perms.includes("orders.update");
   const mayConfirm = perms.includes("orders.confirm");
   const mayCancel = perms.includes("orders.cancel");
@@ -107,9 +98,7 @@ export function OrderDetailPage() {
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-lg bg-muted px-3 py-2 text-sm font-bold">{item.statusLabel}</span>
         {draft && mayEdit && <Button variant="outline" onClick={() => setEditHeader(true)}><Pencil className="size-4" /> تعديل البيانات</Button>}
-        {canEditCustomer && <Button variant="outline" onClick={() => setCustomerModal(true)}>
-          <Pencil className="size-4" /> تعديل بيانات العميل
-        </Button>}
+
         {draft && mayConfirm && <Button onClick={() => {setError("");setConfirmOpen(true);}}><CheckCircle2 className="size-4" /> تأكيد الأوردر</Button>}
         {item.status === 1 && item.deliveredAt === null && mayCancel && <Button variant="outline" onClick={() => {setError("");setCancelOpen(true);}}>إلغاء الأوردر</Button>}
       </div>
@@ -121,6 +110,19 @@ export function OrderDetailPage() {
         {item.delayStatusLabel && <p className="mt-1 text-xs text-destructive">{item.delayStatusLabel}</p>}</div>
       {item.notes && <p className="text-sm text-muted-foreground sm:col-span-3">ملاحظات: {item.notes}</p>}
     </section>
+    <nav role="tablist" aria-label="أقسام الأوردر" className="inline-flex max-w-full items-center gap-1 rounded-xl bg-muted p-1">
+      <button type="button" role="tab" id="order-tab" aria-controls="order-panel" aria-selected={activeTab === "order"}
+        onClick={() => setActiveTab("order")}
+        className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${activeTab === "order" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+        تفاصيل الأوردر
+      </button>
+      {showActivities && <button type="button" role="tab" id="activity-tab" aria-controls="activity-panel"
+        aria-selected={activeTab === "activity"} onClick={() => setActiveTab("activity")}
+        className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${activeTab === "activity" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+        سجل الأحداث
+      </button>}
+    </nav>
+    {activeTab === "order" && <div role="tabpanel" id="order-panel" aria-labelledby="order-tab">
     <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
         <h2 className="font-bold">عناصر الأوردر</h2>
@@ -144,25 +146,16 @@ export function OrderDetailPage() {
         </article>)}
       </div>
     </section>
-    <OrderActivityTimeline orderId={id} enabled={showActivities} />
+
+    </div>}
+    {activeTab === "activity" && showActivities && <div role="tabpanel" id="activity-panel" aria-labelledby="activity-tab">
+      <OrderActivityTimeline orderId={id} enabled={showActivities} />
+    </div>}
     {editHeader && <OrderHeaderEditor order={item} canCreateCustomer={perms.includes("customers.create")}
       onClose={() => setEditHeader(false)} />}
     {editItem && <OrderItemEditor key={editItem === "new" ? "new" : editItem.id} order={item}
       item={editItem === "new" ? undefined : editItem} canPricePreview={perms.includes("printing_services.price_preview.view")}
       onClose={() => setEditItem(null)} />}
-    {customerModal && (currentCustomer.isPending ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
-      <div role="status" className="rounded-2xl bg-card p-6 text-sm">جاري تحميل بيانات العميل...</div>
-    </div> : currentCustomer.isError ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
-      <div className="space-y-3 rounded-2xl bg-card p-6"><p role="alert">تعذّر تحميل بيانات العميل.</p>
-        <Button variant="outline" onClick={() => setCustomerModal(false)}>إغلاق</Button>
-        <Button onClick={() => void currentCustomer.refetch()}>إعادة المحاولة</Button>
-      </div>
-    </div> : <CustomerFormModal customer={currentCustomer.data}
-      onClose={() => setCustomerModal(false)} onSaved={() => {
-        void qc.invalidateQueries({queryKey:orderKeys.detail(id)});
-        void qc.invalidateQueries({queryKey:orderKeys.list});
-        void qc.invalidateQueries({queryKey:["orders","customer-to-edit",item.customerId]});
-      }} />)}
     {deleteItem && <ConfirmDialog title="حذف عنصر" description="سيُحذف العنصر من المسودة وستُؤرشف ملفاته. لا يمكن حذف آخر عنصر."
       confirmText="حذف العنصر" destructive busy={actions.removeItem.isPending}
       onClose={() => setDeleteItem(null)} onConfirm={() => void removeItem()} />}
