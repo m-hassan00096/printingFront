@@ -134,7 +134,7 @@ describe("Finance Refunds within the Accounts module",()=>{
     const user=userEvent.setup();
     expect(await screen.findByRole("button",{name:"رد رصيد دائن"})).toBeTruthy();
     expect(screen.queryByRole("tablist")).toBeNull();
-    expect(screen.getByText("الرصيد الافتتاحي مسجل")).toBeTruthy();
+    expect(await screen.findByText("الرصيد الافتتاحي مسجل")).toBeTruthy();
     expect(screen.queryByRole("button",{name:"رصيد افتتاحي"})).toBeNull();
     expect(screen.queryByText("سجل المبالغ المرتجعة")).toBeNull();
     const history=screen.getByRole("button",{name:"سجل رد الأرصدة"});
