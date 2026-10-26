@@ -252,8 +252,8 @@ export function DeliveryDetailsDialog({ deliveryId, onClose, onSuccess }: {
           {hasActiveCollection && <label className="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
             <input type="checkbox" aria-label="تأكيد التسوية الفعلية للأموال" checked={fundsConfirmed}
               onChange={e=>setFundsConfirmed(e.target.checked)}/>
-            أؤكد مراجعة التسوية الفعلية للأموال مع العميل؛ عكس التحصيل في النظام لا يعيد النقد
-            أو يحوّل الأموال تلقائيًا إلى حسابه.
+            أؤكد أن ردّ الأموال أو تسويتها مع العميل تم فعليًا خارج النظام.
+            عكس التحصيل محاسبيًا لا يعيد النقد أو يحوّل الأموال تلقائيًا.
           </label>}
           <p className="text-xs text-muted-foreground">
             سيُحفظ سجل التسليم ويُعاد الأوردر للجاهزية، ويُعكس التحصيل المرتبط فقط إذا كان قائمًا.
