@@ -287,6 +287,49 @@ export function OrderDetailPage() {
             <strong><MoneyAmount amount={Math.max(0, Number(item.totalAmount) - Number(deposit))} /></strong>
           </div>}
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+          <div className="flex flex-wrap justify-end gap-2 border-t pt-4">
+            <Button variant="outline" disabled={paymentIsBusy}
+              onClick={() => {setReturnToReview(false);setPaymentDialog(null);}}>إلغاء</Button>
+            <Button disabled={paymentIsBusy || (Number(deposit) > 0 && paymentMethod !== "0" &&
+              (destinations.isPending || destinations.isError || !chosenDestination))}
+              onClick={() => void savePaymentPlan()}>حفظ بيانات العربون</Button>
+          </div>
+        </> : <>
+          <p className="text-sm text-muted-foreground">
+            راجع التفاصيل قبل تأكيد الأوردر. سيتم تسجيل المديونية والعربون عند التأكيد فقط.
+          </p>
+          <div className="space-y-3 rounded-xl bg-muted/50 p-4 text-sm">
+            <div className="flex justify-between gap-3"><span>إجمالي الأوردر</span>
+              <strong><MoneyAmount amount={item.totalAmount} /></strong></div>
+            <div className="flex justify-between gap-3"><span>العربون المطلوب تحصيله</span>
+              <strong><MoneyAmount amount={deposit} /></strong></div>
+            <div className="flex justify-between gap-3"><span>وسيلة الدفع</span>
+              <strong>{Number(deposit) > 0 ? paymentLabel(Number(paymentMethod)) : "بدون عربون"}</strong>
+            </div>
+            {Number(deposit) > 0 && paymentMethod !== "0" &&
+              <div className="flex justify-between gap-3">
+                <span>حساب التحصيل</span>
+                <strong className="text-left">{destinations.isPending ? "جاري التحقق..." :
+                  activeDestinations.find((account) => String(account.value) === chosenDestination)?.label ??
+                  "الحساب غير متاح"}</strong>
+              </div>}
+            <div className="flex justify-between gap-3 border-t pt-3">
+              <span className="font-semibold">المتبقي بعد التأكيد</span>
+              <strong><MoneyAmount amount={Math.max(0, Number(item.totalAmount) - Number(deposit))} /></strong>
+            </div>
+          </div>
+          {Number(deposit) > Number(item.totalAmount) && <label className="flex items-start gap-2 rounded-xl border border-amber-300 p-3 text-xs">
+            <input type="checkbox" checked={overpaymentAcknowledged}
+              onChange={(e) => {setOverpaymentAcknowledged(e.target.checked);setError("");}}
+              aria-label="تأكيد الزيادة عن قيمة الأوردر" />
+            أؤكد أن الزيادة عن قيمة الأوردر ستُسجل كرصيد دائن للعميل.
+          </label>}
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+          {Number(deposit) > 0 && paymentMethod !== "0" &&
+            (destinations.isError || (!destinations.isPending && !chosenDestination)) &&
+            <p role="alert" className="text-xs text-destructive">
+              حساب التحصيل المحفوظ غير متاح حاليًا. ارجع لتعديل بيانات العربون قبل التأكيد.
+            </p>}
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-t pt-4">
             <Button className="min-w-0 px-2 text-xs sm:px-4 sm:text-sm"
               disabled={paymentIsBusy || !moneyPattern.test(deposit) ||
