@@ -6,7 +6,7 @@ export const featureAccessPolicy: Record<FeatureKey, readonly string[]> = {
   production: ["production.items.list"],
   deliveries: ["deliveries.ready.view", "deliveries.list"],
   customers: ["customers.view"],
-  collections: ["finance.collections.view"],
+  collections: ["finance.collections.view", "finance.collections.create"],
   finance: ["finance.balances.view", "finance.ledger.view"],
   settings: [
     "settings.view_parameter_values",
