@@ -421,7 +421,7 @@ describe("Orders Laravel API workflow", () => {
     expect(within(payment).getByText("المتبقي المتوقع")).toBeTruthy();
     expect(within(payment).getByText("وسيلة الدفع")).toBeTruthy();
     expect(within(payment).queryByText("إجمالي الأوردر")).toBeNull();
-    expect(within(payment).getByText("500.00 ج.م")).toBeTruthy();
+    expect(within(payment).getAllByText("500.00 ج.م")).toHaveLength(2);
   });
 
 });
