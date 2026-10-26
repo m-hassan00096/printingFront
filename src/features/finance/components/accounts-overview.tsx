@@ -1,5 +1,5 @@
 import { useEffect,useState } from "react";
-import { ArrowUpLeft, RotateCcw, Search, UsersRound } from "lucide-react";
+import { ArrowUpLeft, Search, UsersRound } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
 import { ErrorState,EmptyState,LoadingState,PaginationBar } from "@/features/identity/components/identity-ui";
@@ -7,7 +7,7 @@ import { useAccountOverview } from "../hooks/use-finance";
 import type { AccountOverviewFilters } from "../types/finance.types";
 
 const initial:AccountOverviewFilters={page:1,search:"",type:"",sort:"-id"};
-export function AccountsOverview({onOpen,onRefund}:{onOpen:(customerId:number)=>void;onRefund?:(customerId:number)=>void}){
+export function AccountsOverview({onOpen}:{onOpen:(customerId:number)=>void}){
   const [filters,setFilters]=useState<AccountOverviewFilters>(initial);
   const [draftSearch,setDraftSearch]=useState("");
   useEffect(()=>{
@@ -81,14 +81,11 @@ export function AccountsOverview({onOpen,onRefund}:{onOpen:(customerId:number)=>
               </span></td>
               <td className="px-3 py-3 font-bold tabular-nums"><MoneyAmount amount={account.amount}/></td>
               <td className="px-3 py-3 text-xs text-foreground/70">{account.openingBalanceExists?"مسجل":"لم يُسجّل"}</td>
-              <td className="px-3 py-3"><div className="flex flex-wrap gap-1.5">
+              <td className="px-3 py-3">
                 <Button type="button" size="sm" variant="outline" onClick={()=>onOpen(account.customerId)}>
                   كشف الحساب <ArrowUpLeft className="size-4"/>
                 </Button>
-                {onRefund&&account.type===2&&<Button size="sm" onClick={()=>onRefund(account.customerId)}>
-                  <RotateCcw className="size-4"/> رد الرصيد
-                </Button>}
-              </div></td>
+              </td>
             </tr>)}
           </tbody>
         </table></div>
