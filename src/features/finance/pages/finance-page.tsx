@@ -1,6 +1,6 @@
 import { useEffect,useState } from "react";
 import { Link,useSearchParams } from "react-router-dom";
-import { ArrowUpLeft,ArrowRight,BookOpen,RefreshCw,Wallet,Plus,History } from "lucide-react";
+import { ArrowUpLeft,ArrowRight,BookOpen,RefreshCw,Wallet,Plus,History,RotateCcw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
@@ -10,6 +10,7 @@ import { ErrorState,LoadingState,EmptyState,PaginationBar,SectionHeader,fieldCla
 import { CollectionDateField,formatCollectionDate } from "@/features/collections/components/collection-date-field";
 import { useFinanceCustomers,useFinanceBalance,useFinanceLedger,useFinanceOpeningStatus } from "../hooks/use-finance";
 import { AccountsOverview } from "../components/accounts-overview";
+import { RefundsPanel } from "../components/refunds-panel";
 import { OpeningBalanceDialog } from "../components/opening-balance-dialog";
 import type { AccountFilters } from "../types/finance.types";
 
@@ -38,18 +39,26 @@ export function FinancePage(){
   const mayOpen=permissions.includes("finance.opening_balances.create");
   const mayViewCustomers=permissions.includes("customers.view");
   const mayViewOrders=permissions.includes("orders.view");
+  const mayRefundView=permissions.includes("finance.refunds.view");
+  const mayRefundCreate=permissions.includes("finance.refunds.create");
+  const mayRefund=mayRefundView||mayRefundCreate;
+  const mayAccounts=mayBalance||mayLedger||mayOpen;
   const qc=useQueryClient();
   const [params,setParams]=useSearchParams();
+  const tab=params.get("tab")==="refunds"?"refunds":"accounts";
+  const refundActive=mayRefund&&(!mayAccounts||tab==="refunds");
+  const accountActive=!refundActive;
+  const requestedRefundCustomerId=Number(params.get("refundCustomerId")??"");
   const rawId=params.get("customerId")??"";
   const id=Number(rawId);
   const customerId=Number.isSafeInteger(id)&&id>0?id:0;
-  const customers=useFinanceCustomers();
+  const customers=useFinanceCustomers(accountActive&&mayAccounts);
   const option=customers.data?.find(c=>c.value===customerId);
   const [filters,setFilters]=useState<AccountFilters>(defaultFilters);
   const [opening,setOpening]=useState(false);
-  const balance=useFinanceBalance(customerId,mayBalance);
-  const ledger=useFinanceLedger(customerId,filters,mayLedger);
-  const openingStatus=useFinanceOpeningStatus(customerId,mayOpen);
+  const balance=useFinanceBalance(customerId,mayBalance&&accountActive);
+  const ledger=useFinanceLedger(customerId,filters,mayLedger&&accountActive);
+  const openingStatus=useFinanceOpeningStatus(customerId,mayOpen&&accountActive);
   const effectiveBalance=mayBalance?balance.data:mayLedger?ledger.data?.balance:null;
   const balanceReady=mayBalance?balance.isSuccess:mayLedger?ledger.isSuccess:false;
 
@@ -58,6 +67,30 @@ export function FinancePage(){
     if(ledger.data&&ledger.data.pagination.lastPage>0&&filters.page>ledger.data.pagination.lastPage)
       setFilters(p=>({...p,page:ledger.data!.pagination.lastPage}));
   },[ledger.data,filters.page]);
+  function switchTab(nextTab:"accounts"|"refunds"){
+    setOpening(false);
+    setParams(old=>{
+      const next=new URLSearchParams(old);
+      if(nextTab==="refunds")next.set("tab","refunds");
+      else {next.delete("tab");next.delete("refundCustomerId");}
+      return next;
+    });
+  }
+  function requestRefund(id:number){
+    setParams(old=>{
+      const next=new URLSearchParams(old);
+      next.set("tab","refunds");
+      next.set("refundCustomerId",String(id));
+      return next;
+    });
+  }
+  function clearRequestedRefund(){
+    setParams(old=>{
+      const next=new URLSearchParams(old);
+      next.delete("refundCustomerId");
+      return next;
+    });
+  }
   function selectCustomer(value:string){
     setParams(old=>{
       const next=new URLSearchParams(old);
@@ -74,9 +107,25 @@ export function FinancePage(){
     void Promise.all([qc.invalidateQueries({queryKey:["finance"]}),qc.invalidateQueries({queryKey:["customers"]})]);
   }
   return <div className="space-y-4">
-    <SectionHeader title="حسابات العملاء" detail="رصيد العميل الحالي، حركات دفتر الأستاذ، والرصيد الافتتاحي."
+    <SectionHeader title="حسابات العملاء" detail="أرصدة العملاء وكشف الحساب والرصيد الافتتاحي ورد المبالغ الدائنة."
       actions={<Button variant="outline" type="button" onClick={refresh}><RefreshCw className="size-4"/> تحديث</Button>}/>
-    {!customerId&&mayBalance&&<AccountsOverview onOpen={id=>selectCustomer(String(id))}/>}
+    {mayRefund&&mayAccounts&&<div role="tablist" aria-label="أقسام الحسابات"
+      className="flex flex-wrap gap-2 border-b pb-3">
+      <button role="tab" type="button" aria-selected={!refundActive} onClick={()=>switchTab("accounts")}
+        className={"rounded-xl px-4 py-2 text-sm font-bold "+(!refundActive?"bg-primary text-primary-foreground":"bg-muted text-muted-foreground")}>
+        <Wallet className="ms-1 inline size-4"/> حسابات العملاء
+      </button>
+      <button role="tab" type="button" aria-selected={refundActive} onClick={()=>switchTab("refunds")}
+        className={"rounded-xl px-4 py-2 text-sm font-bold "+(refundActive?"bg-primary text-primary-foreground":"bg-muted text-muted-foreground")}>
+        <RotateCcw className="ms-1 inline size-4"/> رد الأرصدة الدائنة
+      </button>
+    </div>}
+    {refundActive&&<RefundsPanel canView={mayRefundView} canCreate={mayRefundCreate}
+      requestedCustomerId={Number.isSafeInteger(requestedRefundCustomerId)&&requestedRefundCustomerId>0?requestedRefundCustomerId:0}
+      onClearCustomer={clearRequestedRefund}/>}
+    {accountActive&&<>
+    {!customerId&&mayBalance&&<AccountsOverview onOpen={id=>selectCustomer(String(id))}
+      onRefund={mayRefundCreate?requestRefund:undefined}/>}
     {(!mayBalance||customerId>0)&&<>
     {customerId>0&&mayBalance&&<div>
       <Button type="button" variant="ghost" size="sm" onClick={()=>selectCustomer("")}>
@@ -109,6 +158,8 @@ export function FinancePage(){
       <section aria-label="رصيد الحساب الحالي" className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-bold">الرصيد الحالي</h2>
+          {mayRefundCreate&&effectiveBalance?.type===2&&<Button size="sm" type="button"
+            onClick={()=>requestRefund(customerId)}><RotateCcw className="size-4"/> رد الرصيد الدائن</Button>}
           {mayOpen&&openingStatus.isSuccess&&!openingStatus.data.openingBalanceExists&&
             <Button size="sm" type="button" onClick={()=>setOpening(true)}>
               <Plus className="size-4"/> رصيد افتتاحي
@@ -196,6 +247,7 @@ export function FinancePage(){
     </>}
     {opening&&customerId>0&&mayOpen&&openingStatus.isSuccess&&!openingStatus.data.openingBalanceExists&&<OpeningBalanceDialog key={customerId} customerId={customerId}
       customerName={option?.label??"العميل المحدد"} onClose={()=>setOpening(false)} onSuccess={()=>{setOpening(false);refresh();}}/>}
+    </>}
     </>}
   </div>;
 }
