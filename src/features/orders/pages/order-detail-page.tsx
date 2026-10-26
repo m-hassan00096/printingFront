@@ -1,196 +1,28 @@
-import { useRef, useState, type FormEvent } from "react";
-import { ArrowRight, CheckCircle2, Paperclip, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { useRef, useState } from "react";
+import { ArrowRight, CheckCircle2, Pencil, Plus, Trash2 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
-import { getOrderServiceOptions, getOrderPaymentOptions } from "../api/order-options.api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getOrderPaymentOptions } from "../api/order-options.api";
+import { getCustomer } from "@/features/customers/api/customers.api";
+import { CustomerFormModal } from "@/features/customers/components/customer-form-modal";
 import { Button } from "@/shared/components/ui/button";
 import { getApiErrorMessage } from "@/shared/api/http";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { ConfirmDialog, ErrorState, LoadingState, fieldClass } from "@/features/identity/components/identity-ui";
-import { fetchOrderFile } from "../api/orders.api";
-import { useOrder, useOrderActions, useOrderFiles, useOrderActivities } from "../hooks/use-orders";
-import type { Order, OrderItem, OrderItemPayload } from "../types/orders.types";
+import { OrderItemEditor } from "../components/order-item-editor";
+import { OrderHeaderEditor } from "../components/order-header-editor";
+import { OrderActivityTimeline } from "../components/order-activity";
+import { OrderFileGallery } from "../components/order-file-gallery";
+import { useOrder, useOrderActions, orderKeys } from "../hooks/use-orders";
+import type { OrderItem } from "../types/orders.types";
 
 const moneyPattern = /^(?:0|[1-9][0-9]{0,9})(?:\.[0-9]{1,2})?$/;
-function OrderHeaderEditor({ order, onClose }: { order: Order; onClose: () => void }) {
-  const actions = useOrderActions();
-  const [dueDate, setDueDate] = useState(order.dueDate ?? "");
-  const [source, setSource] = useState<"0" | "1">(String(order.source) as "0" | "1");
-  const [notes, setNotes] = useState(order.notes ?? "");
-  const [error, setError] = useState("");
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const payload: Parameters<typeof actions.update.mutateAsync>[0]["payload"] = {};
-    if (dueDate !== (order.dueDate ?? "")) payload.dueDate = dueDate || null;
-    if (Number(source) !== order.source) payload.source = Number(source) as 0 | 1;
-    if ((notes.trim() || null) !== order.notes) payload.notes = notes.trim() || null;
-    if (!Object.keys(payload).length) {onClose();return;}
-    try {
-      await actions.update.mutateAsync({ id: order.id, payload });
-      toast.success("تم تعديل بيانات المسودة."); onClose();
-    } catch (e: unknown) {setError(getApiErrorMessage(e, "تعذّر تحديث المسودة."));}
-  }
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
-    <section role="dialog" aria-modal="true" aria-label="تعديل بيانات المسودة" className="w-full max-w-lg rounded-2xl bg-card p-6 shadow-xl">
-      <h2 className="mb-5 text-lg font-bold">تعديل بيانات المسودة</h2>
-      <form onSubmit={(e) => void submit(e)} className="space-y-4">
-        <label className="block text-sm font-semibold">المصدر
-          <select aria-label="مصدر المسودة" className={fieldClass + " mt-2"} value={source}
-            onChange={(e) => setSource(e.target.value as "0" | "1")}>
-            <option value="0">الفرع</option><option value="1">أونلاين</option>
-          </select>
-        </label>
-        <label className="block text-sm font-semibold">موعد التسليم
-          <input aria-label="موعد تسليم المسودة" type="date" className={fieldClass + " mt-2"}
-            value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-        </label>
-        <label className="block text-sm font-semibold">الملاحظات
-          <textarea aria-label="ملاحظات المسودة" className={fieldClass + " mt-2 min-h-24 py-2"}
-            maxLength={10000} value={notes} onChange={(e) => setNotes(e.target.value)} />
-        </label>
-        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" type="button" disabled={actions.update.isPending} onClick={onClose}>إلغاء</Button>
-          <Button type="submit" disabled={actions.update.isPending}>حفظ التعديلات</Button>
-        </div>
-      </form>
-    </section>
-  </div>;
+function displayMoney(value: string) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return value;
+  return n.toLocaleString("en-US", {minimumFractionDigits:2,maximumFractionDigits:4}).replace(/(\.\d{2})00$/, "$1");
 }
-
-function ItemEditor({ order, item, onClose }: { order: Order; item?: OrderItem; onClose: () => void }) {
-  const actions = useOrderActions();
-  const [quantity, setQuantity] = useState(String(item?.quantity ?? 1));
-  const [agreedTotal, setAgreedTotal] = useState(item?.agreedTotal ?? "");
-  const [specifications, setSpecifications] = useState(item?.specifications ?? "");
-  const [serviceId, setServiceId] = useState(item?.serviceId ? String(item.serviceId) : "");
-  const [serviceSearch, setServiceSearch] = useState("");
-  const [selectedService, setSelectedService] = useState<{ id: number; name: string } | null>(
-    item ? { id: item.serviceId, name: item.serviceName } : null,
-  );
-  const services = useQuery({
-    queryKey: ["orders", "item-services", serviceSearch],
-    queryFn: getOrderServiceOptions,
-    enabled: !item,
-  });
-  const [error, setError] = useState("");
-  const busy = actions.addItem.isPending || actions.editItem.isPending;
-  async function save(event: FormEvent) {
-    event.preventDefault();
-    if (!Number.isSafeInteger(Number(quantity)) || Number(quantity) < 1 || Number(quantity) > 1000000 || !moneyPattern.test(agreedTotal) || !serviceId) {
-      setError("حدد الخدمة والكمية وإجمالي السعر بصورة صحيحة.");return;
-    }
-    try {
-      const payload: OrderItemPayload = { serviceId: Number(serviceId), quantity: Number(quantity),
-        agreedTotal, specifications: specifications.trim() || null };
-      if (item) {
-        const edited: Partial<OrderItemPayload> = {};
-        if (payload.quantity !== item.quantity) edited.quantity = payload.quantity;
-        if (payload.agreedTotal !== item.agreedTotal) edited.agreedTotal = payload.agreedTotal;
-        if (payload.specifications !== item.specifications) edited.specifications = payload.specifications;
-        if (!Object.keys(edited).length) {onClose();return;}
-        await actions.editItem.mutateAsync({ id: order.id, itemId: item.id, payload: edited });
-      } else await actions.addItem.mutateAsync({ id: order.id, payload });
-      toast.success("تم حفظ العنصر.");onClose();
-    } catch (e: unknown) {setError(getApiErrorMessage(e, "تعذّر حفظ العنصر."));}
-  }
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
-    <section role="dialog" aria-modal="true" aria-label={item ? "تعديل عنصر" : "إضافة عنصر"}
-      className="w-full max-w-lg rounded-2xl bg-card p-6 shadow-xl">
-      <h2 className="mb-4 text-lg font-bold">{item ? "تعديل عنصر" : "إضافة عنصر"}</h2>
-      <form onSubmit={(e) => void save(e)} className="space-y-4">
-        {item ? <p className="text-sm">خدمة الطباعة: <strong>{item.serviceName}</strong></p> :
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold">ابحث عن خدمة
-              <input aria-label="البحث عن خدمة للعنصر" className={fieldClass + " mt-2"}
-                value={serviceSearch} onChange={(e) => setServiceSearch(e.target.value)} />
-            </label>
-            <label className="block text-sm font-semibold">خدمة الطباعة *
-              <select aria-label="خدمة الطباعة للعنصر" className={fieldClass + " mt-2"}
-                disabled={busy || services.isPending} value={serviceId}
-                onChange={(e) => {
-                  setServiceId(e.target.value);
-                  const found = services.data?.find((option) => String(option.value) === e.target.value);
-                  setSelectedService(found ? { id: found.value, name: found.label } : null);
-                }}>
-                <option value="">اختر الخدمة</option>
-                {services.data?.filter((option) => option.label.includes(serviceSearch.trim())).map((option) =>
-                  <option key={option.value} value={option.value}>{option.label}{Number(option.isDefault) === 1 ? " (افتراضي)" : ""}</option>)}
-                {selectedService && !services.data?.some((option) => option.value === selectedService.id &&
-                    option.label.includes(serviceSearch.trim())) &&
-                  <option value={selectedService.id}>{selectedService.name}</option>}
-              </select>
-            </label>
-            {services.isError && <p role="alert" className="text-xs text-destructive">تعذّر تحميل الخدمات.</p>}
-          </div>}
-        <label className="block text-sm font-semibold">الكمية *
-          <input aria-label="كمية العنصر" type="number" min="1" className={fieldClass + " mt-2"} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-        </label>
-        <label className="block text-sm font-semibold">إجمالي السعر المتفق عليه *
-          <input aria-label="إجمالي السعر" className={fieldClass + " mt-2"} dir="ltr" value={agreedTotal} onChange={(e) => setAgreedTotal(e.target.value)} />
-        </label>
-        <label className="block text-sm font-semibold">المواصفات
-          <textarea aria-label="مواصفات العنصر" className={fieldClass + " mt-2 min-h-20 py-2"} value={specifications} onChange={(e) => setSpecifications(e.target.value)} />
-        </label>
-        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-        <div className="flex justify-end gap-3"><Button type="button" variant="outline" disabled={busy} onClick={onClose}>إلغاء</Button>
-          <Button type="submit" disabled={busy}>حفظ</Button></div>
-      </form>
-    </section>
-  </div>;
-}
-
-function ItemFiles({ orderId, item, canList, canUpload, canDelete, canView }: {
-  orderId: number;item: OrderItem;canList: boolean;canUpload: boolean;canDelete: boolean;canView: boolean;
-}) {
-  const files = useOrderFiles(orderId, item.id, canList);
-  const actions = useOrderActions();
-  const [error, setError] = useState("");
-  async function upload(file: File | undefined) {
-    if (!file) return;
-    setError("");
-    try { await actions.upload.mutateAsync({ id: orderId, itemId: item.id, file });toast.success("تم رفع الملف."); }
-    catch (e: unknown) {setError(getApiErrorMessage(e, "تعذّر رفع الملف."));}
-  }
-  async function download(fileId: number, name: string) {
-    try {
-      const blob = await fetchOrderFile(orderId, item.id, fileId);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;link.download = name;document.body.appendChild(link);link.click();link.remove();
-      URL.revokeObjectURL(url);
-    } catch (e: unknown) {setError(getApiErrorMessage(e, "تعذّر تحميل الملف."));}
-  }
-  async function remove(fileId: number) {
-    try {await actions.deleteFile.mutateAsync({ id: orderId, itemId: item.id, fileId });toast.success("تم نقل الملف للأرشيف.");}
-    catch (e: unknown) {setError(getApiErrorMessage(e, "تعذّر حذف الملف."));}
-  }
-  return <div className="mt-3 space-y-2 border-t pt-3">
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <h4 className="flex items-center gap-2 text-xs font-semibold"><Paperclip className="size-4" /> الملفات</h4>
-      {canUpload && <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-bold text-primary">
-        <Upload className="size-4" /> رفع ملف
-        <input aria-label={`رفع ملف للعنصر ${item.id}`} type="file" className="sr-only" disabled={actions.upload.isPending}
-          onChange={(e) => {void upload(e.target.files?.[0]);e.target.value = "";}} />
-      </label>}
-    </div>
-    {canList && (files.isPending ? <p className="text-xs text-muted-foreground">جاري تحميل الملفات...</p>
-      : files.isError ? <button type="button" onClick={() => void files.refetch()} className="text-xs text-destructive underline">تعذّر تحميل الملفات — إعادة المحاولة</button>
-      : (files.data?.length ? files.data.map((file) => <div key={file.id} className="flex items-center justify-between gap-2 rounded-lg bg-muted/40 p-2 text-xs">
-        <span className="break-all">{file.name} ({(file.sizeBytes / 1024).toFixed(0)} KB)</span>
-        <div className="flex gap-2">
-          {canView && <button type="button" className="font-semibold text-primary underline" onClick={() => void download(file.id, file.name)}>تحميل</button>}
-          {canDelete && <button type="button" className="font-semibold text-destructive underline"
-            disabled={actions.deleteFile.isPending} onClick={() => void remove(file.id)}>حذف</button>}
-        </div>
-      </div>) : <p className="text-xs text-muted-foreground">لا توجد ملفات.</p>))}
-    {!canList && <p className="text-xs text-muted-foreground">لا توجد صلاحية لعرض الملفات.</p>}
-    {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
-  </div>;
-}
-
 export function OrderDetailPage() {
   const { id: rawId } = useParams();
   const id = Number(rawId);
@@ -199,6 +31,8 @@ export function OrderDetailPage() {
   const perms = session?.permissions ?? [];
   const order = useOrder(valid ? id : 0);
   const actions = useOrderActions();
+  const qc = useQueryClient();
+  const [customerModal, setCustomerModal] = useState(false);
   const [editItem, setEditItem] = useState<OrderItem | "new" | null>(null);
   const [editHeader, setEditHeader] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -221,7 +55,12 @@ export function OrderDetailPage() {
   const confirmKey = useRef(crypto.randomUUID());
   const cancelKey = useRef(crypto.randomUUID());
   const showActivities = perms.includes("orders.activities.view");
-  const activities = useOrderActivities(valid ? id : 0, showActivities);
+  const canEditCustomer = perms.includes("customers.update") && perms.includes("customers.view");
+  const currentCustomer = useQuery({
+    queryKey: ["orders", "customer-to-edit", order.data?.customerId],
+    queryFn: () => getCustomer(order.data!.customerId),
+    enabled: customerModal && canEditCustomer && !!order.data?.customerId,
+  });
   const mayEdit = perms.includes("orders.update");
   const mayConfirm = perms.includes("orders.confirm");
   const mayCancel = perms.includes("orders.cancel");
@@ -268,12 +107,15 @@ export function OrderDetailPage() {
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-lg bg-muted px-3 py-2 text-sm font-bold">{item.statusLabel}</span>
         {draft && mayEdit && <Button variant="outline" onClick={() => setEditHeader(true)}><Pencil className="size-4" /> تعديل البيانات</Button>}
+        {canEditCustomer && <Button variant="outline" onClick={() => setCustomerModal(true)}>
+          <Pencil className="size-4" /> تعديل بيانات العميل
+        </Button>}
         {draft && mayConfirm && <Button onClick={() => {setError("");setConfirmOpen(true);}}><CheckCircle2 className="size-4" /> تأكيد الأوردر</Button>}
         {item.status === 1 && item.deliveredAt === null && mayCancel && <Button variant="outline" onClick={() => {setError("");setCancelOpen(true);}}>إلغاء الأوردر</Button>}
       </div>
     </header>
     <section className="grid gap-3 rounded-2xl border bg-card p-5 shadow-sm sm:grid-cols-3">
-      <div><p className="text-xs text-muted-foreground">الإجمالي</p><p className="mt-2 text-xl font-extrabold">{item.totalAmount} ج.م</p></div>
+      <div><p className="text-xs text-muted-foreground">الإجمالي</p><p className="mt-2 text-xl font-extrabold">{displayMoney(item.totalAmount)} ج.م</p></div>
       <div><p className="text-xs text-muted-foreground">موعد التسليم</p><p className="mt-2 font-semibold">{item.dueDate ?? "غير محدد"}</p></div>
       <div><p className="text-xs text-muted-foreground">حالة الإنتاج</p><p className="mt-2 font-semibold">{item.productionStatusLabel ?? "لم يبدأ"}</p>
         {item.delayStatusLabel && <p className="mt-1 text-xs text-destructive">{item.delayStatusLabel}</p>}</div>
@@ -288,31 +130,39 @@ export function OrderDetailPage() {
         {item.items?.map((line) => <article key={line.id} className="rounded-xl border p-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div><h3 className="font-bold">{line.serviceName}</h3>
-              <p className="mt-1 text-xs text-muted-foreground">الكمية: {line.quantity} — الوحدة: {line.unitPrice} ج.م</p>
+              <p className="mt-1 text-xs text-muted-foreground">الكمية: {line.quantity} — الوحدة: {displayMoney(line.unitPrice)} ج.م</p>
               {line.specifications && <p className="mt-2 whitespace-pre-wrap text-sm">{line.specifications}</p>}
             </div>
-            <div className="flex items-center gap-2"><strong>{line.agreedTotal} ج.م</strong>
+            <div className="flex items-center gap-2"><strong>{displayMoney(line.agreedTotal)} ج.م</strong>
               {draft && perms.includes("orders.items.update") && <Button type="button" variant="ghost" size="icon-sm" aria-label={`تعديل العنصر ${line.id}`} onClick={() => setEditItem(line)}><Pencil /></Button>}
               {draft && perms.includes("orders.items.delete") && <Button type="button" variant="ghost" size="icon-sm" aria-label={`حذف العنصر ${line.id}`} onClick={() => setDeleteItem(line)}><Trash2 className="text-destructive" /></Button>}
             </div>
           </div>
-          <ItemFiles orderId={id} item={line}
-            canList={perms.includes("orders.files.list")} canUpload={perms.includes("orders.files.upload")}
-            canView={perms.includes("orders.files.view")} canDelete={perms.includes("orders.files.delete")} />
+          <OrderFileGallery orderId={id} item={line}
+            canList={perms.includes("orders.files.list")} canUpload={draft && perms.includes("orders.files.upload")}
+            canView={perms.includes("orders.files.view")} canDelete={draft && perms.includes("orders.files.delete")} />
         </article>)}
       </div>
     </section>
-    {showActivities && <section className="rounded-2xl border bg-card p-5 shadow-sm">
-      <h2 className="mb-3 font-bold">سجل النشاط</h2>
-      {activities.isPending ? <p className="text-xs">جاري تحميل النشاط...</p> : activities.isError ?
-        <p role="alert" className="text-xs text-destructive">تعذّر تحميل النشاط.</p> :
-        activities.data?.activities.length ? <ul className="space-y-2 text-xs">{activities.data.activities.map((a) =>
-          <li key={a.id} className="border-b py-2">{a.eventType} — {a.createdAt}</li>)}</ul> :
-        <p className="text-xs text-muted-foreground">لا توجد أنشطة.</p>}
-    </section>}
-    {editHeader && <OrderHeaderEditor order={item} onClose={() => setEditHeader(false)} />}
-    {editItem && <ItemEditor key={editItem === "new" ? "new" : editItem.id} order={item}
-      item={editItem === "new" ? undefined : editItem} onClose={() => setEditItem(null)} />}
+    <OrderActivityTimeline orderId={id} enabled={showActivities} />
+    {editHeader && <OrderHeaderEditor order={item} canCreateCustomer={perms.includes("customers.create")}
+      onClose={() => setEditHeader(false)} />}
+    {editItem && <OrderItemEditor key={editItem === "new" ? "new" : editItem.id} order={item}
+      item={editItem === "new" ? undefined : editItem} canPricePreview={perms.includes("printing_services.price_preview.view")}
+      onClose={() => setEditItem(null)} />}
+    {customerModal && (currentCustomer.isPending ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+      <div role="status" className="rounded-2xl bg-card p-6 text-sm">جاري تحميل بيانات العميل...</div>
+    </div> : currentCustomer.isError ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+      <div className="space-y-3 rounded-2xl bg-card p-6"><p role="alert">تعذّر تحميل بيانات العميل.</p>
+        <Button variant="outline" onClick={() => setCustomerModal(false)}>إغلاق</Button>
+        <Button onClick={() => void currentCustomer.refetch()}>إعادة المحاولة</Button>
+      </div>
+    </div> : <CustomerFormModal customer={currentCustomer.data}
+      onClose={() => setCustomerModal(false)} onSaved={() => {
+        void qc.invalidateQueries({queryKey:orderKeys.detail(id)});
+        void qc.invalidateQueries({queryKey:orderKeys.list});
+        void qc.invalidateQueries({queryKey:["orders","customer-to-edit",item.customerId]});
+      }} />)}
     {deleteItem && <ConfirmDialog title="حذف عنصر" description="سيُحذف العنصر من المسودة وستُؤرشف ملفاته. لا يمكن حذف آخر عنصر."
       confirmText="حذف العنصر" destructive busy={actions.removeItem.isPending}
       onClose={() => setDeleteItem(null)} onConfirm={() => void removeItem()} />}
@@ -320,6 +170,14 @@ export function OrderDetailPage() {
       <section role="dialog" aria-modal="true" aria-label="تأكيد الأوردر" className="w-full max-w-md space-y-4 rounded-2xl bg-card p-6">
         <h2 className="font-bold">تأكيد الأوردر</h2>
         <p className="text-sm text-muted-foreground">سيُثبت إجمالي الأوردر على حساب العميل ويُنشأ رقم الأوردر. يمكن تسجيل العربون الآن.</p>
+        <div className="space-y-2 rounded-xl bg-muted/50 p-3 text-sm">
+          <div className="flex justify-between"><span>إجمالي الأوردر</span><strong>{displayMoney(item.totalAmount)} ج.م</strong></div>
+          <div className="flex justify-between"><span>العربون</span><strong>{moneyPattern.test(deposit) ? displayMoney(deposit) + " ج.م" : "—"}</strong></div>
+          <div className="flex justify-between"><span>المتبقي</span><strong>{moneyPattern.test(deposit) ?
+            displayMoney(String(Math.max(0, Number(item.totalAmount) - Number(deposit)).toFixed(2))) + " ج.م" : "—"}</strong></div>
+        </div>
+        {item.items?.every((line) => (line.files?.length ?? 0) === 0) && perms.includes("orders.files.list") &&
+          <p className="text-xs text-amber-700">لا توجد ملفات تصميم مرفوعة. تأكد أن الأوردر لا يحتاج ملفات قبل التأكيد.</p>}
         <label className="block text-sm font-semibold">قيمة العربون (ج.م)
           <input aria-label="قيمة العربون" dir="ltr" className={fieldClass + " mt-2"}
             value={deposit} onChange={(e) => setDeposit(e.target.value)} />
