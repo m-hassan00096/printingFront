@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowUpLeft, ChevronDown, ChevronUp, History, Plus, RefreshCw, RotateCcw, Wallet } from "lucide-react";
+import { ArrowUpLeft, ChevronDown, ChevronUp, History, Plus, RefreshCw, RotateCcw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
