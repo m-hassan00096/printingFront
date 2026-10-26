@@ -1,6 +1,6 @@
 import { useEffect,useState } from "react";
 import { Link,useSearchParams } from "react-router-dom";
-import { ArrowUpLeft,BookOpen,RefreshCw,Wallet,Plus,History } from "lucide-react";
+import { ArrowUpLeft,ArrowRight,BookOpen,RefreshCw,Wallet,Plus,History } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
@@ -8,7 +8,8 @@ import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { SearchableSelect } from "@/features/orders/components/searchable-select";
 import { ErrorState,LoadingState,EmptyState,PaginationBar,SectionHeader,fieldClass } from "@/features/identity/components/identity-ui";
 import { CollectionDateField,formatCollectionDate } from "@/features/collections/components/collection-date-field";
-import { useFinanceCustomers,useFinanceBalance,useFinanceLedger } from "../hooks/use-finance";
+import { useFinanceCustomers,useFinanceBalance,useFinanceLedger,useFinanceOpeningStatus } from "../hooks/use-finance";
+import { AccountsOverview } from "../components/accounts-overview";
 import { OpeningBalanceDialog } from "../components/opening-balance-dialog";
 import type { AccountFilters } from "../types/finance.types";
 
@@ -48,6 +49,7 @@ export function FinancePage(){
   const [opening,setOpening]=useState(false);
   const balance=useFinanceBalance(customerId,mayBalance);
   const ledger=useFinanceLedger(customerId,filters,mayLedger);
+  const openingStatus=useFinanceOpeningStatus(customerId,mayOpen);
   const effectiveBalance=mayBalance?balance.data:mayLedger?ledger.data?.balance:null;
   const balanceReady=mayBalance?balance.isSuccess:mayLedger?ledger.isSuccess:false;
 
@@ -74,7 +76,14 @@ export function FinancePage(){
   return <div className="space-y-4">
     <SectionHeader title="حسابات العملاء" detail="رصيد العميل الحالي، حركات دفتر الأستاذ، والرصيد الافتتاحي."
       actions={<Button variant="outline" type="button" onClick={refresh}><RefreshCw className="size-4"/> تحديث</Button>}/>
-    <section aria-label="اختيار حساب العميل" className="space-y-3 rounded-2xl border bg-card p-4">
+    {!customerId&&mayBalance&&<AccountsOverview onOpen={id=>selectCustomer(String(id))}/>}
+    {(!mayBalance||customerId>0)&&<>
+    {customerId>0&&mayBalance&&<div>
+      <Button type="button" variant="ghost" size="sm" onClick={()=>selectCustomer("")}>
+        <ArrowRight className="size-4"/> العودة لقائمة الحسابات
+      </Button>
+    </div>}
+    <section aria-label="اختيار حساب العميل" className="space-y-2 rounded-2xl border bg-card p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-sm font-bold"><Wallet className="size-4 text-primary"/> حساب العميل</h2>
         {customerId>0&&mayViewCustomers&&<Button asChild variant="outline" size="sm"><Link to={`/customers/${customerId}`}>
@@ -89,7 +98,6 @@ export function FinancePage(){
       </div>
       {customers.isError&&<ErrorState error={customers.error} retry={()=>void customers.refetch()}/>}
       {customers.isSuccess&&customers.data.length===0&&<p className="text-sm text-muted-foreground">لا يوجد عملاء مسجلون حتى الآن.</p>}
-      {customerId>0&&option&&<p className="text-sm font-semibold text-foreground/80">الحساب المحدد: {option.label}</p>}
     </section>
 
     {!customerId&&<div className="rounded-2xl border border-dashed bg-card p-8 text-center">
@@ -101,10 +109,16 @@ export function FinancePage(){
       <section aria-label="رصيد الحساب الحالي" className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-bold">الرصيد الحالي</h2>
-          {mayOpen&&<Button size="sm" type="button" onClick={()=>setOpening(true)}>
-            <Plus className="size-4"/> رصيد افتتاحي
-          </Button>}
+          {mayOpen&&openingStatus.isSuccess&&!openingStatus.data.openingBalanceExists&&
+            <Button size="sm" type="button" onClick={()=>setOpening(true)}>
+              <Plus className="size-4"/> رصيد افتتاحي
+            </Button>}
+          {mayOpen&&openingStatus.isSuccess&&openingStatus.data.openingBalanceExists&&
+            <span className="rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold text-foreground/70">
+              الرصيد الافتتاحي مسجل بالفعل
+            </span>}
         </div>
+        {mayOpen&&openingStatus.isError&&<ErrorState error={openingStatus.error} retry={()=>void openingStatus.refetch()}/>}
         {!mayBalance&&!mayLedger&&<p className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
           لا تملك صلاحية عرض الرصيد، لكن يمكنك تسجيل الرصيد الافتتاحي إذا كان لديك الإذن المناسب.
         </p>}
@@ -112,7 +126,7 @@ export function FinancePage(){
         {mayBalance&&balance.isError&&<ErrorState error={balance.error} retry={()=>void balance.refetch()}/>}
         {!mayBalance&&mayLedger&&ledger.isError&&<ErrorState error={ledger.error} retry={()=>void ledger.refetch()}/>}
         {effectiveBalance&&balanceReady&&<div className="grid gap-3 sm:grid-cols-3">
-          <BalancePanel label="الرصيد الصافي" amount={effectiveBalance.amount}
+          <BalancePanel label={effectiveBalance.type===1?"رصيد مدين":effectiveBalance.type===2?"رصيد دائن":"الرصيد متوازن"} amount={effectiveBalance.amount}
             tone={effectiveBalance.type===1?"debit":effectiveBalance.type===2?"credit":"neutral"}/>
           <BalancePanel label="مديونية العميل" amount={effectiveBalance.type===1?effectiveBalance.amount:"0.00"} tone="debit"/>
           <BalancePanel label="رصيد دائن للعميل" amount={effectiveBalance.type===2?effectiveBalance.amount:"0.00"} tone="credit"/>
@@ -124,7 +138,7 @@ export function FinancePage(){
       {mayLedger&&<section aria-label="كشف حساب العميل" className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <History className="size-4 text-primary"/><h2 className="text-sm font-bold">كشف الحساب</h2>
-          <span className="text-xs text-foreground/70">الحركات المعتمدة محفوظة ولا يتم حذفها</span>
+          <span className="text-xs text-foreground/70">الرصيد التراكمي محسوب من كل الحركات السابقة، حتى خارج الفلاتر الحالية.</span>
         </div>
         <div className="grid gap-2 rounded-xl border bg-card p-3 md:grid-cols-3">
           <CollectionDateField label="من تاريخ" value={filters.dateFrom} max={filters.dateTo||undefined}
@@ -149,9 +163,9 @@ export function FinancePage(){
               <h3 className="text-sm font-bold">سجل الحركات</h3>
               <span className="text-xs font-semibold text-foreground/70">{ledger.data.pagination.total.toLocaleString("ar-EG")} حركة</span>
             </div>
-            <div className="overflow-x-auto"><table className="w-full min-w-[850px] text-right text-sm">
+            <div className="overflow-x-auto"><table className="w-full min-w-[1000px] text-right text-sm">
               <thead className="bg-muted/60 text-xs text-foreground/70"><tr>
-                {["التاريخ","نوع الحركة","مدين (+)","دائن (−)","المرجع","ملاحظات"].map(x=>
+                {["التاريخ","نوع الحركة","مدين (+)","دائن (−)","الرصيد بعد الحركة","المرجع","ملاحظات"].map(x=>
                   <th key={x} className="whitespace-nowrap px-3 py-3 font-bold">{x}</th>)}
               </tr></thead>
               <tbody className="divide-y">
@@ -162,6 +176,9 @@ export function FinancePage(){
                     <td className="px-3 py-3 font-semibold">{entry.typeLabel}</td>
                     <td className="px-3 py-3 font-semibold">{!credit?<MoneyAmount amount={entry.amount}/>:"—"}</td>
                     <td className="px-3 py-3 font-semibold">{credit?<MoneyAmount amount={entry.amount}/>:"—"}</td>
+                    <td className={"whitespace-nowrap px-3 py-3 font-bold tabular-nums "+(entry.runningBalance.type===1?"text-rose-700":entry.runningBalance.type===2?"text-emerald-700":"text-foreground")}>
+                      {entry.runningBalance.typeLabel} · <MoneyAmount amount={entry.runningBalance.amount}/>
+                    </td>
                     <td className="px-3 py-3">{entry.orderId&&mayViewOrders?
                       <Link className="font-semibold text-primary underline" to={`/orders/${entry.orderId}`}>أوردر #{entry.orderId}</Link>:
                       entry.orderId?`أوردر #${entry.orderId}`:entry.collectionId?`تحصيل #${entry.collectionId}`:entry.refundId?`رد رصيد #${entry.refundId}`:"—"}</td>
@@ -177,7 +194,8 @@ export function FinancePage(){
         </div>}
       </section>}
     </>}
-    {opening&&customerId>0&&<OpeningBalanceDialog key={customerId} customerId={customerId}
+    {opening&&customerId>0&&mayOpen&&openingStatus.isSuccess&&!openingStatus.data.openingBalanceExists&&<OpeningBalanceDialog key={customerId} customerId={customerId}
       customerName={option?.label??"العميل المحدد"} onClose={()=>setOpening(false)} onSuccess={()=>{setOpening(false);refresh();}}/>}
+    </>}
   </div>;
 }
