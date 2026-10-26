@@ -182,12 +182,12 @@ export function OrderCreatePage() {
         issues["items." + item.key + ".quantity"] = "الكمية من 1 إلى 1,000,000.";
       if (cents(item.agreedTotal) === null) issues["items." + item.key + ".agreedTotal"] = "أدخل الإجمالي المتفق عليه بصيغة صحيحة.";
     }
-    if (mode === "confirm") {
-      if (!canConfirm) issues.status = "ليس لديك صلاحية تأكيد الأوردر.";
+    if (canConfirm) {
+      if (mode === "confirm" && !canConfirm) issues.status = "ليس لديك صلاحية تأكيد الأوردر.";
       if (paidCents === null) issues.depositAmount = "أدخل مبلغًا صحيحًا.";
       if (paidCents !== null && paidCents > 0 && paymentMethod !== "0" && !selectedDestination)
         issues.paymentDestinationId = "اختر حساب بنك أو محفظة صالحة.";
-      if (overpaymentCents > 0 && !overpaymentAccepted)
+      if (mode === "confirm" && overpaymentCents > 0 && !overpaymentAccepted)
         issues.overpayment = "يجب تأكيد تحويل المبلغ الزائد إلى رصيد دائن للعميل.";
     }
     return issues;
@@ -207,6 +207,12 @@ export function OrderCreatePage() {
         specifications: item.specifications.trim() || null, agreedTotal: item.agreedTotal,
       })),
     };
+    if (mode === "draft" && canConfirm) {
+      payload.plannedDepositAmount = depositAmount;
+      payload.plannedPaymentMethod = paidCents !== null && paidCents > 0 ? Number(paymentMethod) as 0 | 1 | 2 : null;
+      payload.plannedPaymentDestinationId = paidCents !== null && paidCents > 0 && paymentMethod !== "0"
+        ? Number(selectedDestination) : null;
+    }
     if (mode === "confirm" && paidCents !== null && paidCents > 0) {
       payload.depositAmount = depositAmount;
       payload.paymentMethod = Number(paymentMethod) as 0 | 1 | 2;
@@ -231,7 +237,8 @@ export function OrderCreatePage() {
           if (match) {
             const row = items[Number(match[1])];
             if (row) mapped["items." + row.key + "." + match[2]] = messages[0];
-          } else mapped[key] = messages[0];
+          } else mapped[key === "plannedDepositAmount" ? "depositAmount" :
+            key === "plannedPaymentDestinationId" ? "paymentDestinationId" : key] = messages[0];
         }
         if (Object.keys(mapped).length) {setErrors(mapped); return;}
       }
@@ -355,7 +362,7 @@ export function OrderCreatePage() {
       <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-bold">الحساب والدفع</h2>
-          <span className="text-xs text-muted-foreground">الدفع يسجل عند التأكيد فقط</span>
+          <span className="text-xs text-muted-foreground">اختيارات الدفع تُحفظ في المسودة، والتحصيل عند التأكيد فقط</span>
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-xl bg-muted/50 p-3">
