@@ -173,11 +173,22 @@ describe("Collections frontend against Laravel Finance API",()=>{
     await user.click(within(dialog).getByRole("button",{name:"عكس التحصيل"}));
     expect(within(dialog).getByRole("button",{name:"تأكيد عكس التحصيل"}).hasAttribute("disabled")).toBe(true);
     await user.type(within(dialog).getByRole("textbox",{name:/سبب العكس/}),"إيصال مكرر");
+    expect(within(dialog).getByRole("button",{name:"تأكيد عكس التحصيل"}).hasAttribute("disabled")).toBe(true);
+    await user.click(within(dialog).getByRole("checkbox",{name:"تأكيد أثر عكس التحصيل"}));
     await user.click(within(dialog).getByRole("button",{name:"تأكيد عكس التحصيل"}));
     await waitFor(()=>expect(calls.some(c=>c.url==="/finance/collections/51/reverse")).toBe(true));
     const post=calls.find(c=>c.url==="/finance/collections/51/reverse");
     expect(post?.body).toEqual({reason:"إيصال مكرر"});
     expect(post?.key).toBeTruthy();
+  });
+  it("shows immediate invalid amount feedback and keeps the receipt action disabled",async()=>{
+    visit();const user=userEvent.setup();
+    await user.click(await screen.findByRole("button",{name:"تحصيل جديد"}));
+    const dialog=await screen.findByRole("dialog",{name:"تسجيل تحصيل جديد"});
+    await user.type(within(dialog).getByRole("textbox",{name:/المبلغ/}),"3.456");
+    expect(within(dialog).getByRole("alert").textContent).toContain("رقمين عشريين");
+    expect(within(dialog).getByRole("button",{name:"تأكيد تسجيل التحصيل"}).hasAttribute("disabled")).toBe(true);
+    expect(calls.filter(c=>c.url==="/finance/collections"&&c.method==="post")).toHaveLength(0);
   });
   it("hides reversing a delivery-linked receipt to preserve its composite workflow",async()=>{
     visit();const user=userEvent.setup();
