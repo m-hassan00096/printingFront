@@ -6,7 +6,8 @@ const root="/finance/collections";
 function filtersToParams(filters:CollectionFilters, page?:number, summary=false):URLSearchParams {
   const params=new URLSearchParams();
   if(!summary){params.set("sort",filters.sort);params.set("page",String(page??1));params.set("perPage","20");}
-  const keys: (keyof CollectionFilters)[]=["search","dateFrom","dateTo","paymentMethod","source",...(summary?[]:["status"])];
+  const keys: (keyof CollectionFilters)[]=["search","dateFrom","dateTo","paymentMethod","source"];
+  if(!summary)keys.push("status");
   for(const key of keys){const value=filters[key];if(value)params.set("filter["+key+"]",value);}
   return params;
 }
