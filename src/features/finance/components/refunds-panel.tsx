@@ -17,7 +17,7 @@ export function RefundsPanel({canView,canCreate,requestedCustomerId=0,onClearCus
   const queryClient=useQueryClient();
   const [filters,setFilters]=useState<RefundFilters>(initial);
   const [searchInput,setSearchInput]=useState("");
-  const [creating,setCreating]=useState(false);
+  const [creating,setCreating]=useState(requestedCustomerId>0&&canCreate);
   const [details,setDetails]=useState<number|null>(null);
   useEffect(()=>{
     const timeout=setTimeout(()=>setFilters(previous=>({...previous,search:searchInput.trim(),page:1})),350);
@@ -93,7 +93,7 @@ export function RefundsPanel({canView,canCreate,requestedCustomerId=0,onClearCus
     {canView&&query.data&&query.data.pagination.lastPage>1&&<div className="rounded-xl border bg-card">
       <PaginationBar pagination={query.data.pagination} onPage={page=>setFilters(old=>({...old,page}))}/>
     </div>}
-    {canCreate&&creating&&<CreateRefundDialog initialCustomerId={requestedCustomerId} onClose={()=>setCreating(false)} onSuccess={completed}/>}
+    {canCreate&&creating&&<CreateRefundDialog initialCustomerId={requestedCustomerId} onClose={()=>{setCreating(false);onClearCustomer?.();}} onSuccess={completed}/>}
     {canView&&details!==null&&<RefundDetailsDialog id={details} onClose={()=>setDetails(null)}/>}
   </section>;
 }
