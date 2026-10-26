@@ -9,8 +9,8 @@ export const financeKeys={
   overview:["finance","overview"] as const,
   opening:(id:number)=>["finance","opening-status",id] as const,
 };
-export function useFinanceCustomers(){
-  return useQuery({queryKey:financeKeys.customers,queryFn:financeCustomers,staleTime:60_000});
+export function useFinanceCustomers(enabled=true){
+  return useQuery({queryKey:financeKeys.customers,queryFn:financeCustomers,staleTime:60_000,enabled});
 }
 export function useFinanceBalance(id:number,enabled:boolean){
   return useQuery({queryKey:financeKeys.balance(id),queryFn:()=>financeBalance(id),enabled:enabled&&id>0});
