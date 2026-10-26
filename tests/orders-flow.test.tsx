@@ -421,7 +421,9 @@ describe("Orders Laravel API workflow", () => {
     expect(within(payment).getByText("المتبقي المتوقع")).toBeTruthy();
     expect(within(payment).getByText("وسيلة الدفع")).toBeTruthy();
     expect(within(payment).queryByText("إجمالي الأوردر")).toBeNull();
-    expect(within(payment).getAllByText("500.00 ج.م")).toHaveLength(2);
+    expect(within(payment).getByText("500.00 ج.م")).toBeTruthy();
+    // Mocked order total is 350.00; remainder cannot be negative.
+    expect(within(payment).getByText("0.00 ج.م")).toBeTruthy();
   });
 
 });
