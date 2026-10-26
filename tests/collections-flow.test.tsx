@@ -150,6 +150,14 @@ describe("Collections frontend against Laravel Finance API",()=>{
     expect(within(dialog).queryByRole("button",{name:"عكس التحصيل"})).toBeNull();
     expect(within(dialog).getByText(/تُعالج من العملية الأصلية/)).toBeTruthy();
   });
+  it("allows create-only collectors without fetching protected financial history",async()=>{
+    permissions=["finance.collections.create"];
+    visit();
+    expect(await screen.findByRole("button",{name:"تحصيل جديد"})).toBeTruthy();
+    expect(screen.getByText(/عرض سجل الإيصالات يحتاج صلاحية التحصيلات/)).toBeTruthy();
+    expect(calls.some(c=>c.url==="/finance/collections"&&c.method==="get")).toBe(false);
+    expect(calls.some(c=>c.url==="/finance/collections/summary")).toBe(false);
+  });
   it("prevents unauthorized write actions",async()=>{
     permissions=["finance.collections.view"];visit();
     expect(await screen.findByText("COL-2026-00051")).toBeTruthy();
