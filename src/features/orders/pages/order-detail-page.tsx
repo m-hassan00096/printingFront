@@ -32,7 +32,7 @@ export function OrderDetailPage() {
   const [activeTab, setActiveTab] = useState<"order" | "activity">("order");
   const [editItem, setEditItem] = useState<OrderItem | "new" | null>(null);
   const [editHeader, setEditHeader] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [paymentDialog, setPaymentDialog] = useState<"plan" | "confirm" | null>(null);
   const [deposit, setDeposit] = useState("0");
   const [overpaymentAcknowledged, setOverpaymentAcknowledged] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"0" | "1" | "2">("0");
@@ -40,11 +40,12 @@ export function OrderDetailPage() {
   const destinations = useQuery({
     queryKey: ["orders", "payment-destinations"],
     queryFn: getOrderPaymentOptions,
-    enabled: confirmOpen && Number(deposit) > 0 && paymentMethod !== "0",
+    enabled: paymentDialog !== null && Number(deposit) > 0 && paymentMethod !== "0",
   });
   const activeDestinations = paymentMethod === "1" ? destinations.data?.banks ?? [] : destinations.data?.wallets ?? [];
   const defaultDestination = activeDestinations.find((option) => Number(option.isDefault) === 1) ?? activeDestinations[0];
-  const chosenDestination = paymentDestinationId || (defaultDestination ? String(defaultDestination.value) : "");
+  const chosenDestination = activeDestinations.some((opt) => String(opt.value) === paymentDestinationId)
+    ? paymentDestinationId : (defaultDestination ? String(defaultDestination.value) : "");
   const [reason, setReason] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
   const [deleteItem, setDeleteItem] = useState<OrderItem | null>(null);
@@ -55,6 +56,32 @@ export function OrderDetailPage() {
   const mayEdit = perms.includes("orders.update");
   const mayConfirm = perms.includes("orders.confirm");
   const mayCancel = perms.includes("orders.cancel");
+  function openPaymentDialog(mode: "plan" | "confirm") {
+    const saved = order.data;
+    setDeposit(saved?.plannedDepositAmount ?? "0");
+    setPaymentMethod(String(saved?.plannedPaymentMethod ?? 0) as "0" | "1" | "2");
+    setPaymentDestinationId(saved?.plannedPaymentDestinationId ? String(saved.plannedPaymentDestinationId) : "");
+    setOverpaymentAcknowledged(false);
+    setError("");
+    setPaymentDialog(mode);
+  }
+  async function savePaymentPlan() {
+    if (!moneyPattern.test(deposit)) {setError("أدخل مبلغ عربون صحيحًا.");return;}
+    const hasDeposit = Number(deposit) > 0;
+    if (hasDeposit && paymentMethod !== "0" && !chosenDestination) {
+      setError("اختر حساب البنك أو المحفظة.");return;
+    }
+    try {
+      await actions.update.mutateAsync({ id, payload: {
+        plannedDepositAmount: deposit,
+        plannedPaymentMethod: hasDeposit ? Number(paymentMethod) as 0 | 1 | 2 : null,
+        plannedPaymentDestinationId: hasDeposit && paymentMethod !== "0" ? Number(chosenDestination) : null,
+      } });
+      toast.success("تم حفظ خطة العربون في المسودة دون تسجيل تحصيل.");
+      setPaymentDialog(null);
+      setError("");
+    } catch (e: unknown) {setError(getApiErrorMessage(e,"تعذّر حفظ خطة الدفع."));}
+  }
   async function confirm() {
     if (!order.data || !moneyPattern.test(deposit)) {setError("أدخل مبلغًا صحيحًا.");return;}
     if (Number(deposit) > Number(order.data.totalAmount) && !overpaymentAcknowledged) {
@@ -70,7 +97,7 @@ export function OrderDetailPage() {
             ...(paymentMethod !== "0" ? { paymentDestinationId: Number(chosenDestination) } : {}) }
         : {};
       await actions.confirm.mutateAsync({ id, key: confirmKey.current, payload });
-      toast.success("تم تأكيد الأوردر.");setConfirmOpen(false);setError("");
+      toast.success("تم تأكيد الأوردر.");setPaymentDialog(null);setError("");
     } catch (e: unknown) {setError(getApiErrorMessage(e, "تعذّر تأكيد الأوردر."));}
   }
   async function cancel() {
@@ -99,7 +126,7 @@ export function OrderDetailPage() {
         <span className="rounded-lg bg-muted px-3 py-2 text-sm font-bold">{item.statusLabel}</span>
         {draft && mayEdit && <Button variant="outline" onClick={() => setEditHeader(true)}><Pencil className="size-4" /> تعديل البيانات</Button>}
 
-        {draft && mayConfirm && <Button onClick={() => {setError("");setConfirmOpen(true);}}><CheckCircle2 className="size-4" /> تأكيد الأوردر</Button>}
+        {draft && mayConfirm && <Button onClick={() => openPaymentDialog("confirm")}><CheckCircle2 className="size-4" /> تأكيد الأوردر</Button>}
         {item.status === 1 && item.deliveredAt === null && mayCancel && <Button variant="outline" onClick={() => {setError("");setCancelOpen(true);}}>إلغاء الأوردر</Button>}
       </div>
     </header>
@@ -110,6 +137,22 @@ export function OrderDetailPage() {
         {item.delayStatusLabel && <p className="mt-1 text-xs text-destructive">{item.delayStatusLabel}</p>}</div>
       {item.notes && <p className="text-sm text-muted-foreground sm:col-span-3">ملاحظات: {item.notes}</p>}
     </section>
+    {draft && mayEdit && mayConfirm && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3 text-sm">
+      <div className="space-y-1">
+        <p className="font-semibold">العربون المخطط قبل التأكيد</p>
+        <p className="text-xs text-muted-foreground">
+          {item.plannedDepositAmount !== null && item.plannedDepositAmount !== undefined ?
+            displayMoney(item.plannedDepositAmount) + " ج.م" : "لم يتم تحديد عربون بعد"}
+          {Number(item.plannedDepositAmount ?? "0") > 0 &&
+            (" — " + (item.plannedPaymentMethod === 1 ? "تحويل بنكي" :
+              item.plannedPaymentMethod === 2 ? "محفظة إلكترونية" : "نقدي"))}
+          {" · لا يُسجل كتحصيل إلا بعد تأكيد الأوردر"}
+        </p>
+      </div>
+      <Button variant="outline" size="sm" type="button" onClick={() => openPaymentDialog("plan")}>
+        <Pencil className="size-4" /> تعديل العربون وطريقة الدفع
+      </Button>
+    </div>}
     <nav role="tablist" aria-label="أقسام الأوردر" className="inline-flex max-w-full items-center gap-1 rounded-xl bg-muted p-1">
       <button type="button" role="tab" id="order-tab" aria-controls="order-panel" aria-selected={activeTab === "order"}
         onClick={() => setActiveTab("order")}
@@ -159,23 +202,25 @@ export function OrderDetailPage() {
     {deleteItem && <ConfirmDialog title="حذف عنصر" description="سيُحذف العنصر من المسودة وستُؤرشف ملفاته. لا يمكن حذف آخر عنصر."
       confirmText="حذف العنصر" destructive busy={actions.removeItem.isPending}
       onClose={() => setDeleteItem(null)} onConfirm={() => void removeItem()} />}
-    {confirmOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
-      <section role="dialog" aria-modal="true" aria-label="تأكيد الأوردر" className="w-full max-w-md space-y-4 rounded-2xl bg-card p-6">
-        <h2 className="font-bold">تأكيد الأوردر</h2>
-        <p className="text-sm text-muted-foreground">سيُثبت إجمالي الأوردر على حساب العميل ويُنشأ رقم الأوردر. يمكن تسجيل العربون الآن.</p>
+    {paymentDialog && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+      <section role="dialog" aria-modal="true" aria-label={paymentDialog === "plan" ? "تعديل خطة العربون" : "تأكيد الأوردر"} className="max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto rounded-2xl bg-card p-6">
+        <h2 className="font-bold">{paymentDialog === "plan" ? "تعديل خطة العربون" : "تأكيد الأوردر"}</h2>
+        <p className="text-sm text-muted-foreground">{paymentDialog === "plan"
+          ? "يمكن تعديل المبلغ وطريقة الدفع وحفظهما في المسودة. لن يُسجل أي تحصيل مالي قبل تأكيد الأوردر."
+          : "سيُثبت إجمالي الأوردر على حساب العميل ويُنشأ رقم الأوردر. راجع العربون قبل التأكيد."}</p>
         <div className="space-y-2 rounded-xl bg-muted/50 p-3 text-sm">
           <div className="flex justify-between"><span>إجمالي الأوردر</span><strong>{displayMoney(item.totalAmount)} ج.م</strong></div>
           <div className="flex justify-between"><span>العربون</span><strong>{moneyPattern.test(deposit) ? displayMoney(deposit) + " ج.م" : "—"}</strong></div>
           <div className="flex justify-between"><span>المتبقي</span><strong>{moneyPattern.test(deposit) ?
             displayMoney(String(Math.max(0, Number(item.totalAmount) - Number(deposit)).toFixed(2))) + " ج.م" : "—"}</strong></div>
         </div>
-        {item.items?.every((line) => (line.files?.length ?? 0) === 0) && perms.includes("orders.files.list") &&
+        {paymentDialog === "confirm" && item.items?.every((line) => (line.files?.length ?? 0) === 0) && perms.includes("orders.files.list") &&
           <p className="text-xs text-amber-700">لا توجد ملفات تصميم مرفوعة. تأكد أن الأوردر لا يحتاج ملفات قبل التأكيد.</p>}
         <label className="block text-sm font-semibold">قيمة العربون (ج.م)
           <input aria-label="قيمة العربون" dir="ltr" className={fieldClass + " mt-2"}
             value={deposit} onChange={(e) => setDeposit(e.target.value)} />
         </label>
-        {Number(deposit) > Number(item.totalAmount) && <label className="flex items-start gap-2 rounded-xl border border-amber-300 p-3 text-xs">
+        {paymentDialog === "confirm" && Number(deposit) > Number(item.totalAmount) && <label className="flex items-start gap-2 rounded-xl border border-amber-300 p-3 text-xs">
           <input type="checkbox" checked={overpaymentAcknowledged} onChange={(e) => setOverpaymentAcknowledged(e.target.checked)}
             aria-label="تأكيد الزيادة عن قيمة الأوردر" />
           أؤكد أن العربون يتجاوز إجمالي الأوردر، وأن الزيادة ستُسجل كرصيد دائن للعميل وفق قواعد المالية.
@@ -200,8 +245,14 @@ export function OrderDetailPage() {
             <p role="alert" className="text-xs text-destructive">تعذّر تحميل وسائل التحصيل. اختر نقدي أو حاول مرة أخرى.</p>}
         </div>}
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-        <div className="flex justify-end gap-2"><Button variant="outline" disabled={actions.confirm.isPending} onClick={() => setConfirmOpen(false)}>رجوع</Button>
-          <Button disabled={actions.confirm.isPending} onClick={() => void confirm()}>تأكيد</Button></div>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" disabled={actions.confirm.isPending || actions.update.isPending}
+            onClick={() => setPaymentDialog(null)}>رجوع</Button>
+          <Button disabled={actions.confirm.isPending || actions.update.isPending}
+            onClick={() => paymentDialog === "plan" ? void savePaymentPlan() : void confirm()}>
+            {paymentDialog === "plan" ? "حفظ خطة الدفع" : "تأكيد"}
+          </Button>
+        </div>
       </section>
     </div>}
     {cancelOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
