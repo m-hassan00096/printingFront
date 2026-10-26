@@ -12,7 +12,7 @@ import { OrderItemEditor } from "../components/order-item-editor";
 import { OrderHeaderEditor } from "../components/order-header-editor";
 import { OrderActivityTimeline } from "../components/order-activity";
 import { OrderFileGallery } from "../components/order-file-gallery";
-import { useOrder, useOrderActions, orderKeys } from "../hooks/use-orders";
+import { useOrder, useOrderActions } from "../hooks/use-orders";
 import type { OrderItem } from "../types/orders.types";
 
 const moneyPattern = /^(?:0|[1-9][0-9]{0,9})(?:\.[0-9]{1,2})?$/;
