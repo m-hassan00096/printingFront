@@ -110,38 +110,40 @@ describe("Finance account page against Laravel existing contracts",()=>{
     expect(calls.find(c=>c.url==="/finance/customers/7/opening-balance"&&c.method==="post")?.body)
       .toEqual({type:2,amount:"150.50"});
   });
-  it("opens an aggregated accounts list by default without N+1 balance fetches",async()=>{
+  it("shows only a searchable customer selector, without fetching account tables or sort filters",async()=>{
     visit("");
-    expect(await screen.findByText("أرصدة العملاء")).toBeTruthy();
-    expect(await screen.findByText("مؤسسة النور")).toBeTruthy();
-    expect(screen.getByText(/^[0-9٠-٩]+\sعميل$/)).toBeTruthy();
-    expect(calls.some(c=>c.url==="/finance/customer-balances")).toBe(true);
-    expect(calls.some(c=>c.url.includes("/finance/customers/7/balance"))).toBe(false);
-    const user=userEvent.setup();
-    await user.selectOptions(screen.getByRole("combobox",{name:"فلتر نوع الرصيد"}),"2");
-    await waitFor(()=>expect(calls.some(c=>c.url==="/finance/customer-balances"&&c.params.get("filter[type]")==="2")).toBe(true));
-    expect(await screen.findByText("مؤسسة النور")).toBeTruthy();
-  });
-  it("keeps customer selection and ledger on one screen without tab navigation or back route",async()=>{
-    visit("");
-    const user=userEvent.setup();
-    expect(await screen.findByText("مؤسسة النور")).toBeTruthy();
-    expect(screen.queryByRole("tablist")).toBeNull();
-    await user.click(screen.getAllByRole("button",{name:/كشف الحساب/})[0]);
-    expect(await screen.findByText("سداد دين")).toBeTruthy();
-    expect(screen.getByRole("button",{name:"تغيير العميل"})).toBeTruthy();
-    expect(screen.getByText("الرصيد الحالي")).toBeTruthy();
-    expect(screen.getByText("الرصيد بعد الحركة")).toBeTruthy();
+    expect(await screen.findByRole("combobox",{name:"اختيار حساب العميل"})).toBeTruthy();
     expect(screen.queryByText("قائمة الحسابات")).toBeNull();
+    expect(screen.queryByRole("combobox",{name:"فلتر نوع الرصيد"})).toBeNull();
+    expect(screen.queryByRole("combobox",{name:"ترتيب حسابات العملاء"})).toBeNull();
+    expect(calls.some(c=>c.url==="/finance/customer-balances")).toBe(false);
+    expect(calls.some(c=>c.url==="/finance/customers/7/balance")).toBe(false);
+    const user=userEvent.setup();
+    await user.click(screen.getByRole("combobox",{name:"اختيار حساب العميل"}));
+    await user.click(await screen.findByRole("option",{name:/أحمد خالد/}));
+    expect(await screen.findByText("سداد دين")).toBeTruthy();
+    expect(screen.getByText("أحمد خالد")).toBeTruthy();
+    expect(screen.getByText("01012345678")).toBeTruthy();
+    expect(screen.getByText("الرصيد الحالي")).toBeTruthy();
+    expect(calls.some(c=>c.url==="/finance/customer-balances")).toBe(false);
+  });
+  it("changes customers from the same selector without redundant tables or tabs",async()=>{
+    visit("");
+    const user=userEvent.setup();
+    const selector=await screen.findByRole("combobox",{name:"اختيار حساب العميل"});
+    await user.click(selector);
+    await user.click(await screen.findByRole("option",{name:/أحمد خالد/}));
+    expect(await screen.findByText("سداد دين")).toBeTruthy();
+    expect(screen.queryByRole("tablist")).toBeNull();
     expect(screen.queryByRole("button",{name:"العودة لقائمة الحسابات"})).toBeNull();
-    await user.click(screen.getByRole("button",{name:"تغيير العميل"}));
-    expect(await screen.findByText("مؤسسة النور")).toBeTruthy();
-    expect(screen.getByRole("button",{name:"إخفاء قائمة العملاء"})).toBeTruthy();
+    expect(screen.queryByRole("button",{name:"إخفاء قائمة العملاء"})).toBeNull();
+    await user.click(screen.getByRole("combobox",{name:"اختيار حساب العميل"}));
+    expect(await screen.findByRole("option",{name:/مؤسسة النور/})).toBeTruthy();
   });
   it("hides a previously registered opening balance, without relying on a disabled submit",async()=>{
     hasOpening=true;
     visit();
-    expect(await screen.findByText("الرصيد الافتتاحي مسجل")).toBeTruthy();
+    expect(await screen.findByText("مسجل")).toBeTruthy();
     expect(screen.queryByRole("button",{name:"رصيد افتتاحي"})).toBeNull();
     expect(calls.some(c=>c.url==="/finance/customers/7/opening-balance-status")).toBe(true);
   });
