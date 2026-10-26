@@ -20,6 +20,9 @@ export type Order = {
   productionStatus: ProductionStatus; productionStatusLabel: string | null;
   delayStatus: number | null; delayStatusLabel: string | null;
   dueDate: string | null; notes: string | null;
+  plannedDepositAmount?: string | null;
+  plannedPaymentMethod?: 0 | 1 | 2 | null;
+  plannedPaymentDestinationId?: number | null;
   itemsCount: number | null; totalAmount: string;
   createdAt: string | null; updatedAt: string | null; confirmedAt: string | null;
   deliveredAt: string | null; cancelledAt: string | null;
@@ -31,8 +34,11 @@ export type CreateOrderPayload = {
   customerId: number; source: 0 | 1; dueDate: string | null;
   notes: string | null; items: OrderItemPayload[]; status: 0 | 1;
   depositAmount?: string; paymentMethod?: 0 | 1 | 2; paymentDestinationId?: number;
+  plannedDepositAmount?: string | null;
+  plannedPaymentMethod?: 0 | 1 | 2 | null;
+  plannedPaymentDestinationId?: number | null;
 };
-export type UpdateOrderPayload = Partial<Pick<CreateOrderPayload, "customerId" | "source" | "dueDate" | "notes">>;
+export type UpdateOrderPayload = Partial<Pick<CreateOrderPayload, "customerId" | "source" | "dueDate" | "notes" | "plannedDepositAmount" | "plannedPaymentMethod" | "plannedPaymentDestinationId">>;
 export type ConfirmOrderPayload = {
   depositAmount?: string; paymentMethod?: 0 | 1 | 2; paymentDestinationId?: number;
 };
