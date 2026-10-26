@@ -26,3 +26,8 @@ export async function getOrderPaymentOptions(): Promise<{ banks: SelectOption[];
   const groups = await getGroups(["bankAccounts", "eWallets"]);
   return { banks: options(groups, "bankAccounts"), wallets: options(groups, "eWallets") };
 }
+
+/** Customer-only dropdown for editing an existing draft without service-management permissions. */
+export async function getActiveOrderCustomers(): Promise<SelectOption[]> {
+  return options(await getGroups(["activeCustomers"]), "activeCustomers");
+}
