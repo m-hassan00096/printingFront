@@ -10,14 +10,5 @@ export type AccountLedger={
   openingBalanceExists:boolean;
   pagination:Pagination;
 };
-export type CustomerAccount={
-  customerId:number;customerName:string;customerPhone:string;amount:string;
-  type:0|1|2;typeLabel:string;openingBalanceExists:boolean;
-};
-export type AccountOverviewFilters={
-  page:number;search:string;type:""|"0"|"1"|"2";
-  sort:"-id"|"id"|"name"|"-name"|"-balance"|"balance";
-};
-export type AccountOverview={accounts:CustomerAccount[];pagination:Pagination};
 export type OpeningStatus={customerId:number;openingBalanceExists:boolean};
 export type OpeningBalanceInput={amount:string;type:1|2;note?:string};

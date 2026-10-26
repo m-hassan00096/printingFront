@@ -42,3 +42,35 @@ Backend PR #23 exercises customer-select permission boundaries, including inacti
 - Account registry includes inactive registered customers with existing balances, zero-balance clients, and sorting/filtering/pagination. No grand total is inferred from visible rows.
 - Show primary card label as 'رصيد مدين' / 'رصيد دائن' / 'الرصيد متوازن'. Original absolute amounts and reversal movements are kept unchanged.
 - Integration tests in Backend PR #24 and Frontend PR #10 include aggregate filters, stable running balances, and opening status permissions. CI must pass before browser review.
+
+## Phase 3 — Refunds inside customer accounts
+- Finance `/finance` is **one screen**: customer balances list (when permitted), inline customer account detail, two financial actions (opening balance and credit refund), and an optional expandable refunds-history section. **No tabs, secondary refund route or Dashboard changes.**
+- `finance.refunds.view` lists immutable refunds with search (refund number/customer/phone), date, payment method, details and pagination. A view-only user does not read account balances/customer selects.
+- `finance.refunds.create` opens a mandatory-confirmation form, permitted even without balance/ledger/list permissions. Customer select is authorized separately (backend PR #25).
+- `GET /finance/customers/{id}/refundable-credit` is restricted to refund creators; returns `availableCredit` and `canRefund`. It is advisory only; the POST re-checks against latest customer ledger credit **under row lock**.
+- Refund POST `/finance/refunds` accepts customerId, decimal-string amount, paymentMethod 0/1/2, optional paymentDestinationId for bank/wallet and a required 3–3000 character reason. It requires a request-stable `Idempotency-Key`.
+- Refund date/number/author come from the server. The client cannot choose or backdate the refund effective date.
+- The UI requires explicit confirmation that the **physical money return has been completed**; posting a refund records a ledger entry but does not execute cash movement or bank transfer.
+- Positive amount cannot exceed displayed customer credit; a concurrent change returns HTTP 409 and no refund ledger entry is posted. No deletion/reversal of posted refund from the UI.
+- Creating a refund invalidates finance balances, accounts overview, ledger, refund list and existing Customer detail caches.
+- Credit accounts show a direct 'رد الرصيد' shortcut preselecting the customer.
+- Bank/wallet dropdowns use Settings-owned `/selects?selects=bankAccounts,eWallets`, authorized for finance.refunds.create without management access.
+- Backend PR #25 provides least-privilege credit preview and dropdowns; Frontend PR #11 provides UI and integration tests. Keep both draft until CI and local browser QA.
+
+## Unified one-screen UX refinements
+- Selecting an account reveals its details **on the same Finance route**. The accounts register collapses to reduce scrolling; “تغيير العميل” expands it again without resetting the customer's ledger context.
+- Account header consolidates opening-balance eligibility and refund action. Opening action is replaced with “الرصيد الافتتاحي مسجل” if server has an opening. Refund action is available only with `finance.refunds.create` and when the known balance is credit-positive; refund-only users choose the customer in the existing modal.
+- Single balance card replaces repeated net/debit/credit cards. Label indicates debit, credit or balanced with color; the actual amount still comes from Laravel.
+- “سجل رد الأرصدة” is a permission-gated expandable **global refund history** below account details (not a separate tab), loaded only after expansion. View-only refund employees see it directly, without unauthorized account requests. User actions live at account level, avoiding duplicate create buttons.
+- The previous `?tab=refunds` navigation is retired; `?customerId=` deep-links continue to work.
+- Ledger-only and opening-only roles can switch customers from the inline selector. Both the form and backend still enforce the one-time opening and transactional refund constraints.
+
+## Final compact customer selection UX
+- Removed customer-balances register/table, balance-type filters, sort, and customer-list pagination from the **frontend**. The backend aggregated balance endpoint remains available but is not requested by this screen.
+- One authorized searchable customer select (`GET /selects?selects=customers`) is always visible for balance, ledger, or opening-balance staff; selection updates the existing `?customerId=` deep link and loads only that customer's Finance balance and ledger.
+- A compact account summary displays selected customer's name, phone, current actual balance with type (debit/credit/zero) and whether an opening balance exists. Name and phone are parsed from the existing select label; backend balance remains authoritative and is never client-calculated.
+- The financial actions remain in the same summary header: opening balance only when not recorded; refund only for eligible credit or refund-only staff (server still guards all writes).
+- Existing ledger with date/type filters, historical running balances and pagination remains unchanged below the selected customer summary.
+- Refunds global history remains an optional expandable section, not a tab.
+- Roles without Finance balance permission must not request arbitrary account balances or the removed overview endpoint.
+- Backend contracts, transaction locks and the one-time opening restriction have not changed.

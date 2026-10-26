@@ -7,7 +7,7 @@ export const featureAccessPolicy: Record<FeatureKey, readonly string[]> = {
   deliveries: ["deliveries.ready.view", "deliveries.list"],
   customers: ["customers.view"],
   collections: ["finance.collections.view", "finance.collections.create"],
-  finance: ["finance.balances.view", "finance.ledger.view", "finance.opening_balances.create"],
+  finance: ["finance.balances.view", "finance.ledger.view", "finance.opening_balances.create", "finance.refunds.view", "finance.refunds.create"],
   settings: [
     "settings.view_parameter_values",
     "settings.bank_accounts.view",
