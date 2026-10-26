@@ -64,3 +64,13 @@ Backend PR #23 exercises customer-select permission boundaries, including inacti
 - “سجل رد الأرصدة” is a permission-gated expandable **global refund history** below account details (not a separate tab), loaded only after expansion. View-only refund employees see it directly, without unauthorized account requests. User actions live at account level, avoiding duplicate create buttons.
 - The previous `?tab=refunds` navigation is retired; `?customerId=` deep-links continue to work.
 - Ledger-only and opening-only roles can switch customers from the inline selector. Both the form and backend still enforce the one-time opening and transactional refund constraints.
+
+## Final compact customer selection UX
+- Removed customer-balances register/table, balance-type filters, sort, and customer-list pagination from the **frontend**. The backend aggregated balance endpoint remains available but is not requested by this screen.
+- One authorized searchable customer select (`GET /selects?selects=customers`) is always visible for balance, ledger, or opening-balance staff; selection updates the existing `?customerId=` deep link and loads only that customer's Finance balance and ledger.
+- A compact account summary displays selected customer's name, phone, current actual balance with type (debit/credit/zero) and whether an opening balance exists. Name and phone are parsed from the existing select label; backend balance remains authoritative and is never client-calculated.
+- The financial actions remain in the same summary header: opening balance only when not recorded; refund only for eligible credit or refund-only staff (server still guards all writes).
+- Existing ledger with date/type filters, historical running balances and pagination remains unchanged below the selected customer summary.
+- Refunds global history remains an optional expandable section, not a tab.
+- Roles without Finance balance permission must not request arbitrary account balances or the removed overview endpoint.
+- Backend contracts, transaction locks and the one-time opening restriction have not changed.
