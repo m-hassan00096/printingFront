@@ -157,7 +157,6 @@ export function FinancePage(){
               <tbody className="divide-y">
                 {ledger.data.entries.map(entry=>{
                   const credit=entry.signedAmount.startsWith("-");
-                  const paid=Math.abs(Number(entry.signedAmount));
                   return <tr key={entry.id} className="hover:bg-muted/30">
                     <td className="whitespace-nowrap px-3 py-3 tabular-nums"><span dir="ltr" className="inline-block">{formatCollectionDate(entry.effectiveDate)}</span></td>
                     <td className="px-3 py-3 font-semibold">{entry.typeLabel}</td>
