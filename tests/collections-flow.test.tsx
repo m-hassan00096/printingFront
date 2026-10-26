@@ -1,5 +1,5 @@
 import { afterEach,beforeEach,describe,expect,it } from "vitest";
-import { render,screen,waitFor,within } from "@testing-library/react";
+import { fireEvent,render,screen,waitFor,within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { AxiosAdapter,AxiosResponse,InternalAxiosRequestConfig } from "axios";
 import { App } from "@/App";
@@ -82,11 +82,48 @@ describe("Collections frontend against Laravel Finance API",()=>{
     visit();const user=userEvent.setup();
     expect(await screen.findByText("COL-2026-00051")).toBeTruthy();
     expect(screen.getByText("180.00 ج.م")).toBeTruthy();
+    expect(screen.getByText("ملخص التحصيلات المعتمدة فقط")).toBeTruthy();
+    const expand=screen.getByRole("button",{name:/فلاتر إضافية/});
+    expect(expand.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("combobox",{name:"فلتر الحالة"})).toBeNull();
+    await user.click(expand);
+    expect(expand.getAttribute("aria-expanded")).toBe("true");
     await user.selectOptions(screen.getByRole("combobox",{name:"فلتر الحالة"}),"2");
     await waitFor(()=>expect(calls.some(c=>c.url==="/finance/collections"&&c.query.get("filter[status]")==="2")).toBe(true));
     expect(calls.every(c=>c.url!=="/finance/collections/summary"||!c.query.has("filter[status]"))).toBe(true);
     await user.selectOptions(screen.getByRole("combobox",{name:"فلتر طريقة الدفع"}),"0");
     await waitFor(()=>expect(calls.some(c=>c.url==="/finance/collections"&&c.query.get("filter[paymentMethod]")==="0")).toBe(true));
+  });
+  it("shows compact filters, localized ISO-backed dates and a readable results count",async()=>{
+    visit();
+    expect(await screen.findByText("COL-2026-00051")).toBeTruthy();
+    expect(screen.getByText("2 إيصال")).toBeTruthy();
+    expect(screen.getAllByText("25/10/2026").length).toBeGreaterThan(0);
+    const date=screen.getByLabelText("من تاريخ التحصيل") as HTMLInputElement;
+    fireEvent.change(date,{target:{value:"2026-10-25"}});
+    expect(date.value).toBe("2026-10-25");
+    expect(screen.getAllByText("25/10/2026").length).toBeGreaterThan(1);
+    await waitFor(()=>expect(calls.some(c=>
+      c.url==="/finance/collections"&&c.query.get("filter[dateFrom]")==="2026-10-25"
+    )).toBe(true));
+    const user=userEvent.setup();
+    await user.click(screen.getByRole("button",{name:"مسح الفلاتر"}));
+    expect(date.value).toBe("");
+    expect(screen.getByText("يوم/شهر/سنة")).toBeTruthy();
+  });
+  it("keeps advanced filter state visible, then clears it without changing posted-only totals",async()=>{
+    visit();const user=userEvent.setup();
+    await screen.findByText("COL-2026-00051");
+    await user.click(screen.getByRole("button",{name:/فلاتر إضافية/}));
+    await user.selectOptions(screen.getByRole("combobox",{name:"فلتر الحالة"}),"2");
+    expect(screen.getByRole("button",{name:/فلاتر إضافية \(1\)/})).toBeTruthy();
+    await user.click(screen.getByRole("button",{name:/فلاتر إضافية/}));
+    expect(screen.queryByRole("combobox",{name:"فلتر الحالة"})).toBeNull();
+    await waitFor(()=>expect(calls.some(c=>
+      c.url==="/finance/collections"&&c.query.get("filter[status]")==="2"
+    )).toBe(true));
+    expect(calls.every(c=>c.url!=="/finance/collections/summary"||
+      !c.query.has("filter[status]"))).toBe(true);
   });
   it("posts a general cash receipt without creating a separate order or delivery action",async()=>{
     visit();const user=userEvent.setup();
