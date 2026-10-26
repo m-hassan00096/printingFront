@@ -21,6 +21,13 @@ export function StagePill({ stage }: { stage: number }) {
   } as Record<number,[string,string]>)[stage] ?? ["غير معروف","bg-muted text-foreground"];
   return <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${config[1]}`}>{config[0]}</span>;
 }
+const stageNames: Record<number,string> = {
+  0: "لم يبدأ", 1: "قيد التصميم", 2: "تم التصميم",
+  3: "في الطباعة", 4: "جاهز للتسليم",
+};
+function stageName(stage: number | null): string {
+  return stage === null ? "غير محدد" : (stageNames[stage] ?? "مرحلة غير معروفة");
+}
 function dateTime(raw: string | null) {
   if (!raw) return "—";
   const date = new Date(raw);
@@ -139,7 +146,7 @@ export function ProductionDetailDialog({ item, onClose }: { item:ProductionItem;
       <div className="min-h-0 flex-1 overflow-y-auto p-5">
         {tab==="details" ? <div className="space-y-5">
           <dl className="grid gap-3 rounded-xl bg-muted/40 p-4 text-sm sm:grid-cols-2">
-            <div><dt className="text-muted-foreground">الكمية</dt><dd className="font-bold">{item.quantity}</dd></div>
+            <div><dt className="text-muted-foreground">الكمية</dt><dd className="font-bold">{item.quantity.toLocaleString("en-US")}</dd></div>
             <div><dt className="text-muted-foreground">المرحلة</dt><dd className="mt-1"><StagePill stage={item.productionStage}/></dd></div>
             <div><dt className="text-muted-foreground">موعد التسليم</dt><dd className="font-bold">{item.dueDate??"غير محدد"}{item.isLate?" · متأخر":""}</dd></div>
             <div><dt className="text-muted-foreground">المصمم</dt><dd className="font-bold">{item.designerName??"لم يُحدد"}</dd></div>
@@ -165,14 +172,18 @@ export function ProductionDetailDialog({ item, onClose }: { item:ProductionItem;
                 <div className="min-w-0 flex-1 space-y-1">
                   <p className="text-sm font-bold">{event.eventTypeLabel}</p>
                   <p className="text-xs text-muted-foreground">{event.actorName??"موظف"} · {dateTime(event.createdAt)}</p>
-                  {(event.oldPrintingLocationName||event.newPrintingLocationName) &&
+                  {event.oldPrintingLocationId !== event.newPrintingLocationId &&
                     <p className="text-xs text-muted-foreground">
-                      {event.oldPrintingLocationName??"—"} ← {event.newPrintingLocationName??"—"}
+                      مكان الطباعة: من <span dir="auto">{event.oldPrintingLocationName??"غير محدد"}</span> إلى{" "}
+                      <span dir="auto">{event.newPrintingLocationName??"غير محدد"}</span>
+                    </p>}
+                  {event.fromStage !== event.toStage &&
+                    <p className="text-xs text-muted-foreground">
+                      من {stageName(event.fromStage)} إلى {stageName(event.toStage)}
                     </p>}
                 </div>
-                <span className="text-xs text-muted-foreground">{event.fromStage??"—"} ← {event.toStage??"—"}</span>
               </article>)}
-              {history.data && <PaginationBar pagination={history.data.pagination} onPage={setPage}/>}
+              {history.data && history.data.pagination.lastPage > 1 && <PaginationBar pagination={history.data.pagination} onPage={setPage}/>}
             </div>
         ) : null}
       </div>
