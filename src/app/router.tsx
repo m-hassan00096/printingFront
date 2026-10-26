@@ -2,7 +2,7 @@ import { lazy, Suspense } from "react";
 import { featureAccessPolicy, identityAccessPolicy, printingServiceAccessPolicy } from "@/app/access-policy";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AppShell } from "@/app/layouts/app-shell";
-import { DashboardPage } from "@/features/dashboard/pages/dashboard-page";
+import { RoleHomePage } from "@/app/pages/role-home-page";
 import { NotFoundPage } from "@/app/pages/not-found-page";
 import { GuestOnly } from "@/features/auth/components/guest-only";
 import { RequireAuth } from "@/features/auth/components/require-auth";
@@ -48,7 +48,7 @@ export function AppRouter() {
 
         <Route element={<RequireAuth />}>
           <Route element={<AppShell />}>
-            <Route index element={<DashboardPage />} />
+            <Route index element={<RoleHomePage />} />
 
             <Route path="production" element={<RequirePermission anyOf={featureAccessPolicy.production}><Suspense fallback={<AuthLoading />}><ProductionPage /></Suspense></RequirePermission>} />
             <Route path="deliveries" element={<RequirePermission anyOf={featureAccessPolicy.deliveries}><Suspense fallback={<AuthLoading />}><DeliveriesPage /></Suspense></RequirePermission>} />
