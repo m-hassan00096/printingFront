@@ -200,7 +200,7 @@ describe("Auth browser workflows", () => {
         "deliveries.ready.view", "deliveries.list", "deliveries.view", "finance.collections.view"],
     };
     openPage("/");
-    expect(await screen.findByRole("heading", { name: "لوحة التحكم" })).toBeTruthy();
+    expect((await screen.findAllByRole("heading", { name: "لوحة التحكم" })).length).toBeGreaterThan(0);
     expect(window.location.pathname).toBe("/");
     expect(screen.queryByRole("link", { name: "الإنتاج" })).toBeNull();
     expect(screen.queryByRole("link", { name: "المستخدمون" })).toBeNull();
