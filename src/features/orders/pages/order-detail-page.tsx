@@ -181,11 +181,7 @@ export function OrderDetailPage() {
         {mayEdit && <Button type="button" variant="outline" size="sm"
           onClick={() => openPaymentDialog("plan")}><Pencil className="size-4" /> تعديل</Button>}
       </div>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl bg-muted/50 p-3">
-          <p className="text-xs text-muted-foreground">إجمالي الأوردر</p>
-          <p className="mt-1 text-lg font-bold">{displayMoney(item.totalAmount)} ج.م</p>
-        </div>
+      <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-xl bg-muted/50 p-3">
           <p className="text-xs text-muted-foreground">العربون المحدد</p>
           <p className="mt-1 text-lg font-bold">{displayMoney(plannedAmount)} ج.م</p>
@@ -329,9 +325,11 @@ export function OrderDetailPage() {
             </p>}
           <div className="flex flex-wrap justify-end gap-2 border-t pt-4">
             <Button variant="outline" disabled={paymentIsBusy}
+              onClick={() => {setError("");setPaymentDialog(null);setReturnToReview(false);}}>إغلاق</Button>
+            {mayEdit && <Button variant="outline" disabled={paymentIsBusy}
               onClick={() => {setError("");setReturnToReview(true);setPaymentDialog("plan");}}>
               رجوع للتعديل
-            </Button>
+            </Button>}
             <Button disabled={paymentIsBusy || !moneyPattern.test(deposit) ||
               (Number(deposit) > Number(item.totalAmount) && !overpaymentAcknowledged) ||
               (Number(deposit) > 0 && paymentMethod !== "0" &&
