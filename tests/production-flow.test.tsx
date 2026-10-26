@@ -63,6 +63,17 @@ const adapter:AxiosAdapter=async(config)=>{
     if(search)filtered=filtered.filter(item=>[item.orderNumber,item.customerName,item.customerPhone,item.serviceName].some(s=>s.includes(search)));
     return response(config,{items:filtered,pagination:{...pagination,total:filtered.length}});
   }
+  const details=url.match(new RegExp("^/production/items/([0-9]+)/details$"));
+  if(details){
+    const item=items.find(x=>x.id===Number(details[1]));
+    if(!item)throw Error("Unknown item");
+    return response(config,{
+      id:item.id,orderId:item.orderId,serviceName:item.serviceName,quantity:item.quantity,
+      specifications:"وجه وظهر، ورق 300 جرام",
+      files:[{id:1,name:"design.pdf",extension:"pdf",mimeType:"application/pdf",sizeBytes:1234,
+        url:"http://localhost:8000/storage/orders/101/102/design.pdf",createdAt:null}],
+    });
+  }
   const history=url.match(/^\/production\/items\/(\d+)\/history$/);
   if(history) return response(config,{events:histories[Number(history[1])]??[],pagination});
   const action=url.match(/^\/production\/items\/(\d+)\/(start-design|complete-design|complete-and-send-to-printing|send-to-printing|printing-location|mark-ready|undo)$/);
@@ -190,6 +201,25 @@ describe("Production board against Laravel API contracts",()=>{
     await user.click(within(card).getByRole("button",{name:"التفاصيل"}));
     const dialog=await screen.findByRole("dialog",{name:"تفاصيل عنصر الإنتاج"});
     expect(within(dialog).getByText("50")).toBeTruthy();
+  });
+
+  it("shows production-only designers the item specifications and files without order access",async()=>{
+    permissions=["production.items.list","production.summary.view","production.history.view",
+      "production.design.start","production.design.complete","production.printing.send",
+      "production.printing.change_location","production.printing.complete"];
+    visit();const user=userEvent.setup();
+    const design=await screen.findByRole("region",{name:"عمود التصميم"});
+    const card=await within(design).findByRole("article",{name:"عنصر بنر"});
+    await user.click(within(card).getByRole("button",{name:"التفاصيل"}));
+    const dialog=await screen.findByRole("dialog",{name:"تفاصيل عنصر الإنتاج"});
+    expect(await within(dialog).findByText("وجه وظهر، ورق 300 جرام")).toBeTruthy();
+    const link=within(dialog).getByRole("link",{name:"فتح الملف"});
+    expect(link.getAttribute("href")).toContain("/storage/orders/");
+    expect(within(dialog).getByText("design.pdf")).toBeTruthy();
+    expect(within(dialog).queryByRole("link",{name:"فتح الأوردر"})).toBeNull();
+    expect(calls.some(c=>c.url==="/production/items/102/details")).toBe(true);
+    expect(calls.some(c=>c.url.startsWith("/orders/"))).toBe(false);
+    expect(screen.queryByRole("link",{name:"التسليمات"})).toBeNull();
   });
 
   it("does not render unusable paging arrows on single-page or empty columns",async()=>{

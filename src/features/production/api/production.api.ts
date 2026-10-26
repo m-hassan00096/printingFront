@@ -2,7 +2,7 @@ import { apiClient } from "@/shared/api/http";
 import type { ApiResponse } from "@/shared/api/api-types";
 import type {
   ProductionAction, ProductionColumnId, ProductionFilters, ProductionHistory,
-  ProductionList, ProductionSummary, SelectOption,
+  ProductionList, ProductionSummary, ProductionItemDetails, SelectOption,
 } from "../types/production.types";
 
 const base = "/production";
@@ -72,4 +72,9 @@ export async function sendProductionBatch(
     orderItemIds: [...ids].sort((a,b) => a-b),
     printingLocationId,
   }, { headers: { "Idempotency-Key": idempotencyKey } });
+}
+
+export async function getProductionItemDetails(itemId:number):Promise<ProductionItemDetails>{
+  const {data}=await apiClient.get<ApiResponse<ProductionItemDetails>>(`${base}/items/${itemId}/details`);
+  return data.data;
 }

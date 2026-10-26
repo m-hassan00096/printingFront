@@ -9,6 +9,7 @@ const keys = {
     ["production", "board", column, filters, page] as const,
   summary: (filters: ProductionFilters) => ["production", "summary", filters] as const,
   history: (itemId: number, page: number) => ["production", "history", itemId, page] as const,
+  details: (itemId:number)=>["production","details",itemId] as const,
 };
 export function useProductionColumn(column: ProductionColumnId, filters: ProductionFilters, page: number, enabled=true) {
   return useQuery({
@@ -23,6 +24,9 @@ export function useProductionSummary(filters: ProductionFilters, enabled: boolea
 export function useProductionHistory(itemId: number, page: number, enabled: boolean) {
   return useQuery({ queryKey: keys.history(itemId,page), queryFn: () => api.getProductionHistory(itemId,page),
     enabled: enabled && itemId > 0 });
+}
+export function useProductionItemDetails(itemId:number,enabled:boolean){
+  return useQuery({queryKey:keys.details(itemId),queryFn:()=>api.getProductionItemDetails(itemId),enabled:itemId>0&&enabled});
 }
 export function useProductionSelects(enabled: boolean) {
   return useQuery({ queryKey: ["production","selects"], queryFn: api.getProductionSelects, enabled, staleTime:60_000 });
