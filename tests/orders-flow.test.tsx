@@ -9,8 +9,8 @@ import type { Order } from "@/features/orders/types/orders.types";
 
 const originalAdapter = apiClient.defaults.adapter;
 const permissions = ["orders.list", "orders.view", "orders.create", "orders.confirm", "orders.cancel",
-  "orders.items.create", "orders.items.update", "orders.items.delete", "orders.files.list",
-  "customers.view", "customers.create", "printing_services.view", "printing_services.price_preview.view", "finance.balances.view"];
+  "orders.items.create", "orders.items.update", "orders.items.delete", "orders.files.list", "orders.files.view", "orders.files.delete", "orders.update", "orders.activities.view",
+  "customers.view", "customers.create", "customers.update", "printing_services.view", "printing_services.price_preview.view", "finance.balances.view"];
 let calls: Array<{ url: string; method: string; query: URLSearchParams; body: Record<string, unknown>; key: string | null }>;
 let orders: Order[];
 const page = { currentPage: 1, lastPage: 1, perPage: 15, total: 1 };
@@ -36,6 +36,15 @@ const adapter: AxiosAdapter = async (config) => {
       { label:"activeCustomers", options:[{value:5,label:"أحمد - 01012345678"}] },
       { label:"printingServices", options:[{value:11,label:"كروت شخصية"}] },
     ]);
+  if (url === "/selects" && query.get("selects") === "activeCustomers")
+    return response(config, [{label:"activeCustomers",options:[
+      {value:5,label:"أحمد — 01012345678"},
+      {value:6,label:"عميل آخر — 01099999999"}
+    ]}]);
+  if (url === "/selects" && query.get("selects") === "printingServices")
+    return response(config, [{label:"printingServices",options:[
+      {value:11,label:"كروت شخصية"},{value:12,label:"رول أب"}
+    ]}]);
   if (url === "/selects" && query.get("selects") === "bankAccounts,eWallets")
     return response(config, [
       { label:"bankAccounts", options:[{value:6,label:"بنك آخر",isDefault:0},{value:7,label:"بنك مصر - ****1234",isDefault:1}] },
@@ -50,7 +59,11 @@ const adapter: AxiosAdapter = async (config) => {
   if (url === "/finance/customers/5/balance" && config.method === "get")
     return response(config, { customerId:5, amount:"0.00",type:0,typeLabel:"رصيد صفر" });
   if (url === "/customers/5" && config.method === "get")
-    return response(config, {id:5,name:"أحمد",phone:"01012345678",customerTypeId:21,status:1});
+    return response(config, {id:5,name:"أحمد",phone:"01012345678",customerTypeId:21,status:1,
+      address:null,statusLabel:"نشط",customerType:{id:21,name:"شركة"}});
+  if (url === "/customers/5" && config.method === "patch") return response(config, null);
+  if (url === "/orders/101" && config.method === "patch") return response(config, null);
+  if (url === "/orders/101/items/9" && config.method === "patch") return response(config, null);
   if (url === "/customers" && config.method === "get") return response(config, {
     customers: [{id:5,name:"أحمد",phone:"01012345678",address:null,status:1,statusLabel:"نشط",
       customerTypeId:21,customerType:{id:21,name:"شركة"}}], pagination:page,
@@ -67,8 +80,16 @@ const adapter: AxiosAdapter = async (config) => {
       customerTypeName:"شركة",quantity:100,agreedTotal:"350.00",unitPrice:"3.5000",
       specifications:null,productionStage:0,designerId:null,printingLocationId:null}],
   });
-  if (url === "/orders/101/activities") return response(config, { activities:[], pagination:page });
-  if (url === "/orders/101/items/9/files") return response(config, []);
+  if (url === "/orders/101/activities") return response(config, { activities:[
+    {id:2,eventType:"file_uploaded",actorId:1,createdAt:"2026-10-25T22:32:49+00:00",context:null},
+    {id:1,eventType:"draft_created",actorId:1,createdAt:"2026-10-25T22:32:12+00:00",context:null},
+  ], pagination:page });
+  if (url === "/orders/101/items/9/files") return response(config, [
+    {id:31,name:"تصميم.png",extension:"png",mimeType:"image/png",sizeBytes:102400,
+      url:"http://localhost:8000/storage/orders/101/9/preview.png",createdAt:null},
+    {id:32,name:"ملف.pdf",extension:"pdf",mimeType:"application/pdf",sizeBytes:204800,url:null,createdAt:null},
+    {id:33,name:"ملف.psd",extension:"psd",mimeType:"application/octet-stream",sizeBytes:512000,url:null,createdAt:null},
+  ]);
   if (url === "/orders/101/confirm" && config.method === "post") {
     orders[0] = {...orders[0], status:1, statusLabel:"مؤكد", orderNumber:"ORD-2026-00001"};
     return response(config, null);
@@ -222,6 +243,60 @@ describe("Orders Laravel API workflow", () => {
     await waitFor(() => expect(calls.some(c=>c.url==="/orders/101/confirm")).toBe(true));
     expect(calls.find(c=>c.url==="/orders/101/confirm")?.body)
       .toEqual({depositAmount:"75.00",paymentMethod:2,paymentDestinationId:9});
+  });
+
+  it("changes the customer attached to a draft using searchable Selects", async () => {
+    visit("/orders/101");
+    expect(await screen.findByText("مسودة #101")).toBeTruthy();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", {name:"تعديل البيانات"}));
+    expect(await screen.findByRole("dialog", {name:"تعديل بيانات المسودة"})).toBeTruthy();
+    await user.click(await screen.findByRole("combobox", {name:"اختيار عميل المسودة"}));
+    await user.click(await screen.findByRole("option", {name:"عميل آخر — 01099999999"}));
+    await user.click(screen.getByRole("button", {name:"حفظ التعديلات"}));
+    await waitFor(() => expect(calls.some(c=>c.url==="/orders/101" && c.method==="patch")).toBe(true));
+    expect(calls.find(c=>c.url==="/orders/101" && c.method==="patch")?.body).toEqual({customerId:6});
+  });
+
+  it("can change an existing draft item service without entering a technical ID", async () => {
+    visit("/orders/101");
+    expect(await screen.findByText("مسودة #101")).toBeTruthy();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", {name:"تعديل العنصر 9"}));
+    expect(await screen.findByRole("dialog", {name:"تعديل عنصر"})).toBeTruthy();
+    await user.click(await screen.findByRole("combobox", {name:"خدمة الطباعة للعنصر"}));
+    await user.click(await screen.findByRole("option", {name:"رول أب"}));
+    await user.click(screen.getByRole("button", {name:"حفظ",exact:true}));
+    await waitFor(() => expect(calls.some(c=>c.url==="/orders/101/items/9" && c.method==="patch")).toBe(true));
+    expect(calls.find(c=>c.url==="/orders/101/items/9" && c.method==="patch")?.body).toEqual({serviceId:12});
+  });
+
+  it("shows image thumbnails, PDF/PSD file marks and readable Arabic activity", async () => {
+    visit("/orders/101");
+    expect(await screen.findByText("مسودة #101")).toBeTruthy();
+    expect(await screen.findByRole("button", {name:"معاينة تصميم.png"})).toBeTruthy();
+    expect(await screen.findByLabelText("نوع الملف PDF")).toBeTruthy();
+    expect(await screen.findByLabelText("نوع الملف PSD")).toBeTruthy();
+    expect(await screen.findByText("تم رفع ملف تصميم")).toBeTruthy();
+    expect(screen.queryByText(/file_uploaded —/)).toBeNull();
+    await userEvent.setup().click(screen.getByRole("button", {name:"معاينة تصميم.png"}));
+    expect(await screen.findByRole("dialog",{name:"معاينة تصميم.png"})).toBeTruthy();
+    await userEvent.setup().click(screen.getByRole("button",{name:"إغلاق المعاينة"}));
+    expect(screen.queryByRole("dialog",{name:"معاينة تصميم.png"})).toBeNull();
+  });
+
+  it("can edit customer data from an order without changing its customerId", async () => {
+    visit("/orders/101");
+    expect(await screen.findByText("مسودة #101")).toBeTruthy();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button",{name:"تعديل بيانات العميل"}));
+    expect(await screen.findByRole("dialog",{name:"تعديل عميل"})).toBeTruthy();
+    await user.clear(screen.getByRole("textbox",{name:"اسم العميل"}));
+    await user.type(screen.getByRole("textbox",{name:"اسم العميل"}),"أحمد محمد");
+    await user.click(screen.getByRole("button",{name:"حفظ التعديلات"}));
+    await waitFor(() => expect(calls.some(c=>c.url==="/customers/5"&&c.method==="patch")).toBe(true));
+    expect(calls.find(c=>c.url==="/customers/5"&&c.method==="patch")?.body).toMatchObject({name:"أحمد محمد"});
+    expect(calls.some(c=>c.url==="/orders/101"&&c.method==="patch")).toBe(false);
   });
 
 });
