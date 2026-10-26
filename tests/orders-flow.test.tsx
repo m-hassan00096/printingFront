@@ -179,7 +179,7 @@ describe("Orders Laravel API workflow", () => {
     expect(within(review).getByText("تحويل بنكي")).toBeTruthy();
     expect(within(review).getByText("50.00 ج.م")).toBeTruthy();
     expect(await within(review).findByText("بنك مصر - ****1234")).toBeTruthy();
-    await userEvent.setup().click(within(review).getByRole("button",{name:"تأكيد وتسجيل العربون"}));
+    await userEvent.setup().click(within(review).getByRole("button",{name:"تأكيد الأوردر وتحصيل العربون"}));
     await waitFor(() => expect(calls.some(c=>c.url==="/orders/101/confirm")).toBe(true));
     expect(calls.find(c=>c.url==="/orders/101/confirm")?.body)
       .toEqual({depositAmount:"50.00",paymentMethod:1,paymentDestinationId:7});
@@ -256,7 +256,7 @@ describe("Orders Laravel API workflow", () => {
     const review = await screen.findByRole("dialog",{name:"تأكيد الأوردر"});
     expect(within(review).getByText("محفظة إلكترونية")).toBeTruthy();
     expect(await within(review).findByText("المحفظة - ****5678")).toBeTruthy();
-    await userEvent.setup().click(within(review).getByRole("button",{name:"تأكيد وتسجيل العربون"}));
+    await userEvent.setup().click(within(review).getByRole("button",{name:"تأكيد الأوردر وتحصيل العربون"}));
     await waitFor(() => expect(calls.some(c=>c.url==="/orders/101/confirm")).toBe(true));
     expect(calls.find(c=>c.url==="/orders/101/confirm")?.body)
       .toEqual({depositAmount:"75.00",paymentMethod:2,paymentDestinationId:9});
@@ -350,7 +350,7 @@ describe("Orders Laravel API workflow", () => {
     review=await screen.findByRole("dialog",{name:"تأكيد الأوردر"});
     expect(within(review).getByText("25.00 ج.م")).toBeTruthy();
     expect(calls.filter(c=>c.url==="/orders/101/confirm")).toHaveLength(0);
-    await user.click(within(review).getByRole("button",{name:"تأكيد وتسجيل العربون"}));
+    await user.click(within(review).getByRole("button",{name:"تأكيد الأوردر وتحصيل العربون"}));
     await waitFor(() => expect(calls.some(c=>c.url==="/orders/101/confirm")).toBe(true));
     expect(calls.find(c=>c.url==="/orders/101/confirm")?.body)
       .toEqual({depositAmount:"25.00",paymentMethod:0});
@@ -363,7 +363,7 @@ describe("Orders Laravel API workflow", () => {
     await userEvent.setup().click(screen.getByRole("button",{name:"تأكيد الأوردر"}));
     const review=await screen.findByRole("dialog",{name:"تأكيد الأوردر"});
     expect(await within(review).findByText(/حساب التحصيل المحفوظ غير متاح/)).toBeTruthy();
-    expect(within(review).getByRole("button",{name:"تأكيد وتسجيل العربون"}).hasAttribute("disabled")).toBe(true);
+    expect(within(review).getByRole("button",{name:"تأكيد الأوردر وتحصيل العربون"}).hasAttribute("disabled")).toBe(true);
     expect(calls.filter(c=>c.url==="/orders/101/confirm")).toHaveLength(0);
   });
 
@@ -402,7 +402,7 @@ describe("Orders Laravel API workflow", () => {
     expect(await screen.findByText("مسودة #101")).toBeTruthy();
     await userEvent.setup().click(screen.getByRole("button",{name:"تأكيد الأوردر"}));
     const review = await screen.findByRole("dialog",{name:"تأكيد الأوردر"});
-    const main = within(review).getByRole("button",{name:"تأكيد وتسجيل العربون"});
+    const main = within(review).getByRole("button",{name:"تأكيد الأوردر وتحصيل العربون"});
     const back = within(review).getByRole("button",{name:"رجوع للتعديل"});
     expect(main.parentElement).toBe(back.parentElement);
     expect(main.parentElement?.className).toContain("grid-cols-[minmax(0,1fr)_auto]");

@@ -337,7 +337,7 @@ export function OrderDetailPage() {
                 (Number(deposit) > 0 && paymentMethod !== "0" &&
                   (destinations.isPending || destinations.isError || !chosenDestination))}
               onClick={() => void confirm()}>
-              {Number(deposit) > 0 ? "تأكيد وتسجيل العربون" : "تأكيد الأوردر"}
+              {Number(deposit) > 0 ? "تأكيد الأوردر وتحصيل العربون" : "تأكيد الأوردر"}
             </Button>
             {mayEdit && <Button variant="outline" className="shrink-0 px-2 text-xs sm:px-4 sm:text-sm"
               disabled={paymentIsBusy}
