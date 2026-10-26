@@ -1,10 +1,11 @@
 import { useRef, useState } from "react";
-import { ArrowRight, CheckCircle2, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { getOrderPaymentOptions } from "../api/order-options.api";
 import { Button } from "@/shared/components/ui/button";
+import { MoneyAmount } from "@/shared/components/money-amount";
 import { getApiErrorMessage } from "@/shared/api/http";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { ConfirmDialog, ErrorState, LoadingState, fieldClass } from "@/features/identity/components/identity-ui";
@@ -16,11 +17,6 @@ import { useOrder, useOrderActions } from "../hooks/use-orders";
 import type { OrderItem } from "../types/orders.types";
 
 const moneyPattern = /^(?:0|[1-9][0-9]{0,9})(?:\.[0-9]{1,2})?$/;
-function displayMoney(value: string) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return value;
-  return n.toLocaleString("en-US", {minimumFractionDigits:2,maximumFractionDigits:4}).replace(/(\.\d{2})00$/, "$1");
-}
 export function OrderDetailPage() {
   const { id: rawId } = useParams();
   const id = Number(rawId);
@@ -152,7 +148,7 @@ export function OrderDetailPage() {
       </div>
     </header>
     <section className="grid gap-3 rounded-2xl border bg-card p-5 shadow-sm sm:grid-cols-3">
-      <div><p className="text-xs text-muted-foreground">الإجمالي</p><p className="mt-2 text-xl font-extrabold">{displayMoney(item.totalAmount)} ج.م</p></div>
+      <div><p className="text-xs text-muted-foreground">الإجمالي</p><p className="mt-2 text-xl font-extrabold"><MoneyAmount amount={item.totalAmount} /></p></div>
       <div><p className="text-xs text-muted-foreground">موعد التسليم</p><p className="mt-2 font-semibold">{item.dueDate ?? "غير محدد"}</p></div>
       <div><p className="text-xs text-muted-foreground">حالة الإنتاج</p><p className="mt-2 font-semibold">{item.productionStatusLabel ?? "لم يبدأ"}</p>
         {item.delayStatusLabel && <p className="mt-1 text-xs text-destructive">{item.delayStatusLabel}</p>}</div>
@@ -172,32 +168,36 @@ export function OrderDetailPage() {
     </nav>
     {activeTab === "order" && <div role="tabpanel" id="order-panel" aria-labelledby="order-tab">
     {draft && (mayConfirm || mayEdit) && <section aria-labelledby="draft-payment-title"
-      className="mb-4 rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      className="mb-4 rounded-2xl border bg-card px-4 py-3 shadow-sm sm:px-5">
+      <header className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 id="draft-payment-title" className="font-bold">الدفع عند التأكيد</h2>
-          <p className="mt-1 text-xs text-muted-foreground">بيانات العربون محفوظة للمراجعة، ولم يتم تسجيل أي تحصيل بعد.</p>
+          <h2 id="draft-payment-title" className="text-sm font-bold">الدفع عند التأكيد</h2>
+          <p className="mt-1 text-xs text-muted-foreground">بيانات العربون محفوظة للمراجعة · لم يُسجَّل أي تحصيل بعد</p>
         </div>
         {mayEdit && <Button type="button" variant="outline" size="sm"
           onClick={() => openPaymentDialog("plan")}><Pencil className="size-4" /> تعديل</Button>}
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-xl bg-muted/50 p-3">
-          <p className="text-xs text-muted-foreground">العربون المحدد</p>
-          <p className="mt-1 text-lg font-bold">{displayMoney(plannedAmount)} ج.م</p>
+      </header>
+      <dl className="mt-3 grid gap-3 border-t pt-3 text-sm sm:grid-cols-3">
+        <div className="min-w-0">
+          <dt className="text-xs text-muted-foreground">العربون المحدد</dt>
+          <dd className="mt-1 font-bold"><MoneyAmount amount={plannedAmount} /></dd>
         </div>
-        <div className="rounded-xl bg-muted/50 p-3">
-          <p className="text-xs text-muted-foreground">المتبقي المتوقع</p>
-          <p className="mt-1 text-lg font-bold">{displayMoney(String(plannedRemaining.toFixed(2)))} ج.م</p>
+        <div className="min-w-0">
+          <dt className="text-xs text-muted-foreground">المتبقي المتوقع</dt>
+          <dd className="mt-1 font-bold"><MoneyAmount amount={plannedRemaining} /></dd>
         </div>
-      </div>
-      <p className="mt-3 text-sm">
-        <span className="text-muted-foreground">وسيلة الدفع: </span>
-        <strong>{Number(plannedAmount) > 0 ? paymentLabel(item.plannedPaymentMethod) : "بدون عربون"}</strong>
-        {Number(plannedAmount) > 0 && item.plannedPaymentMethod !== null &&
-          item.plannedPaymentMethod !== 0 && savedDestinationLabel &&
-          <span className="text-muted-foreground"> — {savedDestinationLabel}</span>}
-      </p>
+        <div className="min-w-0">
+          <dt className="text-xs text-muted-foreground">وسيلة الدفع</dt>
+          <dd className="mt-1 font-semibold">
+            {Number(plannedAmount) > 0 ? paymentLabel(item.plannedPaymentMethod) : "بدون عربون"}
+            {Number(plannedAmount) > 0 && item.plannedPaymentMethod !== null &&
+              item.plannedPaymentMethod !== 0 && savedDestinationLabel &&
+              <span className="block truncate text-xs font-normal text-muted-foreground" title={savedDestinationLabel}>
+                {savedDestinationLabel}
+              </span>}
+          </dd>
+        </div>
+      </dl>
     </section>}
     <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
@@ -208,10 +208,10 @@ export function OrderDetailPage() {
         {item.items?.map((line) => <article key={line.id} className="rounded-xl border p-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div><h3 className="font-bold">{line.serviceName}</h3>
-              <p className="mt-1 text-xs text-muted-foreground">الكمية: {line.quantity} — الوحدة: {displayMoney(line.unitPrice)} ج.م</p>
+              <p className="mt-1 text-xs text-muted-foreground">الكمية: {line.quantity} — الوحدة: <MoneyAmount amount={line.unitPrice} maximumFractionDigits={4} /></p>
               {line.specifications && <p className="mt-2 whitespace-pre-wrap text-sm">{line.specifications}</p>}
             </div>
-            <div className="flex items-center gap-2"><strong>{displayMoney(line.agreedTotal)} ج.م</strong>
+            <div className="flex items-center gap-2"><strong><MoneyAmount amount={line.agreedTotal} /></strong>
               {draft && perms.includes("orders.items.update") && <Button type="button" variant="ghost" size="icon-sm" aria-label={`تعديل العنصر ${line.id}`} onClick={() => setEditItem(line)}><Pencil /></Button>}
               {draft && perms.includes("orders.items.delete") && <Button type="button" variant="ghost" size="icon-sm" aria-label={`حذف العنصر ${line.id}`} onClick={() => setDeleteItem(line)}><Trash2 className="text-destructive" /></Button>}
             </div>
@@ -237,8 +237,15 @@ export function OrderDetailPage() {
       onClose={() => setDeleteItem(null)} onConfirm={() => void removeItem()} />}
     {paymentDialog && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
       <section role="dialog" aria-modal="true" aria-label={paymentDialog === "plan" ? "تعديل بيانات العربون" : "تأكيد الأوردر"}
-        className="max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto rounded-2xl bg-card p-5 shadow-xl sm:p-6">
-        <h2 className="text-lg font-bold">{paymentDialog === "plan" ? "تعديل بيانات العربون" : "تأكيد الأوردر"}</h2>
+        className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-2xl bg-card p-5 shadow-xl sm:p-6">
+        <header className="flex items-start justify-between gap-3">
+          <h2 className="text-lg font-bold">{paymentDialog === "plan" ? "تعديل بيانات العربون" : "تأكيد الأوردر"}</h2>
+          <Button type="button" variant="ghost" size="icon-sm" aria-label="إغلاق"
+            className="shrink-0" disabled={paymentIsBusy}
+            onClick={() => {setError("");setReturnToReview(false);setPaymentDialog(null);}}>
+            <X className="size-4" />
+          </Button>
+        </header>
         {paymentDialog === "plan" ? <>
           <p className="text-sm text-muted-foreground">حدد المبلغ ووسيلة الدفع. لن يُسجل أي تحصيل قبل تأكيد الأوردر.</p>
           <label className="block text-sm font-semibold">قيمة العربون (ج.م)
@@ -277,66 +284,23 @@ export function OrderDetailPage() {
           </div>}
           {moneyPattern.test(deposit) && <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3 text-sm">
             <span>المتبقي المتوقع</span>
-            <strong>{displayMoney(String(Math.max(0, Number(item.totalAmount) - Number(deposit)).toFixed(2)))} ج.م</strong>
+            <strong><MoneyAmount amount={Math.max(0, Number(item.totalAmount) - Number(deposit))} /></strong>
           </div>}
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-          <div className="flex flex-wrap justify-end gap-2 border-t pt-4">
-            <Button variant="outline" disabled={paymentIsBusy}
-              onClick={() => {setReturnToReview(false);setPaymentDialog(null);}}>إلغاء</Button>
-            <Button disabled={paymentIsBusy || (Number(deposit) > 0 && paymentMethod !== "0" &&
-              (destinations.isPending || destinations.isError || !chosenDestination))}
-              onClick={() => void savePaymentPlan()}>حفظ بيانات العربون</Button>
-          </div>
-        </> : <>
-          <p className="text-sm text-muted-foreground">
-            راجع التفاصيل قبل تأكيد الأوردر. سيتم تسجيل المديونية والعربون عند التأكيد فقط.
-          </p>
-          <div className="space-y-3 rounded-xl bg-muted/50 p-4 text-sm">
-            <div className="flex justify-between gap-3"><span>إجمالي الأوردر</span>
-              <strong>{displayMoney(item.totalAmount)} ج.م</strong></div>
-            <div className="flex justify-between gap-3"><span>العربون المطلوب تحصيله</span>
-              <strong>{displayMoney(deposit)} ج.م</strong></div>
-            <div className="flex justify-between gap-3"><span>وسيلة الدفع</span>
-              <strong>{Number(deposit) > 0 ? paymentLabel(Number(paymentMethod)) : "بدون عربون"}</strong>
-            </div>
-            {Number(deposit) > 0 && paymentMethod !== "0" &&
-              <div className="flex justify-between gap-3">
-                <span>حساب التحصيل</span>
-                <strong className="text-left">{destinations.isPending ? "جاري التحقق..." :
-                  activeDestinations.find((account) => String(account.value) === chosenDestination)?.label ??
-                  "الحساب غير متاح"}</strong>
-              </div>}
-            <div className="flex justify-between gap-3 border-t pt-3">
-              <span className="font-semibold">المتبقي بعد التأكيد</span>
-              <strong>{displayMoney(String(Math.max(0, Number(item.totalAmount) - Number(deposit)).toFixed(2)))} ج.م</strong>
-            </div>
-          </div>
-          {Number(deposit) > Number(item.totalAmount) && <label className="flex items-start gap-2 rounded-xl border border-amber-300 p-3 text-xs">
-            <input type="checkbox" checked={overpaymentAcknowledged}
-              onChange={(e) => {setOverpaymentAcknowledged(e.target.checked);setError("");}}
-              aria-label="تأكيد الزيادة عن قيمة الأوردر" />
-            أؤكد أن الزيادة عن قيمة الأوردر ستُسجل كرصيد دائن للعميل.
-          </label>}
-          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-          {Number(deposit) > 0 && paymentMethod !== "0" &&
-            (destinations.isError || (!destinations.isPending && !chosenDestination)) &&
-            <p role="alert" className="text-xs text-destructive">
-              حساب التحصيل المحفوظ غير متاح حاليًا. ارجع لتعديل بيانات العربون قبل التأكيد.
-            </p>}
-          <div className="flex flex-wrap justify-end gap-2 border-t pt-4">
-            <Button variant="outline" disabled={paymentIsBusy}
-              onClick={() => {setError("");setPaymentDialog(null);setReturnToReview(false);}}>إغلاق</Button>
-            {mayEdit && <Button variant="outline" disabled={paymentIsBusy}
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-t pt-4">
+            <Button className="min-w-0 px-2 text-xs sm:px-4 sm:text-sm"
+              disabled={paymentIsBusy || !moneyPattern.test(deposit) ||
+                (Number(deposit) > Number(item.totalAmount) && !overpaymentAcknowledged) ||
+                (Number(deposit) > 0 && paymentMethod !== "0" &&
+                  (destinations.isPending || destinations.isError || !chosenDestination))}
+              onClick={() => void confirm()}>
+              {Number(deposit) > 0 ? "تأكيد وتسجيل العربون" : "تأكيد الأوردر"}
+            </Button>
+            {mayEdit && <Button variant="outline" className="shrink-0 px-2 text-xs sm:px-4 sm:text-sm"
+              disabled={paymentIsBusy}
               onClick={() => {setError("");setReturnToReview(true);setPaymentDialog("plan");}}>
               رجوع للتعديل
             </Button>}
-            <Button disabled={paymentIsBusy || !moneyPattern.test(deposit) ||
-              (Number(deposit) > Number(item.totalAmount) && !overpaymentAcknowledged) ||
-              (Number(deposit) > 0 && paymentMethod !== "0" &&
-                (destinations.isPending || destinations.isError || !chosenDestination))}
-              onClick={() => void confirm()}>
-              {Number(deposit) > 0 ? "تأكيد الأوردر وتسجيل العربون" : "تأكيد الأوردر"}
-            </Button>
           </div>
         </>}
       </section>
