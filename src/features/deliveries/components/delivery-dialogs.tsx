@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { AlertTriangle, ArrowUpLeft, X } from "lucide-react";
@@ -188,6 +189,8 @@ export function DeliveryDetailsDialog({ deliveryId, onClose, onSuccess }: {
   deliveryId:number; onClose:()=>void; onSuccess:()=>void;
 }) {
   const detail=useDeliveryDetails(deliveryId);
+  const permissions=useCurrentUser().data?.permissions??[];
+  const canViewOrder=permissions.includes("orders.view");
   const actions=useDeliveryActions();
   const busy=actions.cancel.isPending;
   const [cancelMode,setCancelMode]=useState(false);
@@ -265,9 +268,9 @@ export function DeliveryDetailsDialog({ deliveryId, onClose, onSuccess }: {
         </div>}
         <div className="flex flex-wrap gap-3 border-t pt-3">
           <Button type="button" variant="outline" onClick={onClose} disabled={busy}>إغلاق</Button>
-          <Link to={`/orders/${item.orderId}`} className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+          {canViewOrder && <Link to={`/orders/${item.orderId}`} className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
             فتح الأوردر <ArrowUpLeft className="size-4"/>
-          </Link>
+          </Link>}
         </div>
       </div>}
   </DialogFrame>;
