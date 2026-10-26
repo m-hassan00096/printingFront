@@ -56,6 +56,7 @@ export type ProductionEvent = {
 export type ProductionFilters = {
   search: string;
   customerId: number | null;
+  serviceId: number | null;
   myDesignWork: "" | "1" | "2";
   lateOnly: boolean;
   sort: "dueDate" | "-dueDate" | "id" | "-id";

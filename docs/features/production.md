@@ -7,7 +7,7 @@ Status: feature branch; not merged into `develop`.
 - `/production` replaces the placeholder under the existing `production.items.list` route policy and sidebar item.
 - Four columns, each with independent paginated `GET /production/items?filter[column]=0|1|2|3` calls. Column 1 contains stages 1 and 2; column 3 is ready-for-delivery stage 4.
 - `GET /production/summary` is shown only with `production.summary.view`; counts refer to all matching items, not the current page. A board column groups the *currently loaded page* by order; one order can span multiple columns/pages.
-- Search by order/customer/phone/service, selectable customer (`activeCustomers`), personal design-work filter (started/completed), lateness, sort. On mobile, choose one visible stage while other stage data remains cached.
+- Search by order/customer/phone/service, searchable customer (`activeCustomers`) and printing service (`printingServices`) selectors, personal design-work filter (started/completed), lateness, sort. Selecting a service sends `filter[serviceId]` to board and summary; the backend uses `order_items.printing_service_id` before pagination to keep counts accurate. On mobile, choose one visible stage while other stage data remains cached.
 - Detail modal shows item metadata, history (`production.history.view`) and existing order attachments when Orders read/file permissions allow it. File actions are view-only here; uploads remain in Orders.
 
 ## Backend action contracts
@@ -21,7 +21,7 @@ Status: feature branch; not merged into `develop`.
 - `POST /production/items/{id}/undo` — 4→3, 3→1, 2→1, 1→0; existing immutable audit preserved.
 - All write requests send a random `Idempotency-Key`. Retrying the same *failed/ambiguous* payload reuses its key until success. React Query invalidates board/summary/history and Orders caches after successful operations.
 - Writes always send exactly the backend request shape, and errors from Laravel stay visible. Authorization is enforced by Laravel middleware even when controls are hidden on client.
-- `GET /selects?selects=activeCustomers,printingLocations` supplies filters and assignable printing locations.
+- `GET /selects?selects=activeCustomers,printingServices,printingLocations` supplies customer/service filters and assignable printing locations. Backend Production PR #20 is required for `serviceId` filtering.
 - A confirmed, undelivered order is required for any transition. Wrong stages/delivered/cancelled are 409; invalid IDs/bodies are 422. UI neither implements parallel state machines nor supports stage-skipping/drag-drop.
 
 ## QA

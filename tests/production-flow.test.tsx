@@ -34,12 +34,17 @@ const adapter:AxiosAdapter=async(config)=>{
       status:1,statusLabel:"نشط",permissions};
     return response(config,user);
   }
-  if(url==="/selects"&&query.get("selects")==="activeCustomers,printingLocations") return response(config,[
+  if(url==="/selects"&&query.get("selects")==="activeCustomers,printingServices,printingLocations") return response(config,[
     {label:"activeCustomers",options:[{value:5,label:"أحمد"},{value:6,label:"محمد"}]},
+    {label:"printingServices",options:[{value:101,label:"رول أب"},{value:103,label:"كروت شخصية"}]},
     {label:"printingLocations",options:[{value:7,label:"المطبعة الرئيسية"},{value:8,label:"فرع آخر"}]},
   ]);
   if(url==="/production/summary") {
-    const count=(stage:number)=>items.filter(item=>item.productionStage===stage).length;
+    const service=query.get("filter[serviceId]");
+    const customer=query.get("filter[customerId]");
+    const matching=items.filter(item=>(!service||item.serviceId===Number(service))&&
+      (!customer||item.customerId===Number(customer)));
+    const count=(stage:number)=>matching.filter(item=>item.productionStage===stage).length;
     return response(config,{
       notStartedCount:count(0), designInProgressCount:count(1),designCompletedCount:count(2),
       printingCount:count(3),readyCount:count(4),lateOrdersCount:1,
@@ -51,6 +56,8 @@ const adapter:AxiosAdapter=async(config)=>{
     let filtered=items.filter(item=>stages.includes(item.productionStage));
     const customer=query.get("filter[customerId]");
     if(customer) filtered=filtered.filter(item=>item.customerId===Number(customer));
+    const service=query.get("filter[serviceId]");
+    if(service) filtered=filtered.filter(item=>item.serviceId===Number(service));
     if(query.get("filter[lateOnly]")==="1")filtered=filtered.filter(item=>item.isLate);
     const search=(query.get("filter[search]")??"").trim();
     if(search)filtered=filtered.filter(item=>[item.orderNumber,item.customerName,item.customerPhone,item.serviceName].some(s=>s.includes(search)));
@@ -184,6 +191,27 @@ describe("Production board against Laravel API contracts",()=>{
     const dialog=await screen.findByRole("dialog",{name:"تفاصيل عنصر الإنتاج"});
     expect(within(dialog).queryByRole("tab",{name:"سجل الحركات"})).toBeNull();
     expect(calls.some(c=>c.url==="/production/summary")).toBe(false);
+  });
+
+  it("filters production cards and summary counts by selected searchable printing service", async()=>{
+    visit();
+    const user=userEvent.setup();
+    expect(await screen.findByText("رول أب")).toBeTruthy();
+    await user.click(screen.getByRole("combobox",{name:"تصفية حسب الخدمة"}));
+    await user.click(await screen.findByRole("option",{name:"كروت شخصية"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/production/items" &&
+      c.query.get("filter[serviceId]")==="103")).toBe(true));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/production/summary" &&
+      c.query.get("filter[serviceId]")==="103")).toBe(true));
+    const design=screen.getByRole("region",{name:"عمود التصميم"});
+    expect(await within(design).findByText("كروت شخصية")).toBeTruthy();
+    await waitFor(()=>expect(within(design).queryByText("بنر")).toBeNull());
+    expect(within(design).queryByText("فلاير")).toBeNull();
+    // Changing this filter clears page selection and supports resetting all filters.
+    await user.click(screen.getByRole("button",{name:"مسح الفلاتر"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/production/items" &&
+      c.query.has("filter[serviceId]")===false)).toBe(true));
+    expect(screen.getByRole("combobox",{name:"تصفية حسب الخدمة"}).getAttribute("value")??"").toBe("");
   });
 
   it("passes customer, late-only and personal-work filters exactly as required",async()=>{

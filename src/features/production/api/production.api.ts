@@ -10,6 +10,7 @@ function filterParams(filters: ProductionFilters): URLSearchParams {
   const params = new URLSearchParams();
   if (filters.search.trim()) params.set("filter[search]", filters.search.trim());
   if (filters.customerId) params.set("filter[customerId]", String(filters.customerId));
+  if (filters.serviceId) params.set("filter[serviceId]", String(filters.serviceId));
   if (filters.myDesignWork) params.set("filter[myDesignWork]", filters.myDesignWork);
   if (filters.lateOnly) params.set("filter[lateOnly]", "1");
   return params;
@@ -38,11 +39,11 @@ export async function getProductionHistory(itemId: number, page: number): Promis
   });
   return data.data;
 }
-export async function getProductionSelects(): Promise<{ customers: SelectOption[]; locations: SelectOption[] }> {
+export async function getProductionSelects(): Promise<{ customers: SelectOption[]; services: SelectOption[]; locations: SelectOption[] }> {
   // Active customers drive the optional filter. Free-text search also finds customers
   // who were subsequently disabled.
   const { data } = await apiClient.get<ApiResponse<{ label: string; options: SelectOption[] }[]>>(
-    "/selects", { params: { selects: "activeCustomers,printingLocations" } },
+    "/selects", { params: { selects: "activeCustomers,printingServices,printingLocations" } },
   );
   const groups = data.data;
   if (!Array.isArray(groups)) throw new Error("تعذّر تحميل قوائم الاختيار.");
@@ -51,7 +52,7 @@ export async function getProductionSelects(): Promise<{ customers: SelectOption[
     if (!Array.isArray(options)) throw new Error(`تعذّر تحميل قائمة ${name}.`);
     return options;
   };
-  return { customers: get("activeCustomers"), locations: get("printingLocations") };
+  return { customers: get("activeCustomers"), services: get("printingServices"), locations: get("printingLocations") };
 }
 export async function runProductionAction(
   action: ProductionAction, itemId: number, idempotencyKey: string, printingLocationId?: number,

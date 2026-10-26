@@ -94,6 +94,7 @@ export function ProductionPage() {
   const [searchInput,setSearchInput]=useState("");
   const [search,setSearch]=useState("");
   const [customerId,setCustomerId]=useState("");
+  const [serviceId,setServiceId]=useState("");
   const [myDesignWork,setMyDesignWork]=useState<ProductionFilters["myDesignWork"]>("");
   const [lateOnly,setLateOnly]=useState(false);
   const [sort,setSort]=useState<ProductionFilters["sort"]>("dueDate");
@@ -105,7 +106,8 @@ export function ProductionPage() {
   const actions=useProductionActions();
   const busy=actions.single.isPending||actions.batch.isPending;
   const filters:ProductionFilters={
-    search,customerId:customerId?Number(customerId):null,myDesignWork,lateOnly,sort,
+    search,customerId:customerId?Number(customerId):null,
+    serviceId:serviceId?Number(serviceId):null,myDesignWork,lateOnly,sort,
   };
   const summary=useProductionSummary(filters,can("production.summary.view"));
   const selects=useProductionSelects(true);
@@ -117,7 +119,7 @@ export function ProductionPage() {
   useEffect(()=>{
     setPages({0:1,1:1,2:1,3:1});
     setSelected(new Set());
-  },[search,customerId,myDesignWork,lateOnly,sort]);
+  },[search,customerId,serviceId,myDesignWork,lateOnly,sort]);
 
   function choose(id:number,checked:boolean) {
     setSelected(previous=>{
@@ -157,7 +159,7 @@ export function ProductionPage() {
     setPending(null);
   }
   function reset() {
-    setSearchInput("");setSearch("");setCustomerId("");setMyDesignWork("");setLateOnly(false);setSort("dueDate");
+    setSearchInput("");setSearch("");setCustomerId("");setServiceId("");setMyDesignWork("");setLateOnly(false);setSort("dueDate");
   }
   return <div className="space-y-5">
     <SectionHeader title="لوحة الإنتاج" detail="متابعة عناصر الأوردرات المؤكدة من بدء التصميم حتى الجاهزية للتسليم."
@@ -166,7 +168,7 @@ export function ProductionPage() {
           void qc.invalidateQueries({queryKey:["production"]});
         }}><RotateCw className="size-4"/> تحديث</Button>}/>
     <section aria-label="فلاتر الإنتاج" className="space-y-3 rounded-2xl border bg-card p-4 shadow-sm">
-      <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.4fr)_minmax(190px,1fr)_minmax(160px,.9fr)]">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(240px,1.4fr)_repeat(3,minmax(155px,1fr))]">
         <label className="relative block">
           <span className="sr-only">البحث في الإنتاج</span>
           <Search className="pointer-events-none absolute right-3 top-3.5 size-4 text-muted-foreground"/>
@@ -176,6 +178,9 @@ export function ProductionPage() {
         <SearchableSelect label="تصفية حسب العميل" placeholder="كل العملاء — ابحث..."
           options={selects.data?.customers??[]} value={customerId} onChange={setCustomerId}
           loading={selects.isPending}/>
+        <SearchableSelect label="تصفية حسب الخدمة" placeholder="كل الخدمات — ابحث..."
+          options={selects.data?.services??[]} value={serviceId} onChange={setServiceId}
+          loading={selects.isPending} disabled={selects.isError}/>
         <select className={fieldClass} aria-label="فلتر أعمال التصميم" value={myDesignWork}
           onChange={e=>setMyDesignWork(e.target.value as ProductionFilters["myDesignWork"])}>
           <option value="">كل أعمال التصميم</option>
@@ -200,7 +205,7 @@ export function ProductionPage() {
         <Button variant="ghost" size="sm" onClick={reset}>مسح الفلاتر</Button>
       </div>
       {selects.isError && <div role="alert" className="text-xs text-destructive">
-        تعذّر تحميل قوائم العملاء وأماكن الطباعة.
+        تعذّر تحميل قوائم العملاء والخدمات وأماكن الطباعة.
         <button className="mr-2 underline" type="button" onClick={()=>void selects.refetch()}>إعادة المحاولة</button>
       </div>}
     </section>
