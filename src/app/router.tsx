@@ -48,7 +48,7 @@ export function AppRouter() {
 
         <Route element={<RequireAuth />}>
           <Route element={<AppShell />}>
-            <Route index element={<FoundationPage />} />
+            <Route index element={<DashboardPage />} />
 
             <Route path="production" element={<RequirePermission anyOf={featureAccessPolicy.production}><Suspense fallback={<AuthLoading />}><ProductionPage /></Suspense></RequirePermission>} />
             <Route path="deliveries" element={<RequirePermission anyOf={featureAccessPolicy.deliveries}><Suspense fallback={<AuthLoading />}><DeliveriesPage /></Suspense></RequirePermission>} />
