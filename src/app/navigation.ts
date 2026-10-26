@@ -19,7 +19,7 @@ export type NavigationGroup = {
 
 /** Real permission names from printingApi Identity/Orders/Production/Finance seeders. */
 export const navigationGroups: NavigationGroup[] = [
-  { label: "الرئيسية", items: [{ to: "/", label: "لوحة التحكم", icon: LayoutDashboard }] },
+  { label: "الرئيسية", items: [{ to: "/", label: "لوحة التحكم", icon: LayoutDashboard, anyOf: ["orders.list"] }] },
   {
     label: "إدارة العمل",
     items: [
