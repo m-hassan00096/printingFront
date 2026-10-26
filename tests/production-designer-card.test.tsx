@@ -27,6 +27,7 @@ describe("Production designer visibility on Kanban cards", () => {
     expect(within(card).getByText("المصمم المسؤول")).toBeTruthy();
     expect(within(card).getByText("أحمد محمد")).toBeTruthy();
     expect(within(card).getByText("قيد التصميم")).toBeTruthy();
+    expect(within(card).getByText("الكمية: 50")).toBeTruthy();
   });
 
   it("identifies who actually completed design, distinct from the employee who started", () => {

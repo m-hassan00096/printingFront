@@ -74,7 +74,7 @@ export function ProductionItemCard({item,permissions,selected,busy,onSelect,onAc
     <div className="flex flex-wrap items-start justify-between gap-2">
       <div className="min-w-0 space-y-1">
         <p className="truncate text-sm font-bold">{item.serviceName}</p>
-        <p className="text-xs text-muted-foreground">الكمية: {item.quantity.toLocaleString("ar-EG")}</p>
+        <p className="text-xs text-muted-foreground">الكمية: {item.quantity.toLocaleString("en-US")}</p>
         {stage===3 && <p className="text-xs text-muted-foreground">مكان الطباعة: {item.printingLocationName??"—"}</p>}
       </div>
       <StagePill stage={stage}/>
