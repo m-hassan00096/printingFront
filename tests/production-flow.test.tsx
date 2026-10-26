@@ -177,7 +177,28 @@ describe("Production board against Laravel API contracts",()=>{
     const dialog=await screen.findByRole("dialog",{name:"تفاصيل عنصر الإنتاج"});
     await user.click(within(dialog).getByRole("tab",{name:"سجل الحركات"}));
     expect(await within(dialog).findByText("تم إنهاء التصميم")).toBeTruthy();
+    expect(within(dialog).getByText("من قيد التصميم إلى تم التصميم")).toBeTruthy();
+    expect(within(dialog).queryByText("1 ← 2")).toBeNull();
     expect(calls.some(c=>c.url==="/production/items/103/history")).toBe(true);
+  });
+
+  it("keeps the API quantity identical on a Kanban card and in its details",async()=>{
+    visit();const user=userEvent.setup();
+    const design=await screen.findByRole("region",{name:"عمود التصميم"});
+    const card=await within(design).findByRole("article",{name:"عنصر بنر"});
+    expect(within(card).getByText("الكمية: 50")).toBeTruthy();
+    await user.click(within(card).getByRole("button",{name:"التفاصيل"}));
+    const dialog=await screen.findByRole("dialog",{name:"تفاصيل عنصر الإنتاج"});
+    expect(within(dialog).getByText("50")).toBeTruthy();
+  });
+
+  it("does not render unusable paging arrows on single-page or empty columns",async()=>{
+    visit();
+    const design=await screen.findByRole("region",{name:"عمود التصميم"});
+    expect(await within(design).findByText("بنر")).toBeTruthy();
+    expect(within(design).queryByRole("button",{name:"الصفحة التالية"})).toBeNull();
+    const ready=screen.getByRole("region",{name:"عمود جاهز للتسليم"});
+    expect(within(ready).queryByRole("button",{name:"الصفحة التالية"})).toBeNull();
   });
 
   it("hides unauthorized production transitions and history controls",async()=>{
