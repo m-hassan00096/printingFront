@@ -76,6 +76,25 @@ const simulatedBackend: AxiosAdapter = async (config) => {
     }});
   }
 
+  if (url === "/selects" && config.method === "get") {
+    return apiResponse(config, 200, {success:true,message:"",data:[
+      {label:"activeCustomers",options:[]},
+      {label:"printingServices",options:[]},
+      {label:"printingLocations",options:[]},
+    ]});
+  }
+  if (url === "/production/summary" && config.method === "get") {
+    return apiResponse(config, 200, {success:true,message:"",data:{
+      notStartedCount:0,designInProgressCount:0,designCompletedCount:0,
+      printingCount:0,readyCount:0,lateOrdersCount:0,
+    }});
+  }
+  if (url === "/production/items" && config.method === "get") {
+    return apiResponse(config, 200, {success:true,message:"",data:{
+      items:[],pagination:{currentPage:1,lastPage:1,perPage:20,total:0},
+    }});
+  }
+
   if (url === "/orders" && config.method === "get") {
     return apiResponse(config, 200, {
       success: true, message: "", data: {
@@ -159,6 +178,32 @@ describe("Auth browser workflows", () => {
     expect(window.location.pathname).toBe("/");
     expect(timesMeCalled).toBeGreaterThanOrEqual(2);
     expect(loginCalls).toBe(0);
+  });
+
+  it("redirects a production-only staff session from home to production", async () => {
+    serverUser = {
+      ...initialUser, username: "user1", role: "designers", roleAlias: "المصممين",
+      permissions: ["production.items.list", "production.summary.view"],
+    };
+    openPage("/");
+    expect(await screen.findByRole("heading", { name: "لوحة الإنتاج" })).toBeTruthy();
+    expect(window.location.pathname).toBe("/production");
+    expect(screen.queryByRole("heading", { name: "لوحة التحكم" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "التسليمات" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "الطلبات" })).toBeNull();
+  });
+
+  it("keeps reception at the dashboard when orders.list is available", async () => {
+    serverUser = {
+      ...initialUser, username: "accountant1", role: "reception", roleAlias: "الاستقبال",
+      permissions: ["customers.view", "orders.list", "orders.view",
+        "deliveries.ready.view", "deliveries.list", "deliveries.view", "finance.collections.view"],
+    };
+    openPage("/");
+    expect((await screen.findAllByRole("heading", { name: "لوحة التحكم" })).length).toBeGreaterThan(0);
+    expect(window.location.pathname).toBe("/");
+    expect(screen.queryByRole("link", { name: "الإنتاج" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "المستخدمون" })).toBeNull();
   });
 
   it("does not show protected content for a logged-in account lacking permissions", async () => {
