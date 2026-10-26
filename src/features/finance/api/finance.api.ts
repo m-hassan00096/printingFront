@@ -1,6 +1,6 @@
 import { apiClient } from "@/shared/api/http";
 import type { ApiResponse } from "@/shared/api/api-types";
-import type { AccountFilters, AccountLedger, OpeningBalanceInput, FinanceBalance, CustomerOption, AccountOverviewFilters, AccountOverview, OpeningStatus } from "../types/finance.types";
+import type { AccountFilters, AccountLedger, OpeningBalanceInput, FinanceBalance, CustomerOption, OpeningStatus } from "../types/finance.types";
 
 export async function financeCustomers():Promise<CustomerOption[]>{
   const {data}=await apiClient.get<ApiResponse<Array<{label:string;options:CustomerOption[]}>>>("/selects",{params:{selects:"customers"}});
@@ -25,14 +25,6 @@ export async function financeOpening(id:number,payload:OpeningBalanceInput):Prom
   await apiClient.post<ApiResponse<null>>(`/finance/customers/${id}/opening-balance`,payload);
 }
 
-export async function financeAccountOverview(filters:AccountOverviewFilters):Promise<AccountOverview>{
-  const params=new URLSearchParams({page:String(filters.page),perPage:"20",sort:filters.sort});
-  if(filters.search.trim())params.set("filter[search]",filters.search.trim());
-  if(filters.type!=="")params.set("filter[type]",filters.type);
-  const {data}=await apiClient.get<ApiResponse<AccountOverview>>("/finance/customer-balances",{params});
-  if(!Array.isArray(data.data?.accounts)||!data.data.pagination)throw Error("استجابة أرصدة العملاء غير صحيحة.");
-  return data.data;
-}
 export async function financeOpeningStatus(id:number):Promise<OpeningStatus>{
   const {data}=await apiClient.get<ApiResponse<OpeningStatus>>(`/finance/customers/${id}/opening-balance-status`);
   return data.data;
