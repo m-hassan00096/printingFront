@@ -68,6 +68,14 @@ const simulatedBackend: AxiosAdapter = async (config) => {
     return apiResponse(config, 200, { success: true, message: "", data: null });
   }
 
+  if (url === "/dashboard" && config.method === "get") {
+    return apiResponse(config, 200, {success:true,message:"",data:{
+      asOfDate:"2026-10-26",metrics:{activeOrders:0,overdueOrders:0,readyForDelivery:0,dueToday:0},
+      productionPressure:{notStarted:0,design:0,printing:0,ready:0},
+      attentionOrders:[],latestOrders:[],
+    }});
+  }
+
   if (url === "/orders" && config.method === "get") {
     return apiResponse(config, 200, {
       success: true, message: "", data: {
@@ -142,12 +150,12 @@ describe("Auth browser workflows", () => {
   it("recovers a valid cookie-backed session on reload without another login", async () => {
     serverUser = { ...initialUser };
     const view = openPage("/");
-    expect(await screen.findByText("كل طلب واضح، وكل خطوة في مكانها.")).toBeTruthy();
+    expect(await screen.findByText("ملخص العمل اليومي، الأوردرات التي تحتاج متابعة، وحالة الإنتاج.")).toBeTruthy();
     view.unmount();
 
     // A new React Query cache represents reloading the entire application.
     openPage("/");
-    expect(await screen.findByText("كل طلب واضح، وكل خطوة في مكانها.")).toBeTruthy();
+    expect(await screen.findByText("ملخص العمل اليومي، الأوردرات التي تحتاج متابعة، وحالة الإنتاج.")).toBeTruthy();
     expect(window.location.pathname).toBe("/");
     expect(timesMeCalled).toBeGreaterThanOrEqual(2);
     expect(loginCalls).toBe(0);
