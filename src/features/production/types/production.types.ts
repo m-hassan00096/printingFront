@@ -70,3 +70,11 @@ export const PRODUCTION_COLUMNS = [
   { id: 2, label: "الطباعة" },
   { id: 3, label: "جاهز للتسليم" },
 ] as const;
+
+/** Production-scoped details with no order financial fields. */
+export type ProductionItemDetails = {
+  id:number; orderId:number;serviceName:string;quantity:number;
+  specifications:string|null;
+  files:{id:number;name:string;extension:string;mimeType:string;sizeBytes:number;
+    url:string|null;createdAt:string|null}[];
+};
