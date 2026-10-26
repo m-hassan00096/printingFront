@@ -2,7 +2,7 @@ import { lazy, Suspense } from "react";
 import { featureAccessPolicy, identityAccessPolicy, printingServiceAccessPolicy } from "@/app/access-policy";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AppShell } from "@/app/layouts/app-shell";
-import { FoundationPage } from "@/app/pages/foundation-page";
+import { DashboardPage } from "@/features/dashboard/pages/dashboard-page";
 import { NotFoundPage } from "@/app/pages/not-found-page";
 import { GuestOnly } from "@/features/auth/components/guest-only";
 import { RequireAuth } from "@/features/auth/components/require-auth";
