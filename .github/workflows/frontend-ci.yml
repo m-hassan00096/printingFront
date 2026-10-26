@@ -10,6 +10,7 @@ on:
       - feature/settings
       - feature/customers
       - feature/printing-services
+      - feature/orders
   pull_request:
     branches:
       - develop
