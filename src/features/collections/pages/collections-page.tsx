@@ -4,7 +4,7 @@ import { ChevronDown, Eye, Plus, RefreshCw, SlidersHorizontal } from "lucide-rea
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
-import { EmptyState,ErrorState,LoadingState,PaginationBar,SectionHeader,fieldClass } from "@/features/identity/components/identity-ui";
+import { EmptyState,ErrorState,LoadingState,PaginationBar,SectionHeader } from "@/features/identity/components/identity-ui";
 import { CreateCollectionDialog,CollectionDetailsDialog } from "../components/collection-dialogs";
 import { CollectionDateField, formatCollectionDate } from "../components/collection-date-field";
 import { useCollections,useCollectionsSummary } from "../hooks/use-collections";
