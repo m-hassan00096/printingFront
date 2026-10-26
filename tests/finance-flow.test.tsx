@@ -141,7 +141,7 @@ describe("Finance account page against Laravel existing contracts",()=>{
   it("hides a previously registered opening balance, without relying on a disabled submit",async()=>{
     hasOpening=true;
     visit();
-    expect(await screen.findByText("الرصيد الافتتاحي مسجل بالفعل")).toBeTruthy();
+    expect(await screen.findByText("الرصيد الافتتاحي مسجل")).toBeTruthy();
     expect(screen.queryByRole("button",{name:"رصيد افتتاحي"})).toBeNull();
     expect(calls.some(c=>c.url==="/finance/customers/7/opening-balance-status")).toBe(true);
   });
