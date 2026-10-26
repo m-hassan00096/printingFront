@@ -231,7 +231,7 @@ export function FinancePage() {
           لا تملك صلاحية عرض الأرصدة أو كشف الحساب. يمكنك تنفيذ الإجراءات المالية المسموح بها فقط.
         </p>}
       </div>}
-      {!customerId && !canBalance && <section aria-label="اختيار حساب العميل"
+      {!canBalance && <section aria-label="اختيار حساب العميل"
         className="space-y-2 rounded-2xl border bg-card p-3">
         <label className="text-sm font-semibold">اختر العميل بالاسم أو الهاتف</label>
         <SearchableSelect label="اختيار حساب العميل" placeholder="بحث عن عميل..." value={rawId}
