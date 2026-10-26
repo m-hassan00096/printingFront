@@ -105,7 +105,7 @@ describe("Deliveries frontend against the existing Laravel contract",()=>{
   it("shows fully and partially ready orders without allowing partial handover",async()=>{
     visit();
     const user=userEvent.setup();
-    expect(await screen.findByText("رول أب")).toBeTruthy();
+    expect(await screen.findByText(/رول أب · كمية 50/)).toBeTruthy();
     expect(screen.getByText("جاهز جزئيًا")).toBeTruthy();
     expect(screen.getAllByRole("button",{name:"تسليم الأوردر"})).toHaveLength(1);
     await user.click(screen.getByRole("button",{name:"تسليم الأوردر"}));
