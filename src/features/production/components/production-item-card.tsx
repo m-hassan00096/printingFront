@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Eye, MoreHorizontal, Undo2 } from "lucide-react";
+import { Eye, MoreHorizontal, Undo2, UserRound } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { StagePill } from "./production-dialogs";
 import type { ProductionAction, ProductionItem } from "../types/production.types";
@@ -75,11 +75,29 @@ export function ProductionItemCard({item,permissions,selected,busy,onSelect,onAc
       <div className="min-w-0 space-y-1">
         <p className="truncate text-sm font-bold">{item.serviceName}</p>
         <p className="text-xs text-muted-foreground">الكمية: {item.quantity.toLocaleString("ar-EG")}</p>
-        {(stage===1||completed) && item.designerName && <p className="text-xs text-muted-foreground">المصمم: {item.designerName}</p>}
         {stage===3 && <p className="text-xs text-muted-foreground">مكان الطباعة: {item.printingLocationName??"—"}</p>}
       </div>
       <StagePill stage={stage}/>
     </div>
+    {(stage===1 || completed) && <div className="rounded-lg border border-border/70 bg-muted/40 px-2.5 py-2"
+      aria-label="مسؤول التصميم">
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background text-primary"
+          aria-hidden="true"><UserRound className="size-4"/></span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] text-muted-foreground">
+            {stage===1 ? "المصمم المسؤول" : item.designCompletedByName ? "أنهى التصميم" : "بدأ التصميم"}
+          </p>
+          <p className="truncate text-sm font-semibold" dir="auto"
+            title={(stage===2 ? item.designCompletedByName ?? item.designerName : item.designerName) ?? "غير محدد"}>
+            {(stage===2 ? item.designCompletedByName ?? item.designerName : item.designerName) || "غير محدد"}
+          </p>
+        </div>
+      </div>
+      {completed && item.designCompletedByName && item.designerName &&
+        item.designCompletedByName !== item.designerName &&
+        <p className="mt-1 text-xs text-muted-foreground">بدأ التصميم: <span dir="auto">{item.designerName}</span></p>}
+    </div>}
     <div className="flex flex-wrap items-center gap-2">
       {completed && printSend && <label className="flex cursor-pointer items-center gap-1 text-xs" title="تحديد للإرسال الجماعي">
         <input type="checkbox" aria-label={`تحديد ${item.serviceName} للإرسال`} checked={selected}
