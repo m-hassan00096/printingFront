@@ -34,17 +34,17 @@ describe("Production designer visibility on Kanban cards", () => {
     const card=show(2, {
       designCompletedById:12, designCompletedByName:"سارة علي",
     });
-    expect(within(card).getByText("أنهى التصميم")).toBeTruthy();
+    expect(within(card).getByText("أنهى التصميم:")).toBeTruthy();
     expect(within(card).getByText("سارة علي")).toBeTruthy();
-    expect(within(card).getByText("بدأ التصميم:")).toBeTruthy();
+    expect(within(card).getByText("المصمم المسؤول")).toBeTruthy();
     expect(within(card).getByText("أحمد محمد")).toBeTruthy();
   });
 
   it("does not claim completion by the original designer if completion identity is missing", () => {
     const card=show(2);
-    expect(within(card).getByText("بدأ التصميم")).toBeTruthy();
+    expect(within(card).getByText("المصمم المسؤول")).toBeTruthy();
     expect(within(card).getByText("أحمد محمد")).toBeTruthy();
-    expect(within(card).queryByText("أنهى التصميم")).toBeNull();
+    expect(within(card).queryByText("أنهى التصميم:")).toBeNull();
   });
 
   it("provides a visible fallback if assignment name is unavailable", () => {
@@ -58,6 +58,13 @@ describe("Production designer visibility on Kanban cards", () => {
     cleanup();
     const printing=show(3);
     expect(within(printing).queryByText("المصمم المسؤول")).toBeNull();
-    expect(within(printing).queryByText("أنهى التصميم")).toBeNull();
+    expect(within(printing).queryByText("أنهى التصميم:")).toBeNull();
+    expect(within(printing).getByText("مكان الطباعة: —")).toBeTruthy();
+  });
+
+  it("shows the server quantity consistently after design is completed", () => {
+    const card=show(2,{quantity:125,designCompletedByName:"سارة علي"});
+    expect(within(card).getByText("الكمية: 125")).toBeTruthy();
+    expect(within(card).getByText("أحمد محمد")).toBeTruthy();
   });
 });
