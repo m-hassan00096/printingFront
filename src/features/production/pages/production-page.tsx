@@ -47,6 +47,10 @@ function ProductionColumn({ column, filters, page, onPage, count, countLoading,
   visible:boolean;
 }) {
   const result=useProductionColumn(column,filters,page);
+  useEffect(()=>{
+    const lastPage=result.data?.pagination.lastPage;
+    if(lastPage && page>lastPage)onPage(lastPage);
+  },[page,result.data?.pagination.lastPage,onPage]);
   const groups=new Map<number,ProductionItem[]>();
   for(const item of result.data?.items??[]) {
     const group=groups.get(item.orderId)??[];
@@ -60,7 +64,7 @@ function ProductionColumn({ column, filters, page, onPage, count, countLoading,
       <span className="min-w-7 rounded-full bg-card px-2 py-1 text-center text-xs font-bold tabular-nums"
         aria-label={`عدد عناصر ${label}`}>{countLoading?"…":count??"—"}</span>
     </header>
-    <div className="space-y-3 p-2.5">
+    <div className="space-y-2 p-2.5">
       {result.isPending ? <LoadingState/> : result.isError ?
         <ErrorState error={result.error} retry={()=>void result.refetch()}/> :
         groups.size===0 ?
@@ -69,7 +73,7 @@ function ProductionColumn({ column, filters, page, onPage, count, countLoading,
           </div> :
         [...groups.entries()].map(([orderId,items])=>
           <div key={orderId} className="overflow-hidden rounded-xl border bg-card shadow-sm">
-            <header className="space-y-1 border-b bg-card px-3 py-3">
+            <header className="space-y-0.5 border-b bg-card px-3 py-2.5">
               <p className="text-sm font-bold">{items[0].orderNumber}</p>
               <p className="truncate text-xs font-semibold" title={items[0].customerName}>{items[0].customerName}</p>
               <p className="text-xs text-muted-foreground">{items[0].customerPhone}</p>
@@ -82,7 +86,12 @@ function ProductionColumn({ column, filters, page, onPage, count, countLoading,
               onAction={(action,i)=>onAction(i,action)}/>)}
           </div>)}
     </div>
-    {result.data && <PaginationBar pagination={result.data.pagination} onPage={onPage}/>}
+    {result.data && result.data.pagination.lastPage>1 &&
+      <PaginationBar pagination={result.data.pagination} onPage={onPage}/>}
+    {result.data && result.data.pagination.lastPage<=1 && result.data.pagination.total>0 &&
+      <p className="border-t px-3 py-2 text-xs text-muted-foreground">
+        إجمالي النتائج: {result.data.pagination.total.toLocaleString("ar-EG")}
+      </p>}
   </section>;
 }
 
@@ -167,8 +176,8 @@ export function ProductionPage() {
         onClick={()=>{
           void qc.invalidateQueries({queryKey:["production"]});
         }}><RotateCw className="size-4"/> تحديث</Button>}/>
-    <section aria-label="فلاتر الإنتاج" className="space-y-3 rounded-2xl border bg-card p-4 shadow-sm">
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(240px,1.4fr)_repeat(3,minmax(155px,1fr))]">
+    <section aria-label="فلاتر الإنتاج" className="space-y-2 rounded-2xl border bg-card p-3 shadow-sm sm:p-4">
+      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(240px,1.4fr)_repeat(3,minmax(155px,1fr))]">
         <label className="relative block">
           <span className="sr-only">البحث في الإنتاج</span>
           <Search className="pointer-events-none absolute right-3 top-3.5 size-4 text-muted-foreground"/>
@@ -188,7 +197,7 @@ export function ProductionPage() {
           <option value="2">أنهيتها أنا</option>
         </select>
       </div>
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
           <input type="checkbox" checked={lateOnly} onChange={e=>setLateOnly(e.target.checked)}/>
           المتأخرة فقط
@@ -219,7 +228,7 @@ export function ProductionPage() {
         ["أوردرات متأخرة",summary.data.lateOrdersCount],
       ].map(([label,n])=><div key={label} className="rounded-xl border bg-card p-3 shadow-sm">
         <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="mt-2 text-xl font-bold tabular-nums">{n}</p>
+        <p className="mt-1 text-xl font-bold tabular-nums">{n}</p>
       </div>)}
     </div>}
     {can("production.summary.view") && summary.isError && <div className="rounded-xl border p-2">
