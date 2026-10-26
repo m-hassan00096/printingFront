@@ -9,7 +9,7 @@ import type { AuthUser } from "@/features/auth/types/auth.types";
 const original=apiClient.defaults.adapter;
 let permissions=["finance.balances.view","finance.ledger.view","finance.opening_balances.create"];
 let balance={customerId:7,amount:"250.00",type:1,typeLabel:"مدين"};
-let ledgerEntries=[{
+const ledgerEntries=[{
   id:100,type:2,typeLabel:"تحصيل",amount:"50.00",signedAmount:"-50.00",
   orderId:null,collectionId:12,refundId:null,effectiveDate:"2026-10-26",
   note:"سداد دين",createdAt:"2026-10-26T10:00:00+03:00",
