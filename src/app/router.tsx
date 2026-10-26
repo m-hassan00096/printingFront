@@ -2,7 +2,6 @@ import { lazy, Suspense } from "react";
 import { featureAccessPolicy, identityAccessPolicy, printingServiceAccessPolicy } from "@/app/access-policy";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AppShell } from "@/app/layouts/app-shell";
-import { FeaturePlaceholderPage } from "@/app/pages/feature-placeholder-page";
 import { FoundationPage } from "@/app/pages/foundation-page";
 import { NotFoundPage } from "@/app/pages/not-found-page";
 import { GuestOnly } from "@/features/auth/components/guest-only";
@@ -32,14 +31,12 @@ const OrderDetailPage = lazy(async () => ({ default: (await import("@/features/o
 const ProductionPage = lazy(async () => ({ default: (await import("@/features/production/pages/production-page")).ProductionPage }));
 const DeliveriesPage = lazy(async () => ({ default: (await import("@/features/deliveries/pages/deliveries-page")).DeliveriesPage }));
 const CollectionsPage = lazy(async () => ({ default: (await import("@/features/collections/pages/collections-page")).CollectionsPage }));
+const FinancePage = lazy(async () => ({ default: (await import("@/features/finance/pages/finance-page")).FinancePage }));
 
 function LazyIdentity({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<AuthLoading />}>{children}</Suspense>;
 }
 
-const featurePaths = [
-  { path: "finance", key: "finance" as const, permissions: featureAccessPolicy.finance },
-];
 
 export function AppRouter() {
   return (
@@ -52,21 +49,11 @@ export function AppRouter() {
         <Route element={<RequireAuth />}>
           <Route element={<AppShell />}>
             <Route index element={<FoundationPage />} />
-            {featurePaths.map(({ path, key, permissions }) => (
-              <Route
-                key={path}
-                path={path}
-                element={
-                  <RequirePermission anyOf={permissions}>
-                    <FeaturePlaceholderPage featureKey={key} />
-                  </RequirePermission>
-                }
-              />
-            ))}
 
             <Route path="production" element={<RequirePermission anyOf={featureAccessPolicy.production}><Suspense fallback={<AuthLoading />}><ProductionPage /></Suspense></RequirePermission>} />
             <Route path="deliveries" element={<RequirePermission anyOf={featureAccessPolicy.deliveries}><Suspense fallback={<AuthLoading />}><DeliveriesPage /></Suspense></RequirePermission>} />
             <Route path="collections" element={<RequirePermission anyOf={featureAccessPolicy.collections}><Suspense fallback={<AuthLoading />}><CollectionsPage /></Suspense></RequirePermission>} />
+            <Route path="finance" element={<RequirePermission anyOf={featureAccessPolicy.finance}><Suspense fallback={<AuthLoading />}><FinancePage /></Suspense></RequirePermission>} />
             <Route path="orders" element={<RequirePermission anyOf={featureAccessPolicy.orders}><Suspense fallback={<AuthLoading />}><OrdersPage /></Suspense></RequirePermission>} />
             <Route path="orders/new" element={<RequirePermission anyOf={["orders.create"]}><Suspense fallback={<AuthLoading />}><OrderCreatePage /></Suspense></RequirePermission>} />
             <Route path="orders/:id" element={<RequirePermission anyOf={["orders.view"]}><Suspense fallback={<AuthLoading />}><OrderDetailPage /></Suspense></RequirePermission>} />
