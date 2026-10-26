@@ -35,11 +35,18 @@ export function useDeliveryActions() {
   }
   const refresh = async () => {
     await Promise.all([
-      client.invalidateQueries({ queryKey: ["deliveries"] }),
+      client.invalidateQueries({ queryKey: deliveryKeys.ready }),
+      client.invalidateQueries({ queryKey: deliveryKeys.history }),
       client.invalidateQueries({ queryKey: ["orders"] }),
       client.invalidateQueries({ queryKey: ["production"] }),
       client.invalidateQueries({ queryKey: ["finance"] }),
       client.invalidateQueries({ queryKey: ["customers"] }),
+    ]);
+    // The active preview is no longer eligible after handover. Mark it stale
+    // without immediately requesting a now-404 resource before the modal closes.
+    await Promise.all([
+      client.invalidateQueries({ queryKey: ["deliveries", "preview"], refetchType: "none" }),
+      client.invalidateQueries({ queryKey: ["deliveries", "detail"], refetchType: "none" }),
     ]);
   };
   const deliver = useMutation({
