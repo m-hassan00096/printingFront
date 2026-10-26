@@ -19,7 +19,7 @@ export type NavigationGroup = {
 
 /** Real permission names from printingApi Identity/Orders/Production/Finance seeders. */
 export const navigationGroups: NavigationGroup[] = [
-  { label: "الرئيسية", items: [{ to: "/", label: "نظرة عامة", icon: LayoutDashboard }] },
+  { label: "الرئيسية", items: [{ to: "/", label: "لوحة التحكم", icon: LayoutDashboard }] },
   {
     label: "إدارة العمل",
     items: [
@@ -71,5 +71,5 @@ export function getPageTitle(pathname: string): string {
   if (pathname.startsWith("/customers/")) return "تفاصيل العميل";
   if (pathname.startsWith("/users/")) return pathname.endsWith("/edit") ? "تعديل مستخدم" : pathname === "/users/new" ? "إضافة مستخدم" : "تفاصيل المستخدم";
   if (pathname.startsWith("/roles/")) return pathname === "/roles/new" ? "إضافة دور" : "تعديل الدور";
-  return pathname === "/" ? "نظرة عامة" : "طَبعة";
+  return pathname === "/" ? "لوحة التحكم" : "طَبعة";
 }

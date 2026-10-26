@@ -36,7 +36,7 @@ export function AppShell() {
         </main>
         <footer className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 px-4 pb-6 text-xs text-muted-foreground sm:px-6 lg:px-8">
           <span>طَبعة · إدارة الطباعة بوضوح</span>
-          <span>الواجهة قيد التأسيس</span>
+          <span>لوحة تشغيل يومية</span>
         </footer>
       </div>
     </div>
