@@ -126,6 +126,8 @@ export function DashboardPage(){
   const query=useDashboard(canOrders);
   const qc=useQueryClient();
   const data=query.data;
+  // Designers work only in production; skip the order KPI home page entirely.
+  if(!canOrders&&canProduction)return <Navigate to="/production" replace/>;
   return <div className="space-y-5">
     <SectionHeader title="لوحة التحكم" detail="ملخص العمل اليومي، الأوردرات التي تحتاج متابعة، وحالة الإنتاج."
       actions={<div className="flex flex-wrap gap-2">
