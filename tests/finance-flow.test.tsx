@@ -9,10 +9,12 @@ import type { AuthUser } from "@/features/auth/types/auth.types";
 const original=apiClient.defaults.adapter;
 let permissions=["finance.balances.view","finance.ledger.view","finance.opening_balances.create"];
 let balance={customerId:7,amount:"250.00",type:1,typeLabel:"مدين"};
+let hasOpening=false;
 const ledgerEntries=[{
   id:100,type:2,typeLabel:"تحصيل",amount:"50.00",signedAmount:"-50.00",
   orderId:null,collectionId:12,refundId:null,effectiveDate:"2026-10-26",
   note:"سداد دين",createdAt:"2026-10-26T10:00:00+03:00",
+  runningBalance:{amount:"250.00",type:1,typeLabel:"مدين"},
 }];
 let calls:{url:string;method:string;params:URLSearchParams;body:Record<string,unknown>}[]=[];
 function ok(config:InternalAxiosRequestConfig,data:unknown):AxiosResponse{
@@ -32,13 +34,28 @@ const adapter:AxiosAdapter=async config=>{
   if(url==="/selects"&&params.get("selects")==="customers")return ok(config,[
     {label:"customers",options:[{value:7,label:"أحمد خالد - 01012345678"},{value:8,label:"مؤسسة النور - 01112345678"}]},
   ]);
-  if(url==="/finance/customers/7/balance"&&method==="get")return ok(config,balance);
+  if(url==="/finance/customer-balances"&&method==="get"){
+    let accounts=[
+      {customerId:7,customerName:"أحمد خالد",customerPhone:"01012345678",amount:balance.amount,type:balance.type,typeLabel:balance.typeLabel,openingBalanceExists:hasOpening},
+      {customerId:8,customerName:"مؤسسة النور",customerPhone:"01112345678",amount:"20.00",type:2,typeLabel:"دائن",openingBalanceExists:true},
+    ];
+    const search=params.get("filter[search]");
+    if(search)accounts=accounts.filter(x=>(x.customerName+" "+x.customerPhone).includes(search));
+    const type=params.get("filter[type]");
+    if(type!==null)accounts=accounts.filter(x=>String(x.type)===type);
+    return ok(config,{accounts,pagination:{currentPage:1,lastPage:1,perPage:20,total:accounts.length}});
+  }
+  if(url==="/finance/customers/7/opening-balance-status"&&method==="get")
+    return ok(config,{customerId:7,openingBalanceExists:hasOpening});
+  if(url==="/finance/customers/7/balance"&&method==="get")return ok(config,{...balance,openingBalanceExists:hasOpening});
   if(url==="/finance/customers/7/ledger"&&method==="get")return ok(config,{
     entries:params.get("filter[type]")==="6"?[]:ledgerEntries,
     balance:{amount:balance.amount,type:balance.type,typeLabel:balance.typeLabel},
+    openingBalanceExists:hasOpening,
     pagination:{currentPage:1,lastPage:1,perPage:20,total:params.get("filter[type]")==="6"?0:1},
   });
   if(url==="/finance/customers/7/opening-balance"&&method==="post"){
+    hasOpening=true;
     balance={customerId:7,amount:String(body.amount),type:Number(body.type),typeLabel:Number(body.type)===1?"مدين":"دائن"};
     return ok(config,null);
   }
@@ -53,6 +70,7 @@ beforeEach(()=>{
   permissions=["finance.balances.view","finance.ledger.view","finance.opening_balances.create"];
   balance={customerId:7,amount:"250.00",type:1,typeLabel:"مدين"};
   calls=[];
+  hasOpening=false;
 });
 afterEach(()=>{apiClient.defaults.adapter=original;});
 describe("Finance account page against Laravel existing contracts",()=>{
@@ -91,6 +109,31 @@ describe("Finance account page against Laravel existing contracts",()=>{
     await waitFor(()=>expect(calls.some(c=>c.url==="/finance/customers/7/opening-balance"&&c.method==="post")).toBe(true));
     expect(calls.find(c=>c.url==="/finance/customers/7/opening-balance"&&c.method==="post")?.body)
       .toEqual({type:2,amount:"150.50"});
+  });
+  it("opens an aggregated accounts list by default without N+1 balance fetches",async()=>{
+    visit("");
+    expect(await screen.findByText("أرصدة العملاء")).toBeTruthy();
+    expect(await screen.findByText("مؤسسة النور")).toBeTruthy();
+    expect(screen.getByText("2 عميل")).toBeTruthy();
+    expect(calls.some(c=>c.url==="/finance/customer-balances")).toBe(true);
+    expect(calls.some(c=>c.url.includes("/finance/customers/7/balance"))).toBe(false);
+    const user=userEvent.setup();
+    await user.selectOptions(screen.getByRole("combobox",{name:"فلتر نوع الرصيد"}),"2");
+    await waitFor(()=>expect(calls.some(c=>c.url==="/finance/customer-balances"&&c.params.get("filter[type]")==="2")).toBe(true));
+    expect(await screen.findByText("مؤسسة النور")).toBeTruthy();
+  });
+  it("hides a previously registered opening balance, without relying on a disabled submit",async()=>{
+    hasOpening=true;
+    visit();
+    expect(await screen.findByText("الرصيد الافتتاحي مسجل بالفعل")).toBeTruthy();
+    expect(screen.queryByRole("button",{name:"رصيد افتتاحي"})).toBeNull();
+    expect(calls.some(c=>c.url==="/finance/customers/7/opening-balance-status")).toBe(true);
+  });
+  it("shows server-calculated running balances rather than summing filtered rows",async()=>{
+    visit();
+    await screen.findByText("سداد دين");
+    expect(screen.getByText("الرصيد بعد الحركة")).toBeTruthy();
+    expect(screen.getAllByText(/250.00 ج.م/).length).toBeGreaterThan(0);
   });
   it("keeps account selection independent from Customers read permission",async()=>{
     permissions=["finance.ledger.view"];
