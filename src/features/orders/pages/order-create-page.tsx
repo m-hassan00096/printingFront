@@ -44,6 +44,7 @@ export function OrderCreatePage() {
   const permissions = session?.permissions ?? [];
   const canConfirm = permissions.includes("orders.confirm");
   const canAddCustomer = permissions.includes("customers.create");
+  const canEditCustomer = permissions.includes("customers.update") && permissions.includes("customers.view");
   const actions = useOrderActions();
   const nextKey = useRef(1);
   const submission = useRef<{ fingerprint: string; key: string } | null>(null);
@@ -51,6 +52,7 @@ export function OrderCreatePage() {
   const [customerId, setCustomerId] = useState("");
   const [newCustomer, setNewCustomer] = useState<Customer | null>(null);
   const [customerModal, setCustomerModal] = useState(false);
+  const [editCustomer, setEditCustomer] = useState(false);
   const [source, setSource] = useState<"0" | "1">("0");
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
@@ -260,7 +262,11 @@ export function OrderCreatePage() {
               disabled={busy || choices.isPending || choices.isError}
               onCreate={canAddCustomer ? () => setCustomerModal(true) : undefined} createLabel="إضافة عميل جديد" />
             {message("customerId")}
-            {selectedCustomer && <p className="text-xs text-muted-foreground">نوع العميل: {selectedCustomer.customerType?.name ?? "حسب الملف المسجل"}</p>}
+            {selectedCustomer && <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground">نوع العميل: {selectedCustomer.customerType?.name ?? "حسب الملف المسجل"}</p>
+              {canEditCustomer && <Button type="button" variant="ghost" size="sm" disabled={busy}
+                onClick={() => setEditCustomer(true)}>تعديل بيانات العميل</Button>}
+            </div>}
           </div>
           <label className="text-sm font-semibold">مصدر الأوردر
             <select aria-label="مصدر الأوردر" className={fieldClass + " mt-2"} value={source} disabled={busy}
@@ -438,6 +444,13 @@ export function OrderCreatePage() {
         </div>
       </footer>
     </form>
+    {editCustomer && selectedCustomer && <CustomerFormModal customer={selectedCustomer}
+      onClose={() => setEditCustomer(false)} onSaved={(id) => {
+        setNewCustomer(null);
+        resetSuggestions();
+        void qc.invalidateQueries({queryKey:["orders","create-selects"]});
+        void qc.invalidateQueries({queryKey:["orders","selected-customer",String(id)]});
+      }} />}
     {customerModal && <CustomerFormModal onClose={() => setCustomerModal(false)}
       onSaved={(id, created) => {
         if (created) setNewCustomer(created);
