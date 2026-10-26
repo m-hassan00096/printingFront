@@ -33,6 +33,7 @@ export function OrderDetailPage() {
   const [editItem, setEditItem] = useState<OrderItem | "new" | null>(null);
   const [editHeader, setEditHeader] = useState(false);
   const [paymentDialog, setPaymentDialog] = useState<"plan" | "confirm" | null>(null);
+  const [returnToReview, setReturnToReview] = useState(false);
   const [deposit, setDeposit] = useState("0");
   const [overpaymentAcknowledged, setOverpaymentAcknowledged] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"0" | "1" | "2">("0");
@@ -40,17 +41,30 @@ export function OrderDetailPage() {
   const destinations = useQuery({
     queryKey: ["orders", "payment-destinations"],
     queryFn: getOrderPaymentOptions,
-    enabled: paymentDialog !== null && Number(deposit) > 0 && paymentMethod !== "0",
+    enabled: (paymentDialog !== null && Number(deposit) > 0 && paymentMethod !== "0") ||
+      (order.data?.status === 0 && Number(order.data.plannedDepositAmount ?? "0") > 0 &&
+        order.data.plannedPaymentMethod !== 0 && order.data.plannedPaymentMethod !== null),
   });
   const activeDestinations = paymentMethod === "1" ? destinations.data?.banks ?? [] : destinations.data?.wallets ?? [];
   const defaultDestination = activeDestinations.find((option) => Number(option.isDefault) === 1) ?? activeDestinations[0];
-  const chosenDestination = activeDestinations.some((opt) => String(opt.value) === paymentDestinationId)
-    ? paymentDestinationId : (defaultDestination ? String(defaultDestination.value) : "");
+  const chosenDestination = paymentDestinationId
+    ? (activeDestinations.some((opt) => String(opt.value) === paymentDestinationId) ? paymentDestinationId : "")
+    : (defaultDestination ? String(defaultDestination.value) : "");
+  const savedPaymentOptions = order.data?.plannedPaymentMethod === 1
+    ? destinations.data?.banks ?? [] : destinations.data?.wallets ?? [];
+  const savedDestinationLabel = savedPaymentOptions.find(
+    (option) => option.value === order.data?.plannedPaymentDestinationId)?.label;
+  const plannedAmount = order.data?.plannedDepositAmount ?? "0";
+  const plannedRemaining = order.data
+    ? Math.max(0, Number(order.data.totalAmount) - Number(plannedAmount)) : 0;
+  const paymentLabel = (method: number | null | undefined) =>
+    method === 1 ? "تحويل بنكي" : method === 2 ? "محفظة إلكترونية" : "نقدي";
+  const paymentIsBusy = actions.update.isPending || actions.confirm.isPending;
   const [reason, setReason] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
   const [deleteItem, setDeleteItem] = useState<OrderItem | null>(null);
   const [error, setError] = useState("");
-  const confirmKey = useRef(crypto.randomUUID());
+  const confirmAttempt = useRef({fingerprint:"",key:crypto.randomUUID()});
   const cancelKey = useRef(crypto.randomUUID());
   const showActivities = perms.includes("orders.activities.view");
   const mayEdit = perms.includes("orders.update");
@@ -62,6 +76,7 @@ export function OrderDetailPage() {
     setPaymentMethod(String(saved?.plannedPaymentMethod ?? 0) as "0" | "1" | "2");
     setPaymentDestinationId(saved?.plannedPaymentDestinationId ? String(saved.plannedPaymentDestinationId) : "");
     setOverpaymentAcknowledged(false);
+    setReturnToReview(false);
     setError("");
     setPaymentDialog(mode);
   }
@@ -77,26 +92,32 @@ export function OrderDetailPage() {
         plannedPaymentMethod: hasDeposit ? Number(paymentMethod) as 0 | 1 | 2 : null,
         plannedPaymentDestinationId: hasDeposit && paymentMethod !== "0" ? Number(chosenDestination) : null,
       } });
-      toast.success("تم حفظ خطة العربون في المسودة دون تسجيل تحصيل.");
-      setPaymentDialog(null);
+      await order.refetch();
+      toast.success("تم حفظ بيانات العربون في المسودة، دون تسجيل تحصيل.");
+      setPaymentDialog(returnToReview ? "confirm" : null);
+      setReturnToReview(false);
       setError("");
     } catch (e: unknown) {setError(getApiErrorMessage(e,"تعذّر حفظ خطة الدفع."));}
   }
   async function confirm() {
-    if (!order.data || !moneyPattern.test(deposit)) {setError("أدخل مبلغًا صحيحًا.");return;}
+    if (!order.data || !moneyPattern.test(deposit)) {setError("بيانات العربون غير صالحة؛ ارجع لتعديلها.");return;}
     if (Number(deposit) > Number(order.data.totalAmount) && !overpaymentAcknowledged) {
       setError("العربون أعلى من إجمالي الأوردر؛ أكد تحويل الزيادة لرصيد العميل الدائن.");return;
     }
     try {
       const hasDeposit = Number(deposit) > 0;
-      if (hasDeposit && paymentMethod !== "0" && !chosenDestination) {
-        setError("اختر حساب البنك أو المحفظة التي استلمت العربون.");return;
+      if (hasDeposit && paymentMethod !== "0" &&
+          (destinations.isPending || destinations.isError || !chosenDestination)) {
+        setError("حساب التحصيل غير متاح حاليًا. راجع بيانات العربون قبل التأكيد.");return;
       }
       const payload: Parameters<typeof actions.confirm.mutateAsync>[0]["payload"] = hasDeposit
         ? { depositAmount: deposit, paymentMethod: Number(paymentMethod) as 0 | 1 | 2,
             ...(paymentMethod !== "0" ? { paymentDestinationId: Number(chosenDestination) } : {}) }
         : {};
-      await actions.confirm.mutateAsync({ id, key: confirmKey.current, payload });
+      const fingerprint = JSON.stringify(payload);
+      if (confirmAttempt.current.fingerprint !== fingerprint)
+        confirmAttempt.current = { fingerprint, key: crypto.randomUUID() };
+      await actions.confirm.mutateAsync({ id, key: confirmAttempt.current.key, payload });
       toast.success("تم تأكيد الأوردر.");setPaymentDialog(null);setError("");
     } catch (e: unknown) {setError(getApiErrorMessage(e, "تعذّر تأكيد الأوردر."));}
   }
@@ -137,22 +158,6 @@ export function OrderDetailPage() {
         {item.delayStatusLabel && <p className="mt-1 text-xs text-destructive">{item.delayStatusLabel}</p>}</div>
       {item.notes && <p className="text-sm text-muted-foreground sm:col-span-3">ملاحظات: {item.notes}</p>}
     </section>
-    {draft && mayEdit && mayConfirm && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3 text-sm">
-      <div className="space-y-1">
-        <p className="font-semibold">العربون المخطط قبل التأكيد</p>
-        <p className="text-xs text-muted-foreground">
-          {item.plannedDepositAmount !== null && item.plannedDepositAmount !== undefined ?
-            displayMoney(item.plannedDepositAmount) + " ج.م" : "لم يتم تحديد عربون بعد"}
-          {Number(item.plannedDepositAmount ?? "0") > 0 &&
-            (" — " + (item.plannedPaymentMethod === 1 ? "تحويل بنكي" :
-              item.plannedPaymentMethod === 2 ? "محفظة إلكترونية" : "نقدي"))}
-          {" · لا يُسجل كتحصيل إلا بعد تأكيد الأوردر"}
-        </p>
-      </div>
-      <Button variant="outline" size="sm" type="button" onClick={() => openPaymentDialog("plan")}>
-        <Pencil className="size-4" /> تعديل العربون وطريقة الدفع
-      </Button>
-    </div>}
     <nav role="tablist" aria-label="أقسام الأوردر" className="inline-flex max-w-full items-center gap-1 rounded-xl bg-muted p-1">
       <button type="button" role="tab" id="order-tab" aria-controls="order-panel" aria-selected={activeTab === "order"}
         onClick={() => setActiveTab("order")}
@@ -166,6 +171,38 @@ export function OrderDetailPage() {
       </button>}
     </nav>
     {activeTab === "order" && <div role="tabpanel" id="order-panel" aria-labelledby="order-tab">
+    {draft && (mayConfirm || mayEdit) && <section aria-labelledby="draft-payment-title"
+      className="mb-4 rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 id="draft-payment-title" className="font-bold">الدفع عند التأكيد</h2>
+          <p className="mt-1 text-xs text-muted-foreground">بيانات العربون محفوظة للمراجعة، ولم يتم تسجيل أي تحصيل بعد.</p>
+        </div>
+        {mayEdit && <Button type="button" variant="outline" size="sm"
+          onClick={() => openPaymentDialog("plan")}><Pencil className="size-4" /> تعديل</Button>}
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-xl bg-muted/50 p-3">
+          <p className="text-xs text-muted-foreground">إجمالي الأوردر</p>
+          <p className="mt-1 text-lg font-bold">{displayMoney(item.totalAmount)} ج.م</p>
+        </div>
+        <div className="rounded-xl bg-muted/50 p-3">
+          <p className="text-xs text-muted-foreground">العربون المحدد</p>
+          <p className="mt-1 text-lg font-bold">{displayMoney(plannedAmount)} ج.م</p>
+        </div>
+        <div className="rounded-xl bg-muted/50 p-3">
+          <p className="text-xs text-muted-foreground">المتبقي المتوقع</p>
+          <p className="mt-1 text-lg font-bold">{displayMoney(String(plannedRemaining.toFixed(2)))} ج.م</p>
+        </div>
+      </div>
+      <p className="mt-3 text-sm">
+        <span className="text-muted-foreground">وسيلة الدفع: </span>
+        <strong>{Number(plannedAmount) > 0 ? paymentLabel(item.plannedPaymentMethod) : "بدون عربون"}</strong>
+        {Number(plannedAmount) > 0 && item.plannedPaymentMethod !== null &&
+          item.plannedPaymentMethod !== 0 && savedDestinationLabel &&
+          <span className="text-muted-foreground"> — {savedDestinationLabel}</span>}
+      </p>
+    </section>}
     <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
         <h2 className="font-bold">عناصر الأوردر</h2>
@@ -203,56 +240,107 @@ export function OrderDetailPage() {
       confirmText="حذف العنصر" destructive busy={actions.removeItem.isPending}
       onClose={() => setDeleteItem(null)} onConfirm={() => void removeItem()} />}
     {paymentDialog && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
-      <section role="dialog" aria-modal="true" aria-label={paymentDialog === "plan" ? "تعديل خطة العربون" : "تأكيد الأوردر"} className="max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto rounded-2xl bg-card p-6">
-        <h2 className="font-bold">{paymentDialog === "plan" ? "تعديل خطة العربون" : "تأكيد الأوردر"}</h2>
-        <p className="text-sm text-muted-foreground">{paymentDialog === "plan"
-          ? "يمكن تعديل المبلغ وطريقة الدفع وحفظهما في المسودة. لن يُسجل أي تحصيل مالي قبل تأكيد الأوردر."
-          : "سيُثبت إجمالي الأوردر على حساب العميل ويُنشأ رقم الأوردر. راجع العربون قبل التأكيد."}</p>
-        <div className="space-y-2 rounded-xl bg-muted/50 p-3 text-sm">
-          <div className="flex justify-between"><span>إجمالي الأوردر</span><strong>{displayMoney(item.totalAmount)} ج.م</strong></div>
-          <div className="flex justify-between"><span>العربون</span><strong>{moneyPattern.test(deposit) ? displayMoney(deposit) + " ج.م" : "—"}</strong></div>
-          <div className="flex justify-between"><span>المتبقي</span><strong>{moneyPattern.test(deposit) ?
-            displayMoney(String(Math.max(0, Number(item.totalAmount) - Number(deposit)).toFixed(2))) + " ج.م" : "—"}</strong></div>
-        </div>
-        {paymentDialog === "confirm" && item.items?.every((line) => (line.files?.length ?? 0) === 0) && perms.includes("orders.files.list") &&
-          <p className="text-xs text-amber-700">لا توجد ملفات تصميم مرفوعة. تأكد أن الأوردر لا يحتاج ملفات قبل التأكيد.</p>}
-        <label className="block text-sm font-semibold">قيمة العربون (ج.م)
-          <input aria-label="قيمة العربون" dir="ltr" className={fieldClass + " mt-2"}
-            value={deposit} onChange={(e) => setDeposit(e.target.value)} />
-        </label>
-        {paymentDialog === "confirm" && Number(deposit) > Number(item.totalAmount) && <label className="flex items-start gap-2 rounded-xl border border-amber-300 p-3 text-xs">
-          <input type="checkbox" checked={overpaymentAcknowledged} onChange={(e) => setOverpaymentAcknowledged(e.target.checked)}
-            aria-label="تأكيد الزيادة عن قيمة الأوردر" />
-          أؤكد أن العربون يتجاوز إجمالي الأوردر، وأن الزيادة ستُسجل كرصيد دائن للعميل وفق قواعد المالية.
-        </label>}
-        {Number(deposit) > 0 && <div className="space-y-3">
-          <label className="block text-sm font-semibold">طريقة الدفع
-            <select aria-label="طريقة دفع العربون" className={fieldClass + " mt-2"} value={paymentMethod}
-              onChange={(e) => {setPaymentMethod(e.target.value as "0" | "1" | "2");setPaymentDestinationId("");}}>
-              <option value="0">نقدي</option><option value="1">تحويل بنكي</option><option value="2">محفظة إلكترونية</option>
-            </select>
+      <section role="dialog" aria-modal="true" aria-label={paymentDialog === "plan" ? "تعديل بيانات العربون" : "تأكيد الأوردر"}
+        className="max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto rounded-2xl bg-card p-5 shadow-xl sm:p-6">
+        <h2 className="text-lg font-bold">{paymentDialog === "plan" ? "تعديل بيانات العربون" : "تأكيد الأوردر"}</h2>
+        {paymentDialog === "plan" ? <>
+          <p className="text-sm text-muted-foreground">حدد المبلغ ووسيلة الدفع. لن يُسجل أي تحصيل قبل تأكيد الأوردر.</p>
+          <label className="block text-sm font-semibold">قيمة العربون (ج.م)
+            <input aria-label="قيمة العربون" dir="ltr" inputMode="decimal" className={fieldClass + " mt-2"}
+              value={deposit} disabled={paymentIsBusy}
+              onChange={(e) => {setDeposit(e.target.value);setError("");}} />
           </label>
-          {paymentMethod !== "0" && <label className="block text-sm font-semibold">وجهة التحصيل *
-            <select aria-label="وجهة تحصيل العربون" className={fieldClass + " mt-2"} value={chosenDestination}
-              disabled={destinations.isPending || destinations.isError}
-              onChange={(e) => setPaymentDestinationId(e.target.value)}>
-              <option value="">اختر وجهة التحصيل</option>
-              {activeDestinations.map((option) =>
-                <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
+          {Number(deposit) > 0 && <div className="space-y-3">
+            <label className="block text-sm font-semibold">طريقة الدفع
+              <select aria-label="طريقة دفع العربون" className={fieldClass + " mt-2"} value={paymentMethod}
+                disabled={paymentIsBusy}
+                onChange={(e) => {
+                  setPaymentMethod(e.target.value as "0" | "1" | "2");
+                  setPaymentDestinationId("");setError("");
+                }}>
+                <option value="0">نقدي</option><option value="1">تحويل بنكي</option><option value="2">محفظة إلكترونية</option>
+              </select>
+            </label>
+            {paymentMethod !== "0" && <label className="block text-sm font-semibold">
+              {paymentMethod === "1" ? "الحساب البنكي" : "المحفظة الإلكترونية"} *
+              <select aria-label="وجهة تحصيل العربون" className={fieldClass + " mt-2"} value={chosenDestination}
+                disabled={paymentIsBusy || destinations.isPending || destinations.isError}
+                onChange={(e) => {setPaymentDestinationId(e.target.value);setError("");}}>
+                <option value="">اختر حساب التحصيل</option>
+                {activeDestinations.map((option) =>
+                  <option key={option.value} value={option.value}>
+                    {option.label}{Number(option.isDefault) === 1 ? " (افتراضي)" : ""}
+                  </option>)}
+              </select>
+            </label>}
+            {paymentMethod !== "0" && destinations.isPending &&
+              <p role="status" className="text-xs text-muted-foreground">جاري تحميل وسائل التحصيل...</p>}
+            {paymentMethod !== "0" && destinations.isError &&
+              <button type="button" className="text-xs text-destructive underline"
+                onClick={() => void destinations.refetch()}>تعذّر تحميل وسائل التحصيل — إعادة المحاولة</button>}
+          </div>}
+          {moneyPattern.test(deposit) && <div className="flex items-center justify-between rounded-xl bg-muted/50 p-3 text-sm">
+            <span>المتبقي المتوقع</span>
+            <strong>{displayMoney(String(Math.max(0, Number(item.totalAmount) - Number(deposit)).toFixed(2)))} ج.م</strong>
+          </div>}
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+          <div className="flex flex-wrap justify-end gap-2 border-t pt-4">
+            <Button variant="outline" disabled={paymentIsBusy}
+              onClick={() => {setReturnToReview(false);setPaymentDialog(null);}}>إلغاء</Button>
+            <Button disabled={paymentIsBusy || (Number(deposit) > 0 && paymentMethod !== "0" &&
+              (destinations.isPending || destinations.isError || !chosenDestination))}
+              onClick={() => void savePaymentPlan()}>حفظ بيانات العربون</Button>
+          </div>
+        </> : <>
+          <p className="text-sm text-muted-foreground">
+            راجع التفاصيل قبل تأكيد الأوردر. سيتم تسجيل المديونية والعربون عند التأكيد فقط.
+          </p>
+          <div className="space-y-3 rounded-xl bg-muted/50 p-4 text-sm">
+            <div className="flex justify-between gap-3"><span>إجمالي الأوردر</span>
+              <strong>{displayMoney(item.totalAmount)} ج.م</strong></div>
+            <div className="flex justify-between gap-3"><span>العربون المطلوب تحصيله</span>
+              <strong>{displayMoney(deposit)} ج.م</strong></div>
+            <div className="flex justify-between gap-3"><span>وسيلة الدفع</span>
+              <strong>{Number(deposit) > 0 ? paymentLabel(Number(paymentMethod)) : "بدون عربون"}</strong>
+            </div>
+            {Number(deposit) > 0 && paymentMethod !== "0" &&
+              <div className="flex justify-between gap-3">
+                <span>حساب التحصيل</span>
+                <strong className="text-left">{destinations.isPending ? "جاري التحقق..." :
+                  activeDestinations.find((account) => String(account.value) === chosenDestination)?.label ??
+                  "الحساب غير متاح"}</strong>
+              </div>}
+            <div className="flex justify-between gap-3 border-t pt-3">
+              <span className="font-semibold">المتبقي بعد التأكيد</span>
+              <strong>{displayMoney(String(Math.max(0, Number(item.totalAmount) - Number(deposit)).toFixed(2)))} ج.م</strong>
+            </div>
+          </div>
+          {Number(deposit) > Number(item.totalAmount) && <label className="flex items-start gap-2 rounded-xl border border-amber-300 p-3 text-xs">
+            <input type="checkbox" checked={overpaymentAcknowledged}
+              onChange={(e) => {setOverpaymentAcknowledged(e.target.checked);setError("");}}
+              aria-label="تأكيد الزيادة عن قيمة الأوردر" />
+            أؤكد أن الزيادة عن قيمة الأوردر ستُسجل كرصيد دائن للعميل.
           </label>}
-          {destinations.isError && paymentMethod !== "0" &&
-            <p role="alert" className="text-xs text-destructive">تعذّر تحميل وسائل التحصيل. اختر نقدي أو حاول مرة أخرى.</p>}
-        </div>}
-        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" disabled={actions.confirm.isPending || actions.update.isPending}
-            onClick={() => setPaymentDialog(null)}>رجوع</Button>
-          <Button disabled={actions.confirm.isPending || actions.update.isPending}
-            onClick={() => paymentDialog === "plan" ? void savePaymentPlan() : void confirm()}>
-            {paymentDialog === "plan" ? "حفظ خطة الدفع" : "تأكيد"}
-          </Button>
-        </div>
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+          {Number(deposit) > 0 && paymentMethod !== "0" &&
+            (destinations.isError || (!destinations.isPending && !chosenDestination)) &&
+            <p role="alert" className="text-xs text-destructive">
+              حساب التحصيل المحفوظ غير متاح حاليًا. ارجع لتعديل بيانات العربون قبل التأكيد.
+            </p>}
+          <div className="flex flex-wrap justify-end gap-2 border-t pt-4">
+            <Button variant="outline" disabled={paymentIsBusy}
+              onClick={() => {setError("");setReturnToReview(true);setPaymentDialog("plan");}}>
+              رجوع للتعديل
+            </Button>
+            <Button disabled={paymentIsBusy || !moneyPattern.test(deposit) ||
+              (Number(deposit) > Number(item.totalAmount) && !overpaymentAcknowledged) ||
+              (Number(deposit) > 0 && paymentMethod !== "0" &&
+                (destinations.isPending || destinations.isError || !chosenDestination))}
+              onClick={() => void confirm()}>
+              {Number(deposit) > 0 ? "تأكيد الأوردر وتسجيل العربون" : "تأكيد الأوردر"}
+            </Button>
+          </div>
+        </>}
       </section>
     </div>}
     {cancelOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
