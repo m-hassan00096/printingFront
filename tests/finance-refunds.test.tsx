@@ -38,6 +38,21 @@ const adapter:AxiosAdapter=async config=>{
     {label:"bankAccounts",options:[{value:3,label:"حساب بنك مصر"}]},
     {label:"eWallets",options:[{value:4,label:"فودافون كاش"}]},
   ]);
+  if(url==="/finance/customers/7/balance")return ok(config,{
+    customerId:7,amount:credit,type:2,typeLabel:"دائن",openingBalanceExists:true,
+  });
+  if(url==="/finance/customers/7/opening-balance-status")return ok(config,{
+    customerId:7,openingBalanceExists:true,
+  });
+  if(url==="/finance/customers/7/ledger")return ok(config,{
+    entries:[],balance:{amount:credit,type:2,typeLabel:"دائن"},openingBalanceExists:true,
+    pagination:{currentPage:1,lastPage:1,perPage:20,total:0},
+  });
+  if(url==="/finance/customer-balances")return ok(config,{
+    accounts:[{customerId:7,customerName:"أحمد خالد",customerPhone:"01012345678",
+      amount:credit,type:2,typeLabel:"دائن",openingBalanceExists:true}],
+    pagination:{currentPage:1,lastPage:1,perPage:20,total:1},
+  });
   if(url==="/finance/customers/7/refundable-credit")return ok(config,{
     customerId:7,availableCredit:credit,canRefund:Number(credit)>0,
   });
@@ -111,6 +126,26 @@ describe("Finance Refunds within the Accounts module",()=>{
     expect(post?.body).toEqual({customerId:7,amount:"100.00",paymentMethod:0,reason:"طلب العميل"});
     expect(post?.key).toBeTruthy();
     expect(calls.filter(c=>c.url==="/finance/collections"&&c.method==="post")).toHaveLength(0);
+  });
+  it("keeps both actions by the selected account and disclosure of refund history on one page",async()=>{
+    permissions=["finance.balances.view","finance.ledger.view","finance.opening_balances.create",
+      "finance.refunds.view","finance.refunds.create"];
+    visit("/finance?customerId=7");
+    const user=userEvent.setup();
+    expect(await screen.findByRole("button",{name:"رد رصيد دائن"})).toBeTruthy();
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.getByText("الرصيد الافتتاحي مسجل")).toBeTruthy();
+    expect(screen.queryByRole("button",{name:"رصيد افتتاحي"})).toBeNull();
+    expect(screen.queryByText("سجل المبالغ المرتجعة")).toBeNull();
+    const history=screen.getByRole("button",{name:"سجل رد الأرصدة"});
+    expect(history.getAttribute("aria-expanded")).toBe("false");
+    await user.click(history);
+    expect(history.getAttribute("aria-expanded")).toBe("true");
+    expect(await screen.findByText("REF-2026-00091")).toBeTruthy();
+    await user.click(screen.getByRole("button",{name:"رد رصيد دائن"}));
+    const dialog=await screen.findByRole("dialog",{name:"رد رصيد دائن للعميل"});
+    expect((within(dialog).getByRole("combobox",{name:"عميل رد الرصيد"}) as HTMLElement).getAttribute("aria-disabled")).not.toBe("true");
+    expect(await within(dialog).findByText("الرصيد المتاح للرد حاليًا")).toBeTruthy();
   });
   it("requires bank or wallet destination from Settings before recording refund",async()=>{
     visit();const user=userEvent.setup();
