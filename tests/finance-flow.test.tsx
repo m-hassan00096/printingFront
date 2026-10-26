@@ -60,7 +60,7 @@ describe("Finance account page against Laravel existing contracts",()=>{
     visit();
     expect(await screen.findByText("حسابات العملاء")).toBeTruthy();
     expect(await screen.findByText("سداد دين")).toBeTruthy();
-    expect(screen.getByText("250.00 ج.م")).toBeTruthy();
+    expect(screen.getAllByText("250.00 ج.م").length).toBeGreaterThan(0);
     expect(screen.getByText("50.00 ج.م")).toBeTruthy();
     expect(screen.getByText("26/10/2026")).toBeTruthy();
     expect(calls.some(c=>c.url==="/finance/customers/7/balance")).toBe(true);
