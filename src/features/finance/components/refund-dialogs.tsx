@@ -6,7 +6,6 @@ import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
 import { SearchableSelect } from "@/features/orders/components/searchable-select";
 import { getOrderPaymentOptions } from "@/features/orders/api/order-options.api";
-import { CollectionDateField } from "@/features/collections/components/collection-date-field";
 import { useFinanceCustomers } from "../hooks/use-finance";
 import { ErrorState,LoadingState,fieldClass } from "@/features/identity/components/identity-ui";
 import { getApiErrorMessage } from "@/shared/api/http";
@@ -50,11 +49,11 @@ export function CreateRefundDialog({initialCustomerId=0,onClose,onSuccess}:{
   const options=useQuery({queryKey:["finance","refund-payment-destinations"],queryFn:getOrderPaymentOptions,enabled:needsDestination});
   const destinations=method===1?options.data?.banks??[]:options.data?.wallets??[];
   const validCustomer=customers.data?.some(x=>String(x.value)===customer)??false;
+  const post=useCreateRefund();
   const valid=validCustomer&&credit.isSuccess&&credit.data.canRefund&&
     cents!==null&&cents>0&&creditCents!==null&&cents<=creditCents&&
     reason.trim().length>=3&&reason.trim().length<=3000&&ack&&
     (!needsDestination||destinations.some(x=>String(x.value)===destination))&&!post.isPending;
-  const post=useCreateRefund();
 
   async function submit(){
     if(!valid||cents===null)return;
