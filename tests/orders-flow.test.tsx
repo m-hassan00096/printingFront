@@ -277,26 +277,58 @@ describe("Orders Laravel API workflow", () => {
     expect(await screen.findByRole("button", {name:"معاينة تصميم.png"})).toBeTruthy();
     expect(await screen.findByLabelText("نوع الملف PDF")).toBeTruthy();
     expect(await screen.findByLabelText("نوع الملف PSD")).toBeTruthy();
+    expect(screen.queryByText("تم رفع ملف تصميم")).toBeNull();
+    await userEvent.setup().click(screen.getByRole("tab", {name:"سجل الأحداث"}));
     expect(await screen.findByText("تم رفع ملف تصميم")).toBeTruthy();
     expect(screen.queryByText(/file_uploaded —/)).toBeNull();
+    await userEvent.setup().click(screen.getByRole("tab", {name:"تفاصيل الأوردر"}));
     await userEvent.setup().click(screen.getByRole("button", {name:"معاينة تصميم.png"}));
     expect(await screen.findByRole("dialog",{name:"معاينة تصميم.png"})).toBeTruthy();
     await userEvent.setup().click(screen.getByRole("button",{name:"إغلاق المعاينة"}));
     expect(screen.queryByRole("dialog",{name:"معاينة تصميم.png"})).toBeNull();
   });
 
-  it("can edit customer data from an order without changing its customerId", async () => {
+  it("does not expose customer-profile modification on the order details screen", async () => {
     visit("/orders/101");
     expect(await screen.findByText("مسودة #101")).toBeTruthy();
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button",{name:"تعديل بيانات العميل"}));
-    expect(await screen.findByRole("dialog",{name:"تعديل عميل"})).toBeTruthy();
-    await user.clear(screen.getByRole("textbox",{name:"اسم العميل"}));
-    await user.type(screen.getByRole("textbox",{name:"اسم العميل"}),"أحمد محمد");
-    await user.click(screen.getByRole("button",{name:"حفظ التعديلات"}));
-    await waitFor(() => expect(calls.some(c=>c.url==="/customers/5"&&c.method==="patch")).toBe(true));
-    expect(calls.find(c=>c.url==="/customers/5"&&c.method==="patch")?.body).toMatchObject({name:"أحمد محمد"});
-    expect(calls.some(c=>c.url==="/orders/101"&&c.method==="patch")).toBe(false);
+    expect(screen.queryByRole("button",{name:"تعديل بيانات العميل"})).toBeNull();
+    expect(screen.getByRole("button",{name:"تعديل البيانات"})).toBeTruthy();
+  });
+
+  it("saves editable draft payment intention without confirming the order", async () => {
+    visit("/orders/101");
+    expect(await screen.findByText("مسودة #101")).toBeTruthy();
+    const user=userEvent.setup();
+    await user.click(screen.getByRole("button",{name:"تعديل العربون وطريقة الدفع"}));
+    expect(await screen.findByRole("dialog",{name:"تعديل خطة العربون"})).toBeTruthy();
+    await user.clear(screen.getByRole("textbox",{name:"قيمة العربون"}));
+    await user.type(screen.getByRole("textbox",{name:"قيمة العربون"}),"100.00");
+    await user.selectOptions(screen.getByRole("combobox",{name:"طريقة دفع العربون"}),"1");
+    await waitFor(() => expect((screen.getByRole("combobox",{name:"وجهة تحصيل العربون"}) as HTMLSelectElement).value).toBe("7"));
+    await user.click(screen.getByRole("button",{name:"حفظ خطة الدفع"}));
+    await waitFor(() => expect(calls.some(c=>c.method==="patch" && c.url==="/orders/101")).toBe(true));
+    expect(calls.find(c=>c.method==="patch"&&c.url==="/orders/101")?.body).toEqual({
+      plannedDepositAmount:"100.00",plannedPaymentMethod:1,plannedPaymentDestinationId:7
+    });
+    expect(calls.filter(c=>c.url==="/orders/101/confirm")).toHaveLength(0);
+  });
+
+  it("stores a proposed cash deposit with draft creation rather than a posted deposit", async () => {
+    visit("/orders/new");
+    const user=userEvent.setup();
+    await user.click(await screen.findByRole("combobox",{name:"اختيار العميل"}));
+    await user.click(await screen.findByRole("option",{name:/أحمد - 01012345678/}));
+    await user.click(await screen.findByRole("combobox",{name:"خدمة العنصر 1"}));
+    await user.click(await screen.findByRole("option",{name:"كروت شخصية"}));
+    await user.type(screen.getByRole("textbox",{name:"إجمالي العنصر 1"}),"350.00");
+    await user.clear(screen.getByRole("textbox",{name:"المدفوع الآن"}));
+    await user.type(screen.getByRole("textbox",{name:"المدفوع الآن"}),"100.00");
+    await user.click(screen.getByRole("button",{name:"حفظ مسودة"}));
+    await waitFor(() => expect(calls.some(c=>c.method==="post" && c.url==="/orders")).toBe(true));
+    const created=calls.find(c=>c.method==="post"&&c.url==="/orders");
+    expect(created?.body).toMatchObject({status:0,plannedDepositAmount:"100.00",plannedPaymentMethod:0,
+      plannedPaymentDestinationId:null});
+    expect(created?.body.depositAmount).toBeUndefined();
   });
 
 });
