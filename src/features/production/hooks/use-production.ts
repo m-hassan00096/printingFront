@@ -15,7 +15,6 @@ export function useProductionColumn(column: ProductionColumnId, filters: Product
     queryKey: keys.board(column,filters,page),
     queryFn: () => api.getProductionItems(column,filters,page),
     enabled,
-    placeholderData: (previous) => previous,
   });
 }
 export function useProductionSummary(filters: ProductionFilters, enabled: boolean) {
