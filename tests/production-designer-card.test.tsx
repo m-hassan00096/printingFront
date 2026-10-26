@@ -47,6 +47,13 @@ describe("Production designer visibility on Kanban cards", () => {
     expect(within(card).queryByText("أنهى التصميم:")).toBeNull();
   });
 
+  it("avoids repeating the designer when the same employee completes the work", () => {
+    const card=show(2,{designCompletedById:9,designCompletedByName:"أحمد محمد"});
+    expect(within(card).getByText("المصمم المسؤول")).toBeTruthy();
+    expect(within(card).getAllByText("أحمد محمد")).toHaveLength(1);
+    expect(within(card).queryByText("أنهى التصميم:")).toBeNull();
+  });
+
   it("provides a visible fallback if assignment name is unavailable", () => {
     const card=show(1, {designerId:null,designerName:null});
     expect(within(card).getByText("غير محدد")).toBeTruthy();
