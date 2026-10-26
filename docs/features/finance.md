@@ -42,3 +42,17 @@ Backend PR #23 exercises customer-select permission boundaries, including inacti
 - Account registry includes inactive registered customers with existing balances, zero-balance clients, and sorting/filtering/pagination. No grand total is inferred from visible rows.
 - Show primary card label as 'رصيد مدين' / 'رصيد دائن' / 'الرصيد متوازن'. Original absolute amounts and reversal movements are kept unchanged.
 - Integration tests in Backend PR #24 and Frontend PR #10 include aggregate filters, stable running balances, and opening status permissions. CI must pass before browser review.
+
+## Phase 3 — Refunds inside customer accounts
+- Finance `/finance` contains two permission-aware tabs: Customer Accounts and Refunds. Standalone Refunds route/module **not** created. Dashboard remains deferred.
+- `finance.refunds.view` lists immutable refunds with search (refund number/customer/phone), date, payment method, details and pagination. A view-only user does not read account balances/customer selects.
+- `finance.refunds.create` opens a mandatory-confirmation form, permitted even without balance/ledger/list permissions. Customer select is authorized separately (backend PR #25).
+- `GET /finance/customers/{id}/refundable-credit` is restricted to refund creators; returns `availableCredit` and `canRefund`. It is advisory only; the POST re-checks against latest customer ledger credit **under row lock**.
+- Refund POST `/finance/refunds` accepts customerId, decimal-string amount, paymentMethod 0/1/2, optional paymentDestinationId for bank/wallet and a required 3–3000 character reason. It requires a request-stable `Idempotency-Key`.
+- Refund date/number/author come from the server. The client cannot choose or backdate the refund effective date.
+- The UI requires explicit confirmation that the **physical money return has been completed**; posting a refund records a ledger entry but does not execute cash movement or bank transfer.
+- Positive amount cannot exceed displayed customer credit; a concurrent change returns HTTP 409 and no refund ledger entry is posted. No deletion/reversal of posted refund from the UI.
+- Creating a refund invalidates finance balances, accounts overview, ledger, refund list and existing Customer detail caches.
+- Credit accounts show a direct 'رد الرصيد' shortcut preselecting the customer.
+- Bank/wallet dropdowns use Settings-owned `/selects?selects=bankAccounts,eWallets`, authorized for finance.refunds.create without management access.
+- Backend PR #25 provides least-privilege credit preview and dropdowns; Frontend PR #11 provides UI and integration tests. Keep both draft until CI and local browser QA.
