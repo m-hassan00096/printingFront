@@ -54,7 +54,7 @@ export function CollectionsPage(){
       </div>)}
     </div>}
     {canView&&summary.isError&&<div className="rounded-xl border bg-card p-3"><ErrorState error={summary.error} retry={()=>void summary.refetch()}/></div>}
-    <section aria-label="فلاتر التحصيلات" className="space-y-3 rounded-2xl border bg-card p-3 sm:p-4">
+    {canView&&<section aria-label="فلاتر التحصيلات" className="space-y-3 rounded-2xl border bg-card p-3 sm:p-4">
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <label className="block space-y-1 text-xs font-semibold">
           <span>البحث</span>
@@ -104,8 +104,9 @@ export function CollectionsPage(){
         </label>
       </div>
       <Button variant="ghost" size="sm" onClick={reset}>مسح الفلاتر</Button>
-    </section>
-    {list.isPending?<LoadingState/>:list.isError?<ErrorState error={list.error} retry={()=>void list.refetch()}/>:
+    </section>}
+    {!canView&&<p className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">يمكنك تسجيل تحصيل جديد، لكن عرض سجل الإيصالات يحتاج صلاحية التحصيلات.</p>}
+    {canView&&(list.isPending?<LoadingState/>:list.isError?<ErrorState error={list.error} retry={()=>void list.refetch()}/>:
       list.data?.collections.length?<section className="overflow-hidden rounded-2xl border bg-card">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1020px] text-right text-sm">
@@ -131,7 +132,7 @@ export function CollectionsPage(){
             </tbody>
           </table>
         </div>
-      </section>:<EmptyState title="لا توجد إيصالات مطابقة" detail="غيّر البحث أو الفلاتر لعرض التحصيلات."/>}
+      </section>:<EmptyState title="لا توجد إيصالات مطابقة" detail="غيّر البحث أو الفلاتر لعرض التحصيلات."/>) }
     {list.data?.pagination&&list.data.pagination.lastPage>1&&<div className="overflow-hidden rounded-2xl border bg-card">
       <PaginationBar pagination={list.data.pagination} onPage={setPage}/></div>}
     {list.data&&<p className="text-xs text-muted-foreground">
