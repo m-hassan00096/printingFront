@@ -5,10 +5,8 @@ import { Button } from "@/shared/components/ui/button";
 import { getApiErrorMessage } from "@/shared/api/http";
 import { ErrorState, LoadingState, PaginationBar } from "@/features/identity/components/identity-ui";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
-import { useOrder } from "@/features/orders/hooks/use-orders";
-import { OrderFileGallery } from "@/features/orders/components/order-file-gallery";
 import { SearchableSelect } from "@/features/orders/components/searchable-select";
-import { useProductionHistory, useProductionSelects } from "../hooks/use-production";
+import { useProductionHistory, useProductionItemDetails, useProductionSelects } from "../hooks/use-production";
 import type { ProductionAction, ProductionItem, SelectOption } from "../types/production.types";
 
 export function StagePill({ stage }: { stage: number }) {
@@ -122,10 +120,8 @@ export function ProductionDetailDialog({ item, onClose }: { item:ProductionItem;
   const permissions=session.data?.permissions??[];
   const canHistory=permissions.includes("production.history.view");
   const canViewOrder=permissions.includes("orders.view");
-  const canListFiles=canViewOrder&&permissions.includes("orders.files.list");
   const history=useProductionHistory(item.id,page,tab==="history"&&canHistory);
-  const order=useOrder(canViewOrder&&tab==="details"?item.orderId:0);
-  const orderItem=order.data?.items?.find(x=>x.id===item.id);
+  const itemDetails=useProductionItemDetails(item.id,tab==="details");
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
     <section role="dialog" aria-modal="true" aria-label="تفاصيل عنصر الإنتاج"
       onKeyDown={(e)=>{if(e.key==="Escape")onClose();}}
@@ -156,10 +152,29 @@ export function ProductionDetailDialog({ item, onClose }: { item:ProductionItem;
           {canViewOrder && <Link to={`/orders/${item.orderId}`} className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
             <ArrowRight className="size-4"/> فتح الأوردر
           </Link>}
-          {canListFiles && (order.isPending ? <LoadingState/> : order.isError ? <ErrorState error={order.error} retry={()=>void order.refetch()}/> :
-            orderItem ? <OrderFileGallery orderId={item.orderId} item={orderItem}
-              canList canView={permissions.includes("orders.files.view")} canUpload={false} canDelete={false}/> :
-              <p className="text-sm text-muted-foreground">ملفات العنصر غير متاحة.</p>)}
+          {itemDetails.isPending?<LoadingState/>:itemDetails.isError?
+            <ErrorState error={itemDetails.error} retry={()=>void itemDetails.refetch()}/>:
+            itemDetails.data&&<div className="space-y-4">
+              <section className="space-y-2">
+                <h3 className="text-sm font-bold">مواصفات العنصر</h3>
+                <p className="whitespace-pre-wrap rounded-xl border bg-muted/30 p-3 text-sm leading-6">
+                  {itemDetails.data.specifications||"لا توجد مواصفات إضافية."}
+                </p>
+              </section>
+              <section className="space-y-2">
+                <h3 className="text-sm font-bold">ملفات التصميم ({itemDetails.data.files.length})</h3>
+                {itemDetails.data.files.length===0?
+                  <p className="text-sm text-muted-foreground">لا توجد ملفات مرفقة بالعنصر.</p>:
+                  <div className="divide-y overflow-hidden rounded-xl border">
+                    {itemDetails.data.files.map(file=><div key={file.id} className="flex flex-wrap items-center justify-between gap-2 p-3">
+                      <span className="min-w-0 break-all text-sm font-semibold">{file.name}</span>
+                      {file.url?<a className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary underline"
+                        href={file.url} target="_blank" rel="noopener noreferrer">فتح الملف</a>:
+                        <span className="text-xs text-muted-foreground">الرابط غير متاح</span>}
+                    </div>)}
+                  </div>}
+              </section>
+            </div>}
         </div> : canHistory ? (
           history.isPending ? <LoadingState/> : history.isError ?
             <ErrorState error={history.error} retry={()=>void history.refetch()}/> :
