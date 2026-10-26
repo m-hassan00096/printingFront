@@ -102,6 +102,15 @@ List filters: `filter[search]` (name/phone/number), `filter[status]`, `filter[pr
 - Order confirmation dialog now shows **order total, entered deposit and remainder**, with an advisory when no attachments are present. The backend remains the sole source for actual ledger and payment balances.
 - All edit/change controls remain permission-gated; confirmed orders do not allow customer reassignment, service/item changes, or new uploads.
 
+## Draft payment plan (Backend PR #19 required)
+
+- Saved drafts now persist `plannedDepositAmount`, `plannedPaymentMethod`, and `plannedPaymentDestinationId` as **non-financial intent**. The backend migrates three nullable columns on `orders` and exposes them on `GET /orders/{id}`.
+- `POST /orders` with `status:0` can save the plan. `PATCH /orders/{id}` can replace it, using the `orders.update` permission. The UI opens a separate **تعديل العربون وطريقة الدفع** action; with a positive noncash amount the bank/wallet Selects list chooses the configured default and allows manual override.
+- On confirmation, the saved plan **prefills** the form. The employee must still confirm explicitly; this request sends the actual `depositAmount`, `paymentMethod`, and `paymentDestinationId`. Finance does not post anything when the draft plan is saved; it posts only after successful order confirmation. Backend clears the plan after confirmation.
+- Planned and actual payment fields are distinct; actual `depositAmount` is prohibited in draft creation/update, and planned fields are prohibited when directly creating an already-confirmed order.
+- **Deployment order:** merge Backend PR #19, run `php artisan migrate`, then test the frontend branch. Until that migration is applied, saving a draft with intended payment will fail; do not merge Frontend PR #6 first.
+- Details view now has two tabs, **تفاصيل الأوردر** and **سجل الأحداث**. Profile editing controls are removed from Details; the draft customer reassignment remains in the header editor. Customer profile edits are handled in the Customers module (and the new-order customer context if permitted).
+
 ## QA before merging
 
 1. Create multiple items using searchable comboboxes; create a customer inline and verify it is selected, validate 422 errors and agreed totals.
