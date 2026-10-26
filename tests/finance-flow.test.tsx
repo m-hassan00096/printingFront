@@ -122,6 +122,22 @@ describe("Finance account page against Laravel existing contracts",()=>{
     await waitFor(()=>expect(calls.some(c=>c.url==="/finance/customer-balances"&&c.params.get("filter[type]")==="2")).toBe(true));
     expect(await screen.findByText("مؤسسة النور")).toBeTruthy();
   });
+  it("keeps customer selection and ledger on one screen without tab navigation or back route",async()=>{
+    visit("");
+    const user=userEvent.setup();
+    expect(await screen.findByText("مؤسسة النور")).toBeTruthy();
+    expect(screen.queryByRole("tablist")).toBeNull();
+    await user.click(screen.getAllByRole("button",{name:/كشف الحساب/})[0]);
+    expect(await screen.findByText("سداد دين")).toBeTruthy();
+    expect(screen.getByRole("button",{name:"تغيير العميل"})).toBeTruthy();
+    expect(screen.getByText("الرصيد الحالي")).toBeTruthy();
+    expect(screen.getByText("الرصيد بعد الحركة")).toBeTruthy();
+    expect(screen.queryByText("قائمة الحسابات")).toBeNull();
+    expect(screen.queryByRole("button",{name:"العودة لقائمة الحسابات"})).toBeNull();
+    await user.click(screen.getByRole("button",{name:"تغيير العميل"}));
+    expect(await screen.findByText("مؤسسة النور")).toBeTruthy();
+    expect(screen.getByRole("button",{name:"إخفاء قائمة العملاء"})).toBeTruthy();
+  });
   it("hides a previously registered opening balance, without relying on a disabled submit",async()=>{
     hasOpening=true;
     visit();
