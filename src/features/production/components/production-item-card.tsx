@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Eye, MoreHorizontal, Undo2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { StagePill } from "./production-dialogs";
@@ -17,7 +18,7 @@ export function ProductionItemCard({item,permissions,selected,busy,onSelect,onAc
   const stage=item.productionStage;
   const completed=stage===2;
   const printSend=may("production.printing.send");
-  const [expanded,setExpanded]=useStateCompat(false);
+  const [expanded,setExpanded]=useState(false);
   return <article aria-label={`عنصر ${item.serviceName}`} className="space-y-3 border-t px-3 py-3 first:border-t-0">
     <div className="flex flex-wrap items-start justify-between gap-2">
       <div className="min-w-0 space-y-1">
@@ -64,5 +65,3 @@ export function ProductionItemCard({item,permissions,selected,busy,onSelect,onAc
     </div>
   </article>;
 }
-// Keep the menu local to each card without coupling global board selection.
-import { useState as useStateCompat } from "react";

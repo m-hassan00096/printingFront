@@ -29,13 +29,13 @@ const PrintingServiceFormPage = lazy(async () => ({ default: (await import("@/fe
 const OrdersPage = lazy(async () => ({ default: (await import("@/features/orders/pages/orders-page")).OrdersPage }));
 const OrderCreatePage = lazy(async () => ({ default: (await import("@/features/orders/pages/order-create-page")).OrderCreatePage }));
 const OrderDetailPage = lazy(async () => ({ default: (await import("@/features/orders/pages/order-detail-page")).OrderDetailPage }));
+const ProductionPage = lazy(async () => ({ default: (await import("@/features/production/pages/production-page")).ProductionPage }));
 
 function LazyIdentity({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<AuthLoading />}>{children}</Suspense>;
 }
 
 const featurePaths = [
-  { path: "production", key: "production" as const, permissions: featureAccessPolicy.production },
   { path: "deliveries", key: "deliveries" as const, permissions: featureAccessPolicy.deliveries },
   { path: "collections", key: "collections" as const, permissions: featureAccessPolicy.collections },
   { path: "finance", key: "finance" as const, permissions: featureAccessPolicy.finance },
@@ -64,6 +64,7 @@ export function AppRouter() {
               />
             ))}
 
+            <Route path="production" element={<RequirePermission anyOf={featureAccessPolicy.production}><Suspense fallback={<AuthLoading />}><ProductionPage /></Suspense></RequirePermission>} />
             <Route path="orders" element={<RequirePermission anyOf={featureAccessPolicy.orders}><Suspense fallback={<AuthLoading />}><OrdersPage /></Suspense></RequirePermission>} />
             <Route path="orders/new" element={<RequirePermission anyOf={["orders.create"]}><Suspense fallback={<AuthLoading />}><OrderCreatePage /></Suspense></RequirePermission>} />
             <Route path="orders/:id" element={<RequirePermission anyOf={["orders.view"]}><Suspense fallback={<AuthLoading />}><OrderDetailPage /></Suspense></RequirePermission>} />

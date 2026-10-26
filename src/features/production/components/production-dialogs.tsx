@@ -3,7 +3,7 @@ import { ArrowRight, Clock3, FileText, Printer, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
 import { getApiErrorMessage } from "@/shared/api/http";
-import { ErrorState, LoadingState, PaginationBar, fieldClass } from "@/features/identity/components/identity-ui";
+import { ErrorState, LoadingState, PaginationBar } from "@/features/identity/components/identity-ui";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { useOrder } from "@/features/orders/hooks/use-orders";
 import { OrderFileGallery } from "@/features/orders/components/order-file-gallery";

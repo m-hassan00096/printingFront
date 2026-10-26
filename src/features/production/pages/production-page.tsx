@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { CheckCheck, Clock3, Layers3, RotateCw, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
@@ -86,6 +87,7 @@ function ProductionColumn({ column, filters, page, onPage, count, countLoading,
 }
 
 export function ProductionPage() {
+  const qc=useQueryClient();
   const session=useCurrentUser();
   const permissions=session.data?.permissions??[];
   const can=(key:string)=>permissions.includes(key);
@@ -161,9 +163,7 @@ export function ProductionPage() {
     <SectionHeader title="لوحة الإنتاج" detail="متابعة عناصر الأوردرات المؤكدة من بدء التصميم حتى الجاهزية للتسليم."
       actions={<Button type="button" variant="outline" disabled={busy}
         onClick={()=>{
-          void summary.refetch();
-          // All board query caches share the same feature prefix.
-          void import("../api/production.api").then(()=>{window.dispatchEvent(new Event("production-board-refresh"));});
+          void qc.invalidateQueries({queryKey:["production"]});
         }}><RotateCw className="size-4"/> تحديث</Button>}/>
     <section aria-label="فلاتر الإنتاج" className="space-y-3 rounded-2xl border bg-card p-4 shadow-sm">
       <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.4fr)_minmax(190px,1fr)_minmax(160px,.9fr)]">
