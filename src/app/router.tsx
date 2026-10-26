@@ -30,13 +30,13 @@ const OrdersPage = lazy(async () => ({ default: (await import("@/features/orders
 const OrderCreatePage = lazy(async () => ({ default: (await import("@/features/orders/pages/order-create-page")).OrderCreatePage }));
 const OrderDetailPage = lazy(async () => ({ default: (await import("@/features/orders/pages/order-detail-page")).OrderDetailPage }));
 const ProductionPage = lazy(async () => ({ default: (await import("@/features/production/pages/production-page")).ProductionPage }));
+const DeliveriesPage = lazy(async () => ({ default: (await import("@/features/deliveries/pages/deliveries-page")).DeliveriesPage }));
 
 function LazyIdentity({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<AuthLoading />}>{children}</Suspense>;
 }
 
 const featurePaths = [
-  { path: "deliveries", key: "deliveries" as const, permissions: featureAccessPolicy.deliveries },
   { path: "collections", key: "collections" as const, permissions: featureAccessPolicy.collections },
   { path: "finance", key: "finance" as const, permissions: featureAccessPolicy.finance },
 ];
@@ -65,6 +65,7 @@ export function AppRouter() {
             ))}
 
             <Route path="production" element={<RequirePermission anyOf={featureAccessPolicy.production}><Suspense fallback={<AuthLoading />}><ProductionPage /></Suspense></RequirePermission>} />
+            <Route path="deliveries" element={<RequirePermission anyOf={featureAccessPolicy.deliveries}><Suspense fallback={<AuthLoading />}><DeliveriesPage /></Suspense></RequirePermission>} />
             <Route path="orders" element={<RequirePermission anyOf={featureAccessPolicy.orders}><Suspense fallback={<AuthLoading />}><OrdersPage /></Suspense></RequirePermission>} />
             <Route path="orders/new" element={<RequirePermission anyOf={["orders.create"]}><Suspense fallback={<AuthLoading />}><OrderCreatePage /></Suspense></RequirePermission>} />
             <Route path="orders/:id" element={<RequirePermission anyOf={["orders.view"]}><Suspense fallback={<AuthLoading />}><OrderDetailPage /></Suspense></RequirePermission>} />
