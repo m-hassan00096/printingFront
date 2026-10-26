@@ -1,7 +1,7 @@
 # Customer Finance — phase 1
 
 ## Purpose
-Standalone `/finance` account workspace for financial staff, complementary to the existing Customer details / Ledger tab.
+Standalone `/finance` account workspace for financial staff, complementary to the existing Customer details / Ledger tab. The landing page is the **paginated customer balances register** for finance.balances.view holders; selecting one account opens its ledger. Ledger-only/opening-only users retain a customer selector instead of seeing unauthorized balances.
 
 ### Backend contracts
 Uses existing Laravel Finance APIs:
@@ -33,3 +33,12 @@ Uses existing Laravel Finance APIs:
 ## QA
 `npm test`; `npm run typecheck`; `npm run lint`; `npm run build`.
 Backend PR #23 exercises customer-select permission boundaries, including inactive customers and rejecting Customers CRUD for Finance-only roles.
+
+## Phase 2 — accounts overview + running history
+- `GET /finance/customer-balances?page=1&perPage=20&sort=-id&filter[search]=&filter[type]=`: paginated `accounts` with name, phone, openingBalanceExists and amount/type. Optional account filters: search by name or phone, type = 0 zero / 1 debit / 2 credit, sort = id/name/balance variants. Backend uses one SQL aggregate over all customer ledger rows, **not per-customer N+1 API calls**. Access requires `finance.balances.view`.
+- `GET /finance/customers/{id}/opening-balance-status`: returns `openingBalanceExists`, authorized with `finance.opening_balances.create` even when employee cannot read balances/ledger. The form is hidden when already registered; the existing transactional server 409 guard still prevents races.
+- Balance and ledger endpoints also expose `openingBalanceExists`.
+- Ledger entries now expose `runningBalance:{amount,type,typeLabel}` computed by MySQL/SQLite window functions over **all** entries by `effective_date ASC, id ASC` before filters and pagination. UI displays this immutable historical running balance for each row, even when ledger is filtered to only collections.
+- Account registry includes inactive registered customers with existing balances, zero-balance clients, and sorting/filtering/pagination. No grand total is inferred from visible rows.
+- Show primary card label as 'رصيد مدين' / 'رصيد دائن' / 'الرصيد متوازن'. Original absolute amounts and reversal movements are kept unchanged.
+- Integration tests in Backend PR #24 and Frontend PR #10 include aggregate filters, stable running balances, and opening status permissions. CI must pass before browser review.
