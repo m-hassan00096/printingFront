@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowRight, ClipboardList, FileClock, Pencil, Wallet } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
+import { MoneyAmount } from "@/shared/components/money-amount";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { ErrorState, IdentityStatus, LoadingState, PaginationBar } from "@/features/identity/components/identity-ui";
 import { CustomerFormModal } from "../components/customer-form-modal";
@@ -9,7 +10,7 @@ import { useCustomer, useCustomerBalance, useCustomerLedger } from "../hooks/use
 import type { LedgerFilters } from "../types/customers.types";
 
 type CustomerTab = "details" | "ledger" | "orders";
-const money = (value: string) => <span dir="ltr" className="inline-block tabular-nums">{value} ج.م</span>;
+const money = (value: string) => <MoneyAmount amount={value} />;
 
 function CustomerField({ label, value, ltr = false }: { label: string; value: string; ltr?: boolean }) {
   return <div className="min-w-0 rounded-xl bg-muted/50 px-4 py-2.5">

@@ -3,6 +3,7 @@ import { ClipboardList, Eye, Plus, Trash2 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
+import { MoneyAmount } from "@/shared/components/money-amount";
 import { getApiErrorMessage } from "@/shared/api/http";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { ConfirmDialog, EmptyState, ErrorState, LoadingState, PaginationBar, SearchField, SectionHeader, fieldClass } from "@/features/identity/components/identity-ui";
@@ -97,7 +98,7 @@ export function OrdersPage() {
                 <span className="inline-flex items-center gap-2 font-bold"><ClipboardList className="size-4 text-primary" />
                   {order.orderNumber ?? `مسودة #${order.id}`}</span>}</td>
               <td className="px-4 py-3">{order.customerName}</td><td className="px-4 py-3 tabular-nums">{order.customerPhone}</td>
-              <td className="px-4 py-3 font-semibold tabular-nums">{order.totalAmount} ج.م</td>
+              <td className="px-4 py-3 font-semibold"><MoneyAmount amount={order.totalAmount} /></td>
               <td className="px-4 py-3">{order.statusLabel}</td>
               <td className="px-4 py-3">{order.productionStatusLabel ?? "—"}{order.delayStatusLabel && <p className="text-xs text-destructive">{order.delayStatusLabel}</p>}</td>
               <td className="px-4 py-3">{order.dueDate ?? "—"}</td>

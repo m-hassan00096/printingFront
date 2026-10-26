@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
+import { MoneyAmount } from "@/shared/components/money-amount";
 import { getApiErrorMessage } from "@/shared/api/http";
 import type { ApiErrorResponse } from "@/shared/api/api-types";
 import { CustomerFormModal } from "@/features/customers/components/customer-form-modal";
@@ -33,10 +34,6 @@ function cents(value: string): number | null {
   const [whole, fraction = ""] = value.split(".");
   return Number(whole) * 100 + Number((fraction + "00").slice(0, 2));
 }
-function formatMoney(value: number): string {
-  return (value / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 export function OrderCreatePage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -349,7 +346,7 @@ export function OrderCreatePage() {
               placeholder="المقاس، الخامة، الألوان أو أي تفاصيل أخرى..."
               value={item.specifications} onChange={(e) => changeItem(item.key, "specifications", e.target.value)} />}
             {suggestions[item.key] && <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-3 py-2">
-              <span className="text-sm">الإجمالي المقترح: <strong>{suggestions[item.key]} ج.م</strong></span>
+              <span className="text-sm">الإجمالي المقترح: <strong><MoneyAmount amount={suggestions[item.key]} /></strong></span>
               <Button type="button" variant="outline" size="sm" disabled={busy}
                 onClick={() => changeItem(item.key, "agreedTotal", suggestions[item.key])}>استخدام السعر</Button>
             </div>}
@@ -371,18 +368,18 @@ export function OrderCreatePage() {
           </div>
           <div className="rounded-xl bg-muted/50 p-3">
             <p className="text-xs text-muted-foreground">إجمالي الأوردر</p>
-            <p className="mt-1 text-xl font-extrabold">{allPriced ? formatMoney(orderCents) + " ج.م" : "أكمل أسعار العناصر"}</p>
+            <p className="mt-1 text-xl font-extrabold">{allPriced ? <MoneyAmount amount={orderCents / 100} /> : "أكمل أسعار العناصر"}</p>
           </div>
           <div className="rounded-xl bg-muted/50 p-3">
             <p className="text-xs text-muted-foreground">المتبقي من الأوردر</p>
-            <p className="mt-1 text-xl font-bold">{allPriced && remainingCents !== null ? formatMoney(remainingCents) + " ج.م" : "—"}</p>
+            <p className="mt-1 text-xl font-bold">{allPriced && remainingCents !== null ? <MoneyAmount amount={remainingCents / 100} /> : "—"}</p>
           </div>
         </div>
         {customerId && permissions.includes("finance.balances.view") && <p className="mt-3 text-xs text-muted-foreground">
           رصيد العميل قبل هذا الأوردر: {balance.isPending ? "جاري التحميل..." :
             balance.isError ? "تعذّر التحميل" : balance.data?.type === 1
-              ? "مديونية " + balance.data.amount + " ج.م"
-              : balance.data?.type === 2 ? "رصيد دائن " + balance.data.amount + " ج.م"
+              ? <>مديونية <MoneyAmount amount={balance.data.amount} /></>
+              : balance.data?.type === 2 ? <>رصيد دائن <MoneyAmount amount={balance.data.amount} /></>
                 : "صفر"} — منفصل عن المتبقي من الأوردر.
         </p>}
         {canConfirm && <div className="mt-5 space-y-4 border-t pt-4">
@@ -427,7 +424,7 @@ export function OrderCreatePage() {
           {allPriced && overpaymentCents > 0 && <label className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50/40 p-3 text-sm">
             <input type="checkbox" checked={overpaymentAccepted} onChange={(e) => {setOverpaymentAccepted(e.target.checked);clear("overpayment");}}
               aria-label="تأكيد الزيادة عن قيمة الأوردر" />
-            <span>المدفوع أعلى من إجمالي الأوردر بـ {formatMoney(overpaymentCents)} ج.م.
+            <span>المدفوع أعلى من إجمالي الأوردر بـ <MoneyAmount amount={overpaymentCents / 100} />.
               أؤكد تسجيل الزيادة كرصيد دائن للعميل.</span>
           </label>}
           {message("overpayment")}
@@ -438,7 +435,7 @@ export function OrderCreatePage() {
       <footer className="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card/95 p-3 shadow-lg backdrop-blur sm:p-4">
         <div className="text-sm">
           <span className="text-muted-foreground">إجمالي الأوردر</span>
-          <strong className="me-2 block text-lg">{allPriced ? formatMoney(orderCents) + " ج.م" : "—"}</strong>
+          <strong className="me-2 block text-lg">{allPriced ? <MoneyAmount amount={orderCents / 100} /> : "—"}</strong>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline"><Link to="/orders">إلغاء</Link></Button>
