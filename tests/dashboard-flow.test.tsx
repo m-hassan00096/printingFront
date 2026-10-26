@@ -36,6 +36,14 @@ const adapter:AxiosAdapter=async config=>{
       status:1,statusLabel:"نشط",permissions};
     return ok(config,user);
   }
+  if(path==="/production/items")return ok(config,{
+    items:[],pagination:{currentPage:1,lastPage:1,perPage:20,total:0},
+  });
+  if(path==="/selects")return ok(config,[
+    {label:"activeCustomers",options:[]},
+    {label:"printingServices",options:[]},
+    {label:"printingLocations",options:[]},
+  ]);
   if(path==="/dashboard")return ok(config,data);
   throw Error("Unexpected request: "+path);
 };
@@ -74,14 +82,14 @@ describe("Live dashboard contract",()=>{
     expect(screen.getByText("لا توجد أوردرات مؤَكدة حتى الآن.")).toBeTruthy();
     expect(screen.getByRole("meter",{name:"التصميم"}).getAttribute("aria-valuenow")).toBe("0");
   });
-  it("hides all order data and does not call dashboard API for users without orders.list",async()=>{
+  it("redirects production-only staff directly to production without loading order KPIs",async()=>{
     permissions=["production.items.list"];
     visit();
-    expect(await screen.findByText(/ملخص الأوردرات يحتاج صلاحية عرض قائمة الأوردرات/)).toBeTruthy();
+    expect(await screen.findByRole("heading",{name:"لوحة الإنتاج"})).toBeTruthy();
+    expect(screen.queryByRole("link",{name:"لوحة التحكم"})).toBeNull();
     expect(screen.queryByText("الأوردرات النشطة")).toBeNull();
-    expect(screen.queryByText("آخر الأوردرات")).toBeNull();
-    expect(screen.getAllByRole("link",{name:/لوحة الإنتاج/}).length).toBeGreaterThan(0);
     expect(calls.includes("/dashboard")).toBe(false);
+    expect(calls.includes("/production/items")).toBe(true);
   });
   it("only shows permitted quick links and re-fetches on refresh",async()=>{
     permissions=["orders.list"];
