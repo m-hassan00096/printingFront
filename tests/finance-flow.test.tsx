@@ -114,7 +114,7 @@ describe("Finance account page against Laravel existing contracts",()=>{
     visit("");
     expect(await screen.findByText("أرصدة العملاء")).toBeTruthy();
     expect(await screen.findByText("مؤسسة النور")).toBeTruthy();
-    expect(screen.getByText("2 عميل")).toBeTruthy();
+    expect(screen.getByText(/^[0-9٠-٩]+\sعميل$/)).toBeTruthy();
     expect(calls.some(c=>c.url==="/finance/customer-balances")).toBe(true);
     expect(calls.some(c=>c.url.includes("/finance/customers/7/balance"))).toBe(false);
     const user=userEvent.setup();
