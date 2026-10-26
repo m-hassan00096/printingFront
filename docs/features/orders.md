@@ -91,13 +91,24 @@ List filters: `filter[search]` (name/phone/number), `filter[status]`, `filter[pr
 - Order creation responses are `data:null`; redirect to list on success, never infer an ID. Retries reuse the same idempotency key for an unchanged request payload, and rotate it if the payload changes.
 - Arabic labels, per-field errors and sticky bottom action buttons are used throughout.
 
+## Details screen redesign
+
+- Draft header editor now includes a **searchable active-customer selector** using `GET /selects?selects=activeCustomers`; `PATCH /orders/{id}` supports `customerId` **on drafts only**. Laravel updates customer-type snapshots of draft items.
+- Editing the registered customer's name/phone/address is separate from changing the order's customer: staff with `customers.view` and `customers.update` can open the existing Customer edit modal. This updates the Customer record, not `order.customerId`; refetch the order afterward.
+- The order item editor is shared in UX with order creation: one searchable printing-service selector, compact quantity and agreed-total inputs, optional expandable specifications, and an explicit price suggestion sourced from Laravel.
+- `PATCH /orders/{id}/items/{itemId}` accepts `serviceId` for draft items. Laravel makes a replacement item, transfers attachments, preserves the original service reference for historical auditing, and recomputes the total. The client only sends changed fields.
+- Attached files render in responsive cards: photo thumbnail/lightbox when a browser-readable image has a public URL, and category icon plus PDF/PSD/AI/DOC/XLS extension label for non-image files. The thumbnail falls back to an icon on image error. Download remains through the authorized API. File deletion asks for confirmation; the backend moves bytes to the **private archive**.
+- The activity log renders localized Arabic event names and formats timestamps using `Africa/Cairo`, rather than raw event keys and UTC strings. Other unknown events get a neutral generic label.
+- Order confirmation dialog now shows **order total, entered deposit and remainder**, with an advisory when no attachments are present. The backend remains the sole source for actual ledger and payment balances.
+- All edit/change controls remain permission-gated; confirmed orders do not allow customer reassignment, service/item changes, or new uploads.
+
 ## QA before merging
 
 1. Create multiple items using searchable comboboxes; create a customer inline and verify it is selected, validate 422 errors and agreed totals.
-2. Save draft, verify it appears without a number; modify header, edit/add/remove items, upload/download/archive files.
+2. Save draft, verify it appears without a number; change customer only while draft, edit the registered customer's profile, change the service of an item, verify transferred files, image thumbnail/PDF/PSD labels, and file archive confirmations.
 3. Confirm **directly from creation** with no deposit, cash deposit, bank and wallet (preselected defaults), and also confirm saved drafts; verify order number generated and Finance ledger updated.
 4. Try 409 actions: delete confirmed order, cancel already-delivered order, remove last item, reused idempotency key.
 5. Permission-check list/view/create/update/confirm/cancel and individual file actions; ensure no other Settings selects are exposed.
-6. Check date, pagination, lateOnly and production status filters.
+6. Check date, pagination, lateOnly and production status filters. Verify Arabic event labels and Cairo-local timestamps.
 
 CI runs unit/integration mock-transport tests, typecheck, ESLint and production build. A local live Laravel/MySQL smoke test remains mandatory before merging the frontend Draft PR.
