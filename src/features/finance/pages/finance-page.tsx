@@ -133,7 +133,6 @@ export function FinancePage() {
             <div className="min-w-0 space-y-1">
               <p className="text-xs font-semibold text-foreground/65">العميل المحدد</p>
               <h2 className="break-words text-base font-extrabold">{customerName}</h2>
-              {customerPhone && <p dir="ltr" className="w-fit text-sm font-medium tabular-nums text-foreground/75">{customerPhone}</p>}
               {canCustomerProfile && <Link to={`/customers/${customerId}`}
                 className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
                 ملف العميل <ArrowUpLeft className="size-3.5"/>
