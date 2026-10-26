@@ -12,6 +12,7 @@ import { getApiErrorMessage } from "@/shared/api/http";
 import { ErrorState, LoadingState, fieldClass } from "@/features/identity/components/identity-ui";
 import { parseCents, centsToMoney } from "@/features/deliveries/lib/delivery-money";
 import { useCollection, useCollectionActions, useCollectionCustomers } from "../hooks/use-collections";
+import { CollectionDateField, formatCollectionDate } from "./collection-date-field";
 import type { CreateCollectionPayload,PaymentMethod } from "../types/collections.types";
 
 function Frame({title,busy,onClose,children}:{title:string;busy:boolean;onClose:()=>void;children:React.ReactNode}) {
@@ -116,12 +117,11 @@ export function CreateCollectionDialog({onClose,onSuccess}:{onClose:()=>void;onS
         </p>}
         {fieldErrors.paymentDestinationId&&<p role="alert" className="text-xs text-destructive">{fieldErrors.paymentDestinationId}</p>}
       </div>}
-      <label className="block space-y-1 text-sm font-semibold">
-        <span>تاريخ التحصيل (اختياري)</span>
-        <input type="date" className={fieldClass} aria-label="تاريخ التحصيل" max={today} value={collectedOn}
-          onChange={e=>setCollectedOn(e.target.value)}/>
+      <div className="space-y-1">
+        <CollectionDateField label="تاريخ التحصيل (اختياري)" max={today} value={collectedOn}
+          onChange={setCollectedOn}/>
         {!dateValid&&<p role="alert" className="text-xs text-destructive">لا يمكن تحديد تاريخ مستقبلي.</p>}
-      </label>
+      </div>
       <label className="block space-y-1 text-sm font-semibold">
         <span>ملاحظات (اختياري)</span>
         <textarea className={fieldClass+" min-h-24 py-2"} maxLength={5000} value={note}
@@ -164,7 +164,7 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
         <div className="grid gap-4 rounded-xl bg-muted/40 p-4 text-sm sm:grid-cols-2">
           {[
             ["رقم الإيصال",c.receiptNumber],["العميل",c.customerName],
-            ["رقم الهاتف",c.customerPhone],["تاريخ التحصيل",c.collectedOn],
+            ["رقم الهاتف",c.customerPhone],["تاريخ التحصيل",formatCollectionDate(c.collectedOn)],
             ["طريقة التحصيل",c.paymentMethodLabel],["مصدر التحصيل",c.sourceLabel],
             ["الحالة",c.statusLabel],["جهة التحصيل",c.destinationLabel??"—"],
           ].map(([label,value])=><div key={label}>
