@@ -63,7 +63,7 @@ const adapter:AxiosAdapter=async(config)=>{
     if(search)filtered=filtered.filter(item=>[item.orderNumber,item.customerName,item.customerPhone,item.serviceName].some(s=>s.includes(search)));
     return response(config,{items:filtered,pagination:{...pagination,total:filtered.length}});
   }
-  const details=url.match(/^\\/production\\/items\\/(\\d+)\\/details$/);
+  const details=url.match(new RegExp("^/production/items/([0-9]+)/details$"));
   if(details){
     const item=items.find(x=>x.id===Number(details[1]));
     if(!item)throw Error("Unknown item");
