@@ -43,7 +43,9 @@ export function CreateCollectionDialog({onClose,onSuccess}:{onClose:()=>void;onS
   const needsDestination=method!==0;
   const paymentOptions=useQuery({queryKey:["collections","destinations"],queryFn:getOrderPaymentOptions,enabled:needsDestination});
   const destinations=method===1?paymentOptions.data?.banks??[]:paymentOptions.data?.wallets??[];
-  const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Africa/Cairo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  const dateParts=new Intl.DateTimeFormat("en-GB",{timeZone:"Africa/Cairo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+  const datePart=(type:string)=>dateParts.find(p=>p.type===type)?.value??"";
+  const today=[datePart("year"),datePart("month"),datePart("day")].join("-");
   const dateValid=!collectedOn || collectedOn<=today;
   const valid=Number(customer)>0 && amountCents!==null && amountCents>0 &&
     (!needsDestination || destinations.some(x=>String(x.value)===destination)) &&
