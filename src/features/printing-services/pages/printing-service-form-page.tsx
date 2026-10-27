@@ -62,8 +62,8 @@ function hasAmbiguousQuantityRanges(rows: TierInput[]): boolean {
   const ranges = rows.filter(row =>
     row.minQuantity !== "" || row.maxQuantity !== ""
   ).filter(row =>
-    (!row.minQuantity || /^\\d+$/.test(row.minQuantity)) &&
-    (!row.maxQuantity || /^\\d+$/.test(row.maxQuantity))
+    (!row.minQuantity || /^\d+$/.test(row.minQuantity)) &&
+    (!row.maxQuantity || /^\d+$/.test(row.maxQuantity))
   );
   return ranges.some((row, index) => ranges.slice(index + 1).some(next => {
     if (row.customerTypeId !== next.customerTypeId) return false;
