@@ -179,7 +179,7 @@ describe("Printing Services API integration", () => {
     expect(within(pricing).getByText("السعر الافتراضي")).toBeTruthy();
     expect(within(pricing).getByText("من 50 – إلى 200")).toBeTruthy();
     expect(screen.queryByText("عدد شرائح الأسعار")).toBeNull();
-    expect(within(pricing).getByText(/شرائح الكمية المحددة لها الأولوية/)).toBeTruthy();
+    expect(within(pricing).getByText(/يُستخدم عند عدم وجود شريحة سعر مناسبة/)).toBeTruthy();
   });
 
   it("explains open quantity bounds and warns only about overlapping explicit quantity ranges", async () => {
