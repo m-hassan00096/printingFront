@@ -121,6 +121,46 @@ beforeEach(() => {
 afterEach(() => {apiClient.defaults.adapter=originalAdapter;});
 
 describe("Orders Laravel API workflow", () => {
+  it("shows distinct status badges and a readable delivery date without changing the API data", async () => {
+    orders = [
+      orders[0],
+      {...orders[0], id:102, orderNumber:"ORD-26102702", status:1, statusLabel:"مؤكد",
+        productionStatus:1, productionStatusLabel:"في الإنتاج", dueDate:"2026-10-30",
+        delayStatus:2, delayStatusLabel:"في الموعد"},
+      {...orders[0], id:103, orderNumber:"ORD-26102703", status:2, statusLabel:"ملغي",
+        dueDate:"2026-10-25", delayStatus:1, delayStatusLabel:"متأخر"},
+    ];
+    visit("/orders");
+    const table = await screen.findByRole("table");
+    expect(within(table).getByRole("columnheader",{name:"موعد التسليم"})).toBeTruthy();
+    const rows = within(table).getAllByRole("row");
+    const draftRow = rows.find(row => within(row).queryByText("مسودة #101"));
+    const confirmedRow = rows.find(row => within(row).queryByText("ORD-26102702"));
+    const cancelledRow = rows.find(row => within(row).queryByText("ORD-26102703"));
+    expect(draftRow).toBeTruthy();
+    expect(confirmedRow).toBeTruthy();
+    expect(cancelledRow).toBeTruthy();
+    expect(within(draftRow!).getByText("مسودة").closest('[data-slot="badge"]')).toBeTruthy();
+    expect(within(draftRow!).getByText("بدون موعد")).toBeTruthy();
+    expect(within(confirmedRow!).getByText("مؤكد").closest('[data-slot="badge"]')).toBeTruthy();
+    expect(within(confirmedRow!).getByText("30/10/2026")).toBeTruthy();
+    expect(within(cancelledRow!).getByText("ملغي").closest('[data-slot="badge"]')).toBeTruthy();
+    expect(within(cancelledRow!).getByText("25/10/2026")).toBeTruthy();
+    expect(within(cancelledRow!).getByText("متأخر")).toBeTruthy();
+  });
+
+  it("keeps desktop filters on one row and preserves their form controls", async () => {
+    visit("/orders?lateOnly=1");
+    expect(await screen.findByRole("table")).toBeTruthy();
+    const bar = screen.getByRole("group", {name:"فلاتر الأوردرات"});
+    expect(bar.className).toContain("xl:flex-nowrap");
+    expect(within(bar).getByRole("combobox",{name:"حالة الأوردر"})).toBeTruthy();
+    expect(within(bar).getByRole("combobox",{name:"حالة الإنتاج"})).toBeTruthy();
+    expect(within(bar).getByRole("combobox",{name:"ترتيب الأوردرات"})).toBeTruthy();
+    expect(within(bar).getByRole("checkbox",{name:"المتأخرة فقط"})).toBeTruthy();
+    expect(within(bar).getByRole("checkbox",{name:"لم يتم تسليمها"})).toBeTruthy();
+  });
+
   it("lists orders using the exact lateOnly and production filters", async () => {
     visit("/orders");
     expect(await screen.findByText("مسودة #101")).toBeTruthy();
