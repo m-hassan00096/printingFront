@@ -393,7 +393,7 @@ export function OrderCreatePage() {
       <section className="rounded-lg border bg-card p-4  sm:p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-bold">الحساب والدفع</h2>
-          <span className="text-xs text-muted-foreground">اختيارات الدفع تُحفظ في المسودة، والتحصيل عند التأكيد فقط</span>
+
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-xl bg-muted/50 p-3">
@@ -409,14 +409,16 @@ export function OrderCreatePage() {
             <p className="mt-1 text-xl font-bold">{allPriced && remainingCents !== null ? <MoneyAmount amount={remainingCents / 100} /> : "—"}</p>
           </div>
         </div>
-        {customerId && permissions.includes("finance.balances.view") && <p className="mt-3 text-xs text-muted-foreground">
-          رصيد العميل قبل هذا الأوردر: {balance.isPending ? "جاري التحميل..." :
+        {customerId && permissions.includes("finance.balances.view") && <div className="mt-3 rounded-lg border border-[#e6e9f2] bg-[#fafbff] px-3 py-3 text-xs">
+          <p className="font-semibold text-foreground">{uiMessages.orders.priorCustomerBalance}</p>
+          <p className="mt-1 text-muted-foreground">{balance.isPending ? "جاري التحميل..." :
             balance.isError ? "تعذّر التحميل" : balance.data?.type === 1
               ? <>مديونية <MoneyAmount amount={balance.data.amount} /></>
               : balance.data?.type === 2 ? <>رصيد دائن <MoneyAmount amount={balance.data.amount} /></>
-                : "صفر"} — منفصل عن المتبقي من الأوردر.
-        </p>}
-        {canConfirm && <div className="mt-5 space-y-4 border-t pt-4">
+                : "صفر"}</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">{uiMessages.orders.priorSeparateNote}</p>
+        </div>}
+        {canConfirm && <div className="mt-4 space-y-3 rounded-xl border border-[#e6e9f2] p-3 sm:p-4">
           <label className="block max-w-xs text-sm font-semibold">المدفوع الآن (العربون)
             <input aria-label="المدفوع الآن" aria-invalid={!!errors.depositAmount}
               className={fieldClass + " mt-2"} dir="ltr" inputMode="decimal"
@@ -462,6 +464,7 @@ export function OrderCreatePage() {
               أؤكد تسجيل الزيادة كرصيد دائن للعميل.</span>
           </label>}
           {message("overpayment")}
+          <p className="border-t pt-3 text-xs leading-6 text-muted-foreground">{uiMessages.orders.paymentDraftNote}</p>
         </div>}
       </section>
 
