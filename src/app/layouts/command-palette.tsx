@@ -47,10 +47,10 @@ export function CommandPalette({ open, onClose }: Props) {
   function go(to: string) { navigate(to); onClose(); }
   const current = Math.min(active, filtered.length - 1);
   return (
-    <div className="fixed inset-0 z-[70] flex items-start justify-center bg-black/70 px-3 pt-[12vh] backdrop-blur-[4px]"
+    <div className="fixed inset-0 z-[70] flex items-start justify-center bg-[#1b2545]/30 px-3 pt-[12vh] backdrop-blur-[4px]"
       onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
       <section role="dialog" aria-modal="true" aria-label={copy.dialogTitle}
-        className="w-full max-w-[560px] overflow-hidden rounded-xl border border-border bg-popover shadow-[0_24px_48px_#0008]"
+        className="w-full max-w-[560px] overflow-hidden rounded-xl border border-border bg-popover shadow-[0_24px_50px_#2d396433]"
         onKeyDown={event => {
           if (event.key === "Escape") { event.preventDefault(); onClose(); }
           if (event.key === "ArrowDown") { event.preventDefault(); setActive(i => Math.min(i + 1, filtered.length - 1)); }
@@ -80,7 +80,7 @@ export function CommandPalette({ open, onClose }: Props) {
             const Icon = item.icon;
             return <button key={item.to} type="button" id={"tabaa-command-" + index} role="option" aria-selected={current === index}
               className={"flex h-9 w-full items-center gap-3 rounded-md px-3 text-start text-[13px] transition-colors " +
-                (current === index ? "bg-primary/15 text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")}
+                (current === index ? "bg-secondary text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground")}
               onMouseEnter={() => setActive(index)} onClick={() => go(item.to)}>
               <Icon className="size-4 shrink-0"/><span className="flex-1">{item.label}</span><span className="text-[11px] text-muted-foreground">{item.group}</span>
             </button>;

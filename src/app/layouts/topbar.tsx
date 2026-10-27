@@ -38,7 +38,7 @@ export function Topbar({ title }: TopbarProps) {
 
   return (
     <>
-    <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-border/80 bg-background/95 px-4 backdrop-blur-sm sm:px-5 lg:px-6">
+    <header className="sticky top-0 z-20 flex h-[72px] items-center justify-between gap-3 border-b border-border/80 bg-white px-4 sm:px-6 lg:px-8 shadow-[0_2px_9px_#1d2b5805]">
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         <Button
           variant="ghost"
@@ -64,19 +64,19 @@ export function Topbar({ title }: TopbarProps) {
 
         <div className="min-w-0">
           <p className="hidden text-[10px] font-medium text-muted-foreground sm:block">مساحة العمل</p>
-          <h1 className="truncate text-sm font-semibold sm:mt-0.5 sm:text-base">{title}</h1>
+          <h1 className="truncate text-xs font-semibold text-[#525f78] sm:mt-0.5 sm:text-sm">{title}</h1>
         </div>
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-        <button type="button" onClick={() => setCommandOpen(true)} aria-label={uiMessages.command.trigger} className="flex h-8 items-center gap-2 rounded-md border border-border bg-card px-2.5 text-xs text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground sm:min-w-44">
+        <button type="button" onClick={() => setCommandOpen(true)} aria-label={uiMessages.command.trigger} className="flex h-9 items-center gap-2 rounded-lg border border-input bg-[#f9faff] px-3 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:bg-white hover:text-foreground sm:min-w-64 xl:min-w-80">
           <Search className="size-4" aria-hidden="true" /><span className="hidden flex-1 text-start sm:inline">{uiMessages.command.triggerPlaceholder}</span><kbd className="violet-shortcut hidden sm:inline">Ctrl K</kbd>
         </button>
         <div className="hidden min-w-0 text-left sm:block" dir="rtl">
-          <p className="max-w-40 truncate text-xs font-semibold">{user?.name}</p>
+          <p className="max-w-40 truncate text-xs font-bold">{user?.name}</p>
           <p className="mt-0.5 max-w-40 truncate text-[11px] text-muted-foreground">{user?.roleAlias || user?.role || "مستخدم"}</p>
         </div>
-        <span className="flex size-8 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-xs font-bold text-[#ADB3FF]" aria-hidden="true">
+        <span className="flex size-8 items-center justify-center rounded-full border border-[#dfe3ff] bg-[#ebeeff] text-xs font-bold text-primary" aria-hidden="true">
           {user?.name?.charAt(0) ?? "ط"}
         </span>
         <Button

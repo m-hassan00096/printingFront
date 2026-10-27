@@ -33,85 +33,81 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
+  --radius-sm: 5px;
+  --radius-md: 7px;
+  --radius-lg: 11px;
+  --radius-xl: 14px;
 }
 
+/* The screenshot reference is LIGHT. These are the authoritative UI tokens;
+   the source DESIGN.md described a dark concept and is retained as provenance. */
 :root {
-  color-scheme: dark;
-  --radius: 8px;
-  --background: #101014;
-  --foreground: #f1f1f4;
-  --card: #1b1b25;
-  --card-foreground: #f1f1f4;
-  --popover: #1f1f2e;
-  --popover-foreground: #f1f1f4;
-  --primary: #5e6ad2;
-  --primary-foreground: #fff;
-  --secondary: #252536;
-  --secondary-foreground: #f1f1f4;
-  --muted: #1f1f2e;
-  --muted-foreground: #9ba0ab;
-  --accent: #303047;
-  --accent-foreground: #f1f1f4;
-  --destructive: #eb5757;
-  --border: #2c2c3a;
-  --input: #3b3b4c;
-  --ring: #6e79d6;
-  --sidebar: #1b1b25;
-  --sidebar-foreground: #f1f1f4;
-  --sidebar-muted: #9ba0ab;
-  --sidebar-border: #2c2c3a;
-  --sidebar-accent: #5e6ad21a;
-  --sidebar-accent-foreground: #f1f1f4;
-  --sidebar-primary: #5e6ad2;
+  color-scheme: light;
+  --radius: 11px;
+  --background: #f7f8fc;
+  --foreground: #222633;
+  --card: #ffffff;
+  --card-foreground: #222633;
+  --popover: #ffffff;
+  --popover-foreground: #222633;
+  --primary: #535fd1;
+  --primary-foreground: #ffffff;
+  --secondary: #eef0fc;
+  --secondary-foreground: #454fad;
+  --muted: #f3f5fa;
+  --muted-foreground: #71798d;
+  --accent: #eceefe;
+  --accent-foreground: #434eb5;
+  --destructive: #d93e4f;
+  --border: #e8eaf1;
+  --input: #d9deea;
+  --ring: #5965d9;
+  --sidebar: #f6f8fc;
+  --sidebar-foreground: #252d40;
+  --sidebar-muted: #808ba3;
+  --sidebar-border: #e9ecf4;
+  --sidebar-accent: #e9ecff;
+  --sidebar-accent-foreground: #454fc3;
+  --sidebar-primary: #535fd1;
   --sidebar-primary-foreground: #fff;
-  --success: #3dd68c;
-  --warning: #f0c000;
+  --success: #17825d;
+  --warning: #ab6a09;
 }
 
 * { box-sizing: border-box; border-color: var(--border); }
-
 html { min-width: 320px; direction: rtl; }
 body {
-  min-width: 320px;
-  min-height: 100vh;
-  margin: 0;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: "Cairo", "Inter", sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
-  text-rendering: optimizeLegibility;
+  min-width: 320px; min-height: 100vh; margin: 0;
+  background: var(--background); color: var(--foreground);
+  font: 400 14px/1.6 "Cairo", "Inter", sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
 input, textarea, select { color: var(--foreground); accent-color: var(--primary); }
-input::placeholder, textarea::placeholder { color: var(--muted-foreground); opacity: 1; }
-option { background: var(--popover); color: var(--foreground); }
-::selection { background: #5e6ad266; color: #fff; }
+input::placeholder, textarea::placeholder { color: var(--muted-foreground); opacity: .82; }
+option { background: #fff; color: var(--foreground); }
+::selection { background: #dfe3ff; color: #293685; }
 :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
-a, button { transition-property: background-color, border-color, color, opacity; transition-duration: 120ms; }
+a, button { transition-property: background-color, border-color, color, opacity, box-shadow; transition-duration: 140ms; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 
-/* Shared high-density patterns. Existing forms keep their behavior and labels. */
 @layer components {
-  .violet-panel { background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
-  .violet-elevated { background: var(--popover); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 24px 48px #0006; }
-  .violet-shortcut { font: 11px "JetBrains Mono", monospace; border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; color: var(--muted-foreground); direction: ltr; }
+  .violet-panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 3px 16px rgba(38,48,105,.035); }
+  .violet-elevated { background: #fff; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 22px 55px rgba(38,48,105,.13); }
+  .violet-shortcut { font: 11px "JetBrains Mono", monospace; border: 1px solid #e1e4ed; background: #f8f9fd; border-radius: 5px; padding: 1px 6px; color: #7b8396; direction: ltr; }
 }
 :where(table) { border-collapse: collapse; font-variant-numeric: tabular-nums; }
-:where(table) thead { background: var(--muted); }
-:where(table) th { color: var(--muted-foreground); font-size: 12px; font-weight: 600; }
-:where(table) tbody tr { transition: background-color 120ms; }
-:where(table) tbody tr:hover { background: #ffffff08; }
-:where([role="dialog"]) { border: 1px solid var(--border); box-shadow: 0 24px 48px #0006; }
-:where([role="menu"], [role="listbox"]) { background: var(--popover); color: var(--foreground); border-color: var(--border); box-shadow: 0 14px 28px #0006; }
-:where(input, select, textarea):focus-visible { border-color: var(--primary); box-shadow: 0 0 0 2px #5e6ad226; outline: none; }
+:where(table) thead { background: #f8f9fc; }
+:where(table) th { color: #70798b; font-size: 11px; font-weight: 700; letter-spacing: .005em; white-space: nowrap; }
+:where(table) tbody tr { transition: background-color 140ms; }
+:where(table) tbody tr:hover { background: #f9faff; }
+:where([role="dialog"]) { border: 1px solid var(--border); box-shadow: 0 20px 55px rgba(28,37,83,.15); }
+:where([role="menu"], [role="listbox"]) { background: #fff; color: var(--foreground); border-color: var(--border); box-shadow: 0 12px 32px rgba(28,37,83,.1); }
+:where(input, select, textarea):focus-visible { border-color: var(--primary); box-shadow: 0 0 0 3px #535fd126; outline: none; }
+:where(input,select,textarea):disabled { background: #f3f4f7; cursor: not-allowed; }
 :where([data-sonner-toast]) { font-family: "Cairo", sans-serif; }
