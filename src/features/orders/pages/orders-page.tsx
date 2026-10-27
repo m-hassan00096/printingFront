@@ -58,7 +58,7 @@ export function OrdersPage() {
   return <div className="space-y-6">
     <SectionHeader title="الأوردرات" detail="متابعة الطلبات والعملاء ومراحل الإنتاج والتسليم."
       actions={perms.includes("orders.create") && <Button asChild><Link to="/orders/new"><Plus /> إضافة أوردر</Link></Button>} />
-    <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+    <section className="overflow-hidden rounded-lg border bg-card ">
       <div className="flex flex-wrap items-center gap-3 border-b p-4">
         <SearchField value={draftSearch} onChange={setDraftSearch} placeholder="رقم الأوردر، العميل أو الهاتف" />
         <label className="text-xs font-bold">الحالة

@@ -89,8 +89,8 @@ function cleanedForm(kind: SettingsKind, form: SettingsPayload): SettingsPayload
 }
 function Status({ value }: { value: 0 | 1 }) {
   return <span className={value === 1
-    ? "inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800"
-    : "inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600"}>
+    ? "inline-flex rounded-full bg-[#3DD68C]/10 px-3 py-1 text-xs font-bold text-[#3DD68C]"
+    : "inline-flex rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground"}>
     {value === 1 ? "نشط" : "غير نشط"}
   </span>;
 }
@@ -101,7 +101,7 @@ function ModalFrame({ title, onClose, busy, children }: {
     onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}>
     <section role="dialog" aria-modal="true" aria-label={title}
       onKeyDown={(e) => { if (e.key === "Escape" && !busy) onClose(); }}
-      className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-card p-6 shadow-2xl">
+      className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-card p-6 shadow-[0_24px_48px_#0006]">
       <div className="mb-5 flex items-center justify-between">
         <h3 className="text-xl font-extrabold">{title}</h3>
         <Button type="button" size="icon-sm" variant="ghost" onClick={onClose} disabled={busy} aria-label="إغلاق"><X /></Button>
@@ -212,13 +212,13 @@ export function SettingsPage() {
     }
   }
 
-  if (!current) return <div role="alert" className="rounded-2xl border bg-card p-8 text-center text-sm">
+  if (!current) return <div role="alert" className="rounded-lg border bg-card p-8 text-center text-sm">
     ليس لديك صلاحية عرض أي قسم من أقسام الإعدادات.
   </div>;
 
   return <div className="space-y-6">
     <header>
-      <h2 className="text-2xl font-extrabold">الإعدادات</h2>
+      <h2 className="text-xl font-semibold">الإعدادات</h2>
       <p className="mt-2 text-sm leading-7 text-muted-foreground">إدارة قوائم التشغيل ووسائل التحصيل. التغييرات تخضع لصلاحياتك وقواعد النظام.</p>
     </header>
     <div role="tablist" aria-label="أقسام الإعدادات" className="flex flex-wrap gap-2 border-b pb-4">
@@ -231,10 +231,10 @@ export function SettingsPage() {
           onClick={() => switchTab(section.key)}><Icon className="size-4" />{section.label}</button>;
       })}
     </div>
-    <section role="tabpanel" className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+    <section role="tabpanel" className="overflow-hidden rounded-lg border bg-card ">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b p-5">
         <div>
-          <h3 className="text-lg font-extrabold">{current.label}</h3>
+          <h3 className="text-base font-semibold">{current.label}</h3>
           <p className="mt-1 text-xs text-muted-foreground">إضافة وتعديل وتعطيل العناصر حسب الحاجة.</p>
         </div>
         {canAdd && <Button type="button" onClick={() => openForm()}><Plus /> إضافة {names[kind]}</Button>}
@@ -314,7 +314,7 @@ export function SettingsPage() {
           تعيين كوسيلة دفع افتراضية
           <FieldError field="isDefault" errors={fieldErrors} />
         </label>}
-        {savingError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{savingError}</p>}
+        {savingError && <p role="alert" className="rounded-xl border border-[#EB5757]/30 bg-[#EB5757]/10 p-3 text-sm text-[#EB5757]">{savingError}</p>}
         <div className="flex justify-end gap-2 border-t pt-4">
           <Button type="button" variant="outline" disabled={busy} onClick={() => setForm(null)}>إلغاء</Button>
           <Button type="submit" disabled={busy}>{busy && <LoaderCircle className="size-4 animate-spin" />}حفظ</Button>

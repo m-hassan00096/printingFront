@@ -136,7 +136,7 @@ export function OrderDetailPage() {
     <Button asChild variant="ghost"><Link to="/orders"><ArrowRight /> العودة للأوردرات</Link></Button>
     <header className="flex flex-wrap justify-between gap-4">
       <div className="space-y-1"><p className="text-xs text-muted-foreground">تفاصيل الأوردر</p>
-        <h1 className="text-2xl font-extrabold">{item.orderNumber ?? `مسودة #${item.id}`}</h1>
+        <h1 className="text-xl font-semibold">{item.orderNumber ?? `مسودة #${item.id}`}</h1>
         <p className="text-sm text-muted-foreground">{item.customerName} — {item.customerPhone}</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -147,7 +147,7 @@ export function OrderDetailPage() {
         {item.status === 1 && item.deliveredAt === null && mayCancel && <Button variant="outline" onClick={() => {setError("");setCancelOpen(true);}}>إلغاء الأوردر</Button>}
       </div>
     </header>
-    <section className="grid gap-3 rounded-2xl border bg-card p-5 shadow-sm sm:grid-cols-3">
+    <section className="grid gap-3 rounded-lg border bg-card p-5  sm:grid-cols-3">
       <div><p className="text-xs text-muted-foreground">الإجمالي</p><p className="mt-2 text-xl font-extrabold"><MoneyAmount amount={item.totalAmount} /></p></div>
       <div><p className="text-xs text-muted-foreground">موعد التسليم</p><p className="mt-2 font-semibold">{item.dueDate ?? "غير محدد"}</p></div>
       <div><p className="text-xs text-muted-foreground">حالة الإنتاج</p><p className="mt-2 font-semibold">{item.productionStatusLabel ?? "لم يبدأ"}</p>
@@ -157,18 +157,18 @@ export function OrderDetailPage() {
     <nav role="tablist" aria-label="أقسام الأوردر" className="inline-flex max-w-full items-center gap-1 rounded-xl bg-muted p-1">
       <button type="button" role="tab" id="order-tab" aria-controls="order-panel" aria-selected={activeTab === "order"}
         onClick={() => setActiveTab("order")}
-        className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${activeTab === "order" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+        className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${activeTab === "order" ? "bg-card text-foreground " : "text-muted-foreground hover:text-foreground"}`}>
         تفاصيل الأوردر
       </button>
       {showActivities && <button type="button" role="tab" id="activity-tab" aria-controls="activity-panel"
         aria-selected={activeTab === "activity"} onClick={() => setActiveTab("activity")}
-        className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${activeTab === "activity" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+        className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${activeTab === "activity" ? "bg-card text-foreground " : "text-muted-foreground hover:text-foreground"}`}>
         سجل الأحداث
       </button>}
     </nav>
     {activeTab === "order" && <div role="tabpanel" id="order-panel" aria-labelledby="order-tab">
     {draft && (mayConfirm || mayEdit) && <section aria-labelledby="draft-payment-title"
-      className="mb-4 rounded-2xl border bg-card px-4 py-3 shadow-sm sm:px-5">
+      className="mb-4 rounded-lg border bg-card px-4 py-3  sm:px-5">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 id="draft-payment-title" className="text-sm font-bold">الدفع عند التأكيد</h2>
@@ -199,7 +199,7 @@ export function OrderDetailPage() {
         </div>
       </dl>
     </section>}
-    <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+    <section className="overflow-hidden rounded-lg border bg-card ">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
         <h2 className="font-bold">عناصر الأوردر</h2>
         {draft && perms.includes("orders.items.create") && <Button variant="outline" size="sm" onClick={() => setEditItem("new")}><Plus className="size-4" /> إضافة عنصر</Button>}
@@ -237,7 +237,7 @@ export function OrderDetailPage() {
       onClose={() => setDeleteItem(null)} onConfirm={() => void removeItem()} />}
     {paymentDialog && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
       <section role="dialog" aria-modal="true" aria-label={paymentDialog === "plan" ? "تعديل بيانات العربون" : "تأكيد الأوردر"}
-        className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-2xl bg-card p-5 shadow-xl sm:p-6">
+        className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-lg bg-card p-5 shadow-xl sm:p-6">
         <header className="flex items-start justify-between gap-3">
           <h2 className="text-lg font-bold">{paymentDialog === "plan" ? "تعديل بيانات العربون" : "تأكيد الأوردر"}</h2>
           <Button type="button" variant="ghost" size="icon-sm" aria-label="إغلاق"
@@ -318,7 +318,7 @@ export function OrderDetailPage() {
               <strong><MoneyAmount amount={Math.max(0, Number(item.totalAmount) - Number(deposit))} /></strong>
             </div>
           </div>
-          {Number(deposit) > Number(item.totalAmount) && <label className="flex items-start gap-2 rounded-xl border border-amber-300 p-3 text-xs">
+          {Number(deposit) > Number(item.totalAmount) && <label className="flex items-start gap-2 rounded-xl border border-[#F0C000]/40 p-3 text-xs">
             <input type="checkbox" checked={overpaymentAcknowledged}
               onChange={(e) => {setOverpaymentAcknowledged(e.target.checked);setError("");}}
               aria-label="تأكيد الزيادة عن قيمة الأوردر" />
@@ -349,7 +349,7 @@ export function OrderDetailPage() {
       </section>
     </div>}
     {cancelOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
-      <section role="dialog" aria-modal="true" aria-label="إلغاء الأوردر" className="w-full max-w-md space-y-4 rounded-2xl bg-card p-6">
+      <section role="dialog" aria-modal="true" aria-label="إلغاء الأوردر" className="w-full max-w-md space-y-4 rounded-lg bg-card p-6">
         <h2 className="font-bold">سبب الإلغاء</h2>
         <textarea aria-label="سبب إلغاء الأوردر" className={fieldClass + " min-h-24 py-2"} value={reason} onChange={(e) => setReason(e.target.value)} />
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}

@@ -249,14 +249,14 @@ export function OrderCreatePage() {
   return <div className="mx-auto max-w-6xl space-y-5 pb-8">
     <Button variant="ghost" asChild className="px-0"><Link to="/orders"><ArrowRight /> العودة للأوردرات</Link></Button>
     <header>
-      <h1 className="text-2xl font-extrabold">إضافة أوردر</h1>
+      <h1 className="text-xl font-semibold">إضافة أوردر</h1>
       <p className="mt-1 text-sm text-muted-foreground">أدخل بيانات الطلب، ثم احفظ مسودة أو أكد الأوردر مع تسجيل الدفعة الآن.</p>
     </header>
     {choices.isError && <div role="alert" className="rounded-xl border p-3 text-sm text-destructive">
       تعذّر تحميل العملاء أو خدمات الطباعة. <button type="button" className="underline" onClick={() => void choices.refetch()}>إعادة المحاولة</button>
     </div>}
     <form onSubmit={(event) => void submit(event)} noValidate className="space-y-4">
-      <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+      <section className="rounded-lg border bg-card p-4  sm:p-5">
         <h2 className="mb-4 font-bold">بيانات الأوردر</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
@@ -294,7 +294,7 @@ export function OrderCreatePage() {
         </div>
       </section>
 
-      <section className="overflow-visible rounded-2xl border bg-card shadow-sm">
+      <section className="overflow-visible rounded-lg border bg-card ">
         <header className="flex items-center justify-between gap-3 border-b p-4 sm:px-5">
           <h2 className="font-bold">عناصر الأوردر</h2>
           <Button type="button" variant="outline" size="sm" disabled={busy || items.length >= 100} onClick={addItem}><Plus className="size-4" /> إضافة عنصر</Button>
@@ -356,7 +356,7 @@ export function OrderCreatePage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+      <section className="rounded-lg border bg-card p-4  sm:p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-bold">الحساب والدفع</h2>
           <span className="text-xs text-muted-foreground">اختيارات الدفع تُحفظ في المسودة، والتحصيل عند التأكيد فقط</span>
@@ -421,7 +421,7 @@ export function OrderCreatePage() {
               {message("paymentDestinationId")}
             </div>}
           </div>}
-          {allPriced && overpaymentCents > 0 && <label className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50/40 p-3 text-sm">
+          {allPriced && overpaymentCents > 0 && <label className="flex items-start gap-2 rounded-xl border border-[#F0C000]/40 bg-[#F0C000]/10 p-3 text-sm">
             <input type="checkbox" checked={overpaymentAccepted} onChange={(e) => {setOverpaymentAccepted(e.target.checked);clear("overpayment");}}
               aria-label="تأكيد الزيادة عن قيمة الأوردر" />
             <span>المدفوع أعلى من إجمالي الأوردر بـ <MoneyAmount amount={overpaymentCents / 100} />.
@@ -432,7 +432,7 @@ export function OrderCreatePage() {
       </section>
 
       {generalError && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{generalError}</p>}
-      <footer className="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card/95 p-3 shadow-lg backdrop-blur sm:p-4">
+      <footer className="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card/95 p-3 shadow-lg backdrop-blur sm:p-4">
         <div className="text-sm">
           <span className="text-muted-foreground">إجمالي الأوردر</span>
           <strong className="me-2 block text-lg">{allPriced ? <MoneyAmount amount={orderCents / 100} /> : "—"}</strong>

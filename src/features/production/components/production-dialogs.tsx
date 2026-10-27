@@ -11,13 +11,13 @@ import type { ProductionAction, ProductionItem, SelectOption } from "../types/pr
 
 export function StagePill({ stage }: { stage: number }) {
   const config = ({
-    0:["لم يبدأ","bg-slate-100 text-slate-700"],
-    1:["قيد التصميم","bg-blue-50 text-blue-800"],
-    2:["تم التصميم","bg-emerald-50 text-emerald-800"],
-    3:["في الطباعة","bg-indigo-50 text-indigo-800"],
-    4:["جاهز للتسليم","bg-emerald-100 text-emerald-900"],
+    0:["لم يبدأ","bg-muted text-muted-foreground"],
+    1:["قيد التصميم","bg-primary/10 text-[#A5ACFF]"],
+    2:["تم التصميم","bg-[#3DD68C]/10 text-[#3DD68C]"],
+    3:["في الطباعة","bg-primary/10 text-[#A5ACFF]"],
+    4:["جاهز للتسليم","bg-[#3DD68C]/15 text-[#3DD68C]"],
   } as Record<number,[string,string]>)[stage] ?? ["غير معروف","bg-muted text-foreground"];
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${config[1]}`}>{config[0]}</span>;
+  return <span className={`inline-flex items-center rounded-sm border border-border px-2 py-0.5 text-[11px] font-semibold ${config[1]}`}>{config[0]}</span>;
 }
 const stageNames: Record<number,string> = {
   0: "لم يبدأ", 1: "قيد التصميم", 2: "تم التصميم",
@@ -70,7 +70,7 @@ export function ProductionActionDialog({ intent, busy, onClose, onConfirm }: {
   }
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
     <section role="dialog" aria-modal="true" aria-label={modalTitles[intent.action]}
-      className="w-full max-w-md space-y-4 rounded-2xl bg-card p-5 shadow-xl sm:p-6"
+      className="w-full max-w-md space-y-4 rounded-lg bg-card p-5 shadow-xl sm:p-6"
       onKeyDown={(e)=>{if(e.key==="Escape"&&!busy)onClose();}}>
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -84,7 +84,7 @@ export function ProductionActionDialog({ intent, busy, onClose, onConfirm }: {
           <X className="size-4"/>
         </Button>
       </div>
-      {intent.action==="undo" && <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+      {intent.action==="undo" && <p className="rounded-xl bg-[#F0C000]/10 p-3 text-sm text-[#F0C000]">
         سيتم إرجاع العنصر خطوة حسب قواعد الإنتاج، مع الحفاظ على سجل الحركات.
         {intent.item?.productionStage===3 && " سيعود للتصميم من أجل إعادة العمل."}
       </p>}
@@ -125,7 +125,7 @@ export function ProductionDetailDialog({ item, onClose }: { item:ProductionItem;
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
     <section role="dialog" aria-modal="true" aria-label="تفاصيل عنصر الإنتاج"
       onKeyDown={(e)=>{if(e.key==="Escape")onClose();}}
-      className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl bg-card shadow-xl">
+      className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-lg bg-card shadow-xl">
       <header className="flex items-start justify-between gap-3 border-b px-5 py-4">
         <div className="min-w-0">
           <h2 className="truncate text-lg font-bold">{item.serviceName}</h2>

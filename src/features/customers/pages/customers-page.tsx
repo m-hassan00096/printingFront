@@ -75,7 +75,7 @@ export function CustomersPage() {
   return <div className="space-y-6">
     <SectionHeader title="العملاء" detail="قائمة العملاء وبيانات التواصل والحالات وأنواع العملاء."
       actions={canCreate && <Button onClick={() => setEditing("new")}><Plus /> إضافة عميل</Button>} />
-    <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+    <section className="overflow-hidden rounded-lg border bg-card ">
       <div className="flex flex-wrap items-center gap-3 border-b p-4">
         <SearchField value={draftSearch} onChange={setDraftSearch} placeholder="بحث باسم العميل أو رقم الهاتف" />
         <label className="flex items-center gap-2 text-xs font-bold text-muted-foreground">نوع العميل

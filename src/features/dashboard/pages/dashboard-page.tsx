@@ -20,12 +20,12 @@ function MetricCard({label,value,detail,icon:Icon,tone}:{
   tone:"blue"|"red"|"green"|"amber";
 }){
   const colors={
-    blue:"bg-blue-50 text-blue-700",
-    red:"bg-rose-50 text-rose-700",
-    green:"bg-emerald-50 text-emerald-700",
-    amber:"bg-amber-50 text-amber-700",
+    blue:"bg-primary/10 text-[#A5ACFF]",
+    red:"bg-[#EB5757]/10 text-[#EB5757]",
+    green:"bg-[#3DD68C]/10 text-[#3DD68C]",
+    amber:"bg-[#F0C000]/10 text-[#F0C000]",
   };
-  return <article className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+  return <article className="rounded-lg border bg-card p-4  sm:p-5">
     <div className="flex items-center justify-between gap-3">
       <span className="text-xs font-bold text-foreground/75">{label}</span>
       <span className={"flex size-10 items-center justify-center rounded-xl "+colors[tone]}>
@@ -49,7 +49,7 @@ function OrderSummary({order,allowView}:{order:DashboardOrder;allowView:boolean}
   const content=<>
     <div className="flex min-w-0 flex-1 items-center gap-3">
       <span className={"flex size-9 shrink-0 items-center justify-center rounded-xl "+
-        (order.isOverdue?"bg-rose-50 text-rose-700":"bg-secondary text-primary")}>
+        (order.isOverdue?"bg-[#EB5757]/10 text-[#EB5757]":"bg-secondary text-primary")}>
         {order.isOverdue?<AlertTriangle className="size-4"/>:<ClipboardList className="size-4"/>}
       </span>
       <div className="min-w-0">
@@ -63,7 +63,7 @@ function OrderSummary({order,allowView}:{order:DashboardOrder;allowView:boolean}
       </div>
     </div>
     <span className={"shrink-0 rounded-lg px-2 py-1 text-[11px] font-bold "+
-      (order.isOverdue?"bg-rose-50 text-rose-700":"bg-muted text-foreground/70")}>
+      (order.isOverdue?"bg-[#EB5757]/10 text-[#EB5757]":"bg-muted text-foreground/70")}>
       {order.isOverdue?"متأخر":order.productionStatusLabel??"قيد المتابعة"}
     </span>
     {allowView&&<ArrowUpLeft className="size-4 shrink-0 text-muted-foreground"/>}
@@ -74,14 +74,14 @@ function OrderSummary({order,allowView}:{order:DashboardOrder;allowView:boolean}
 }
 function PressureCard({data,canProduction}:{data:DashboardData["productionPressure"];canProduction:boolean}){
   const stages=[
-    {name:"لم يبدأ",value:data.notStarted,bar:"bg-slate-400"},
-    {name:"التصميم",value:data.design,bar:"bg-sky-500"},
-    {name:"الطباعة",value:data.printing,bar:"bg-indigo-500"},
-    {name:"جاهز للتسليم",value:data.ready,bar:"bg-emerald-500"},
+    {name:"لم يبدأ",value:data.notStarted,bar:"bg-muted-foreground"},
+    {name:"التصميم",value:data.design,bar:"bg-[#6E79D6]"},
+    {name:"الطباعة",value:data.printing,bar:"bg-primary/100"},
+    {name:"جاهز للتسليم",value:data.ready,bar:"bg-[#3DD68C]/100"},
   ];
   const max=Math.max(...stages.map(s=>s.value),1);
   const total=stages.reduce((sum,s)=>sum+s.value,0);
-  return <section aria-label="ضغط الإنتاج" className="space-y-4 rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+  return <section aria-label="ضغط الإنتاج" className="space-y-4 rounded-lg border bg-card p-4  sm:p-5">
     <SectionTitle title="ضغط الإنتاج" detail="عدد بنود الطلبات النشطة في كل مرحلة"
       link={canProduction?"/production":undefined} label="فتح لوحة الإنتاج"/>
     <div className="space-y-3">
@@ -107,7 +107,7 @@ function QuickActions({permissions}:{permissions:readonly string[]}){
     {label:"التحصيلات",to:"/collections",icon:Wallet,allow:permissions.some(p=>["finance.collections.view","finance.collections.create"].includes(p))},
   ].filter(x=>x.allow);
   if(!links.length)return null;
-  return <section aria-label="إجراءات سريعة" className="space-y-3 rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+  return <section aria-label="إجراءات سريعة" className="space-y-3 rounded-lg border bg-card p-4  sm:p-5">
     <SectionTitle title="إجراءات سريعة" detail="اختصارات لمهامك اليومية"/>
     <div className="grid grid-cols-2 gap-2">
       {links.map(link=><Link to={link.to} key={link.to} className="flex min-h-20 flex-col justify-between rounded-xl border bg-background p-3 text-sm font-semibold hover:border-primary/35 hover:bg-muted/30">
@@ -137,7 +137,7 @@ export function DashboardPage(){
         </Button>
         {permissions.includes("orders.create")&&<Button asChild><Link to="/orders/new"><Plus className="size-4"/> أوردر جديد</Link></Button>}
       </div>}/>
-    {!canOrders&&<div className="rounded-2xl border bg-card p-6 text-sm text-foreground/75">
+    {!canOrders&&<div className="rounded-lg border bg-card p-6 text-sm text-foreground/75">
       ملخص الأوردرات يحتاج صلاحية عرض قائمة الأوردرات. الاختصارات المتاحة لك موجودة أدناه.
     </div>}
     {canOrders&&(query.isPending?<LoadingState/>:query.isError?
@@ -158,7 +158,7 @@ export function DashboardPage(){
         </section>
         <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(330px,1fr)]">
           <div className="space-y-4">
-            <section aria-label="أوردرات تحتاج المتابعة" className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+            <section aria-label="أوردرات تحتاج المتابعة" className="rounded-lg border bg-card p-4  sm:p-5">
               <SectionTitle title="أوردرات تحتاج المتابعة" detail="الأقرب في موعد التسليم، مع إظهار المتأخر أولًا"
                 link="/orders?lateOnly=1&openOnly=1" label="عرض المتأخرة"/>
               {data.attentionOrders.length
@@ -168,7 +168,7 @@ export function DashboardPage(){
                     لا توجد أوردرات بمواعيد تسليم تحتاج المتابعة حاليًا.
                   </div>}
             </section>
-            <section aria-label="آخر الأوردرات" className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+            <section aria-label="آخر الأوردرات" className="overflow-hidden rounded-lg border bg-card ">
               <div className="p-4 sm:p-5">
                 <SectionTitle title="آخر الأوردرات" detail="أحدث الأوردرات المؤكدة" link="/orders"/>
               </div>
@@ -185,7 +185,7 @@ export function DashboardPage(){
                     <td className="px-4 py-3">{o.customerName}</td>
                     <td className="whitespace-nowrap px-4 py-3"><DateLabel value={o.dueDate}/></td>
                     <td className="px-4 py-3"><span className={"rounded-lg px-2 py-1 text-xs font-semibold "+
-                      (o.isOverdue?"bg-rose-50 text-rose-700":"bg-muted text-foreground/75")}>
+                      (o.isOverdue?"bg-[#EB5757]/10 text-[#EB5757]":"bg-muted text-foreground/75")}>
                       {o.productionStatusLabel??"—"}</span></td>
                   </tr>)}</tbody>
                 </table>

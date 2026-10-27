@@ -58,8 +58,8 @@ function ProductionColumn({ column, filters, page, onPage, count, countLoading,
     groups.set(item.orderId,group);
   }
   const label=PRODUCTION_COLUMNS.find(x=>x.id===column)?.label ?? "مرحلة";
-  return <section aria-label={`عمود ${label}`} className={`min-w-0 rounded-2xl border bg-muted/30 ${visible?"block":"hidden lg:block"}`}>
-    <header className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t-2xl border-b bg-muted px-3 py-3">
+  return <section aria-label={`عمود ${label}`} className={`min-w-0 rounded-lg border bg-card/40 ${visible?"block":"hidden lg:block"}`}>
+    <header className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t-lg border-b bg-card px-3 py-3">
       <h3 className="text-sm font-bold">{label}</h3>
       <span className="min-w-7 rounded-full bg-card px-2 py-1 text-center text-xs font-bold tabular-nums"
         aria-label={`عدد عناصر ${label}`}>{countLoading?"…":count??"—"}</span>
@@ -72,12 +72,12 @@ function ProductionColumn({ column, filters, page, onPage, count, countLoading,
             لا توجد عناصر في هذه المرحلة.
           </div> :
         [...groups.entries()].map(([orderId,items])=>
-          <div key={orderId} className="overflow-hidden rounded-xl border bg-card shadow-sm">
+          <div key={orderId} className="overflow-hidden rounded-xl border bg-card ">
             <header className="space-y-0.5 border-b bg-card px-3 py-2.5">
               <p className="text-sm font-bold">{items[0].orderNumber}</p>
               <p className="truncate text-xs font-semibold" title={items[0].customerName}>{items[0].customerName}</p>
               <p className="text-xs text-muted-foreground">{items[0].customerPhone}</p>
-              {items[0].isLate && <span className="inline-flex rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-700">متأخر</span>}
+              {items[0].isLate && <span className="inline-flex rounded-full bg-[#EB5757]/10 px-2 py-0.5 text-xs font-bold text-[#EB5757]">متأخر</span>}
               {items[0].dueDate && <p className="text-xs text-muted-foreground">التسليم: {items[0].dueDate}</p>}
             </header>
             {items.map(item=><ProductionItemCard key={item.id} item={item} permissions={permissions}
@@ -176,7 +176,7 @@ export function ProductionPage() {
         onClick={()=>{
           void qc.invalidateQueries({queryKey:["production"]});
         }}><RotateCw className="size-4"/> تحديث</Button>}/>
-    <section aria-label="فلاتر الإنتاج" className="space-y-2 rounded-2xl border bg-card p-3 shadow-sm sm:p-4">
+    <section aria-label="فلاتر الإنتاج" className="space-y-2 rounded-lg border bg-card p-3  sm:p-4">
       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(240px,1.4fr)_repeat(3,minmax(155px,1fr))]">
         <label className="relative block">
           <span className="sr-only">البحث في الإنتاج</span>
@@ -226,7 +226,7 @@ export function ProductionPage() {
         ["في الطباعة",summary.data.printingCount],
         ["جاهز للتسليم",summary.data.readyCount],
         ["أوردرات متأخرة",summary.data.lateOrdersCount],
-      ].map(([label,n])=><div key={label} className="rounded-xl border bg-card p-3 shadow-sm">
+      ].map(([label,n])=><div key={label} className="rounded-xl border bg-card p-3 ">
         <p className="text-xs text-muted-foreground">{label}</p>
         <p className="mt-1 text-xl font-bold tabular-nums">{n}</p>
       </div>)}

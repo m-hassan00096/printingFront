@@ -58,14 +58,14 @@ export function CollectionsPage(){
           ["نقدي",summary.data.cashTotal],
           ["تحويلات بنكية",summary.data.bankTotal],
           ["محافظ إلكترونية",summary.data.walletTotal],
-        ].map(([label,value])=><div key={label} className="rounded-xl border bg-card p-3 shadow-sm">
+        ].map(([label,value])=><div key={label} className="rounded-xl border bg-card p-3 ">
           <p className="text-xs font-medium text-foreground/70">{label}</p>
-          <p className="mt-1 text-lg font-extrabold"><MoneyAmount amount={value}/></p>
+          <p className="mt-1 text-base font-semibold"><MoneyAmount amount={value}/></p>
         </div>)}
       </div>
     </section>}
     {canView&&summary.isError&&<div className="rounded-xl border bg-card p-3"><ErrorState error={summary.error} retry={()=>void summary.refetch()}/></div>}
-    {canView&&<section aria-label="فلاتر التحصيلات" className="space-y-2.5 rounded-2xl border bg-card p-3">
+    {canView&&<section aria-label="فلاتر التحصيلات" className="space-y-2.5 rounded-lg border bg-card p-3">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 text-sm font-bold">
           <SlidersHorizontal className="size-4 text-muted-foreground"/> الفلاتر
@@ -126,7 +126,7 @@ export function CollectionsPage(){
     </section>}
     {!canView&&<p className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">يمكنك تسجيل تحصيل جديد، لكن عرض سجل الإيصالات يحتاج صلاحية التحصيلات.</p>}
     {canView&&(list.isPending?<LoadingState/>:list.isError?<ErrorState error={list.error} retry={()=>void list.refetch()}/>:
-      list.data?.collections.length?<section className="overflow-hidden rounded-2xl border bg-card">
+      list.data?.collections.length?<section className="overflow-hidden rounded-lg border bg-card">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2.5">
           <h3 className="text-sm font-bold">سجل الإيصالات</h3>
           <span className="text-xs font-semibold text-foreground/70">
@@ -149,7 +149,7 @@ export function CollectionsPage(){
                 <td className="px-3 py-2.5">{c.sourceLabel}</td>
                 <td className="whitespace-nowrap px-3 py-2.5"><span dir="ltr" className="inline-block tabular-nums">{formatCollectionDate(c.collectedOn)}</span></td>
                 <td className="px-3 py-2.5"><span className={"rounded-full px-2 py-1 text-xs font-bold "+(c.status===1?
-                  "bg-emerald-50 text-emerald-800":"bg-amber-50 text-amber-800")}>{c.statusLabel}</span></td>
+                  "bg-[#3DD68C]/10 text-[#3DD68C]":"bg-[#F0C000]/10 text-[#F0C000]")}>{c.statusLabel}</span></td>
                 <td className="whitespace-nowrap px-2 py-2.5"><Button variant="outline" size="sm" className="h-8 gap-1 px-2" onClick={()=>setDetails(c.id)}>
                   <Eye className="size-4"/> التفاصيل
                 </Button></td>
@@ -158,7 +158,7 @@ export function CollectionsPage(){
           </table>
         </div>
       </section>:<EmptyState title="لا توجد إيصالات مطابقة" detail="غيّر البحث أو الفلاتر لعرض التحصيلات."/>) }
-    {list.data?.pagination&&list.data.pagination.lastPage>1&&<div className="overflow-hidden rounded-2xl border bg-card">
+    {list.data?.pagination&&list.data.pagination.lastPage>1&&<div className="overflow-hidden rounded-lg border bg-card">
       <PaginationBar pagination={list.data.pagination} onPage={setPage}/></div>}
 
     {creating&&<CreateCollectionDialog onClose={()=>setCreating(false)} onSuccess={done}/>}
