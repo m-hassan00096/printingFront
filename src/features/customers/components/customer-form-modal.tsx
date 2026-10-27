@@ -3,6 +3,7 @@ import axios from "axios";
 import { LoaderCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { getApiErrorMessage } from "@/shared/api/http";
 import type { ApiErrorResponse } from "@/shared/api/api-types";
 import { fieldClass, fieldLabel } from "@/features/identity/components/identity-ui";
@@ -126,11 +127,11 @@ export function CustomerFormModal({ customer, onClose, onSaved }: {
               onChange={(e) => change("phone", e.target.value)} />
             {fieldError("phone")}
           </label>
-          <label className="block space-y-2"><span className={fieldLabel}>نوع العميل (اختياري)</span>
+          <label className="block space-y-2"><span className={fieldLabel}>{uiMessages.customers.typeOptional}</span>
             <select aria-label="نوع العميل" aria-invalid={!!errors.customerTypeId}
               className={fieldClass} value={draft.customerTypeId} disabled={busy}
               onChange={(e) => change("customerTypeId", e.target.value)}>
-              <option value="">بدون تصنيف — السعر الأساسي للخدمات</option>
+              <option value="">{uiMessages.customers.unclassifiedHint}</option>
               {customer?.customerType && !types.data?.some((item) => item.value === customer.customerTypeId) &&
                 <option value={customer.customerTypeId ?? ""}>{customer.customerType.name} (النوع الحالي)</option>}
               {types.data?.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}

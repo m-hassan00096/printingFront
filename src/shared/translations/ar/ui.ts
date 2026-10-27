@@ -1,6 +1,11 @@
 /** Arabic-only UI copy. Future locales can provide the same keys without changing components. */
 export const uiMessages = {
 
+  customers: {
+    unclassified: "بدون تصنيف",
+    unclassifiedHint: "بدون تصنيف — السعر الأساسي للخدمات",
+    typeOptional: "نوع العميل (اختياري)",
+  },
   printingServices: {
     unclassifiedPrice: "بدون تصنيف — السعر الأساسي",
     genericTiers: "الأنواع المصنفة (عام)",

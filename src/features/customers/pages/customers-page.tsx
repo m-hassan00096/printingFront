@@ -3,6 +3,7 @@ import { Eye, Pencil, Plus, Trash2, UsersRound } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { getApiErrorMessage } from "@/shared/api/http";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import {
@@ -118,7 +119,7 @@ export function CustomersPage() {
                   <Link to={`/customers/${customer.id}`} className="font-bold hover:underline">{customer.name}</Link>
                 </div></td>
                 <td dir="ltr" className="px-5 py-4 text-right text-muted-foreground">{customer.phone}</td>
-                <td className="px-5 py-4">{customer.customerType?.name ?? "بدون تصنيف"}</td>
+                <td className="px-5 py-4">{customer.customerType?.name ?? uiMessages.customers.unclassified}</td>
                 <td className="px-5 py-4"><IdentityStatus status={customer.status} label={customer.statusLabel} /></td>
                 <td className="px-5 py-4"><div className="flex flex-wrap gap-1">
                   <Button size="icon-sm" variant="ghost" asChild title="تفاصيل العميل">

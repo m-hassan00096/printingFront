@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowRight, ClipboardList, FileClock, Pencil, Wallet } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { MoneyAmount } from "@/shared/components/money-amount";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { ErrorState, IdentityStatus, LoadingState, PaginationBar } from "@/features/identity/components/identity-ui";
@@ -120,7 +121,7 @@ export function CustomerDetailPage() {
         {activeTab === "details" && <dl className="grid gap-2.5 sm:grid-cols-2">
           <CustomerField label="الاسم" value={value.name} />
           <CustomerField label="الهاتف" value={value.phone} ltr />
-          <CustomerField label="نوع العميل" value={value.customerType?.name ?? "بدون تصنيف"} />
+          <CustomerField label="نوع العميل" value={value.customerType?.name ?? uiMessages.customers.unclassified} />
           <CustomerField label="العنوان" value={value.address || "—"} />
         </dl>}
 
