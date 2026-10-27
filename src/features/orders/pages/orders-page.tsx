@@ -4,6 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { MoneyAmount } from "@/shared/components/money-amount";
 import { getApiErrorMessage } from "@/shared/api/http";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
@@ -70,7 +71,7 @@ export function OrdersPage() {
     <SectionHeader title="الأوردرات" detail="متابعة الطلبات والعملاء ومراحل الإنتاج والتسليم."
       actions={perms.includes("orders.create") && <Button asChild><Link to="/orders/new"><Plus /> إضافة أوردر</Link></Button>} />
     <section className="overflow-hidden rounded-xl border border-[#e8eaf2] bg-white shadow-[0_6px_20px_#26396b08]">
-      <div role="group" aria-label="فلاتر الأوردرات"
+      <div role="group" aria-label={uiMessages.orders.filtersLabel}
         className="grid grid-cols-1 gap-3 border-b bg-white p-4 sm:grid-cols-2 xl:flex xl:flex-nowrap xl:items-end xl:gap-3 xl:p-5">
         <div className="min-w-0 sm:col-span-2 xl:min-w-[200px] xl:flex-1 [&>label]:max-w-none">
           <SearchField value={draftSearch} onChange={setDraftSearch} placeholder="رقم الأوردر، العميل أو الهاتف" />
@@ -119,7 +120,7 @@ export function OrdersPage() {
         <>
           <div className="overflow-x-auto"><table className="w-full min-w-[1000px] text-right text-sm">
             <thead className="bg-muted/50 text-xs text-muted-foreground"><tr>
-              {["الأوردر", "العميل", "الهاتف", "الإجمالي", "الحالة", "الإنتاج", "موعد التسليم", "الإجراءات"].map((label) =>
+              {["الأوردر", "العميل", "الهاتف", "الإجمالي", "الحالة", "الإنتاج", uiMessages.orders.dueDateColumn, "الإجراءات"].map((label) =>
                 <th scope="col" key={label} className="px-4 py-3 font-semibold">{label}</th>)}
             </tr></thead>
             <tbody className="divide-y">{orders.data.orders.map((order) => <tr key={order.id} className="hover:bg-muted/30">
@@ -145,7 +146,7 @@ export function OrdersPage() {
                     )}
                   </div>
                 ) : (
-                  <span className="whitespace-nowrap text-muted-foreground">بدون موعد</span>
+                  <span className="whitespace-nowrap text-muted-foreground">{uiMessages.orders.noDueDate}</span>
                 )}
               </td>
               <td className="px-4 py-3"><div className="flex gap-1">
