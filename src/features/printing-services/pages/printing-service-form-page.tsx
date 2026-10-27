@@ -122,9 +122,9 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
   }
   function tierQuantityLabel(row: TierInput): string {
     if (!row.minQuantity && !row.maxQuantity) return copy.defaultTier;
-    if (row.minQuantity && row.maxQuantity) return `${row.minQuantity} – ${row.maxQuantity} قطعة`;
-    if (row.minQuantity) return `من ${row.minQuantity} قطعة`;
-    return `حتى ${row.maxQuantity} قطعة`;
+    if (row.minQuantity && row.maxQuantity) return `${row.minQuantity} – ${row.maxQuantity} ${copy.unitPieces}`;
+    if (row.minQuantity) return `${copy.quantityFromShort} ${row.minQuantity} ${copy.unitPieces}`;
+    return `${copy.quantityToShort} ${row.maxQuantity} ${copy.unitPieces}`;
   }
   function validate(): Errors {
     const issues: Errors = {};
@@ -285,9 +285,9 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
             const isDefault = row.minQuantity === "" && row.maxQuantity === "";
             return <fieldset key={row.key} disabled={busy}
               className="min-w-0 rounded-lg border border-[#e6e9f2] bg-[#fafbff] px-3 py-3 sm:px-4">
-              <legend className="sr-only">شريحة {index + 1}</legend>
+              <legend className="sr-only">{copy.tierNumber.replace("{number}", String(index + 1))}</legend>
               <div className="mb-2 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-bold text-[#53617c]">شريحة {index + 1}</span>
+                <span className="text-xs font-bold text-[#53617c]">{copy.tierNumber.replace("{number}", String(index + 1))}</span>
                 <span className={isDefault
                   ? "rounded-md border border-primary/15 bg-primary/5 px-2 py-0.5 text-[11px] font-semibold text-primary"
                   : "rounded-md border border-border bg-white px-2 py-0.5 text-[11px] font-medium text-muted-foreground"}>
