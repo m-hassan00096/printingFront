@@ -133,7 +133,12 @@ export function OrdersPage() {
               <td className="px-4 py-3">{order.customerName}</td><td className="px-4 py-3 tabular-nums">{order.customerPhone}</td>
               <td className="px-4 py-3 font-semibold"><MoneyAmount amount={order.totalAmount} /></td>
               <td className="px-4 py-3"><OrderStatusBadge order={order} /></td>
-              <td className="px-4 py-3">{order.productionStatusLabel ?? "—"}</td>
+              <td className="px-4 py-3">
+                <span className={order.status === 2 ? "text-xs text-muted-foreground" : undefined}>
+                  {order.productionStatusLabel ?? "—"}
+                </span>
+                {order.status === 2 && <p className="text-[11px] text-muted-foreground">{uiMessages.orders.lastProductionStage}</p>}
+              </td>
               <td className="px-4 py-3">
                 {order.dueDate ? (
                   <div className="flex flex-col items-start gap-1">
