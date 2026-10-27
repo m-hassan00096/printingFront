@@ -93,6 +93,18 @@ beforeEach(() => {
 afterEach(() => { apiClient.defaults.adapter = original; });
 
 describe("Settings permissions and backend integration", () => {
+  it("renders the المطابع section in the shared tabular layout", async () => {
+    visit("/settings");
+    expect(await screen.findByText("مطبعة رئيسية")).toBeTruthy();
+    expect(screen.getByRole("tab", { name: /المطابع/ })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "اسم المطبعة" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "البيانات" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "الحالة" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "الإجراءات" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "إضافة مطبعة" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "تسجيل خروج" })).toBeTruthy();
+  });
+
   it("discovers real parameter-group IDs and never hardcodes them", async () => {
     visit("/settings");
     expect(await screen.findByText("مطبعة رئيسية")).toBeTruthy();
