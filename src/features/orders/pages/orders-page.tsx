@@ -41,6 +41,8 @@ export function OrdersPage() {
     setParams((previous) => {
       const next = new URLSearchParams(previous);
       if (value) next.set(name, value); else next.delete(name);
+      // Open-only is meaningful as a refinement of the late-order filter here.
+      if (name === "lateOnly" && !value) next.delete("openOnly");
       if (name !== "page") next.delete("page");
       return next;
     });
