@@ -54,7 +54,7 @@ function OrderSummary({order,allowView}:{order:DashboardOrder;allowView:boolean}
       </span>
       <div className="min-w-0">
         <p className="truncate text-sm font-bold">
-          <span dir="ltr" className="inline-block">{order.orderNumber??"أوردر"}</span>
+          <span dir="ltr" className="inline-block font-mono text-xs">{order.orderNumber??"أوردر"}</span>
           <span className="mx-1 text-foreground/30">·</span>{order.customerName}
         </p>
         <p className="mt-1 text-xs text-foreground/65">
@@ -176,10 +176,10 @@ export function DashboardPage(){
                 <table className="w-full min-w-[570px] text-right text-sm">
                   <thead className="bg-muted/50 text-xs text-foreground/65">
                     <tr>{["الأوردر","العميل","موعد التسليم","حالة الإنتاج"].map(h=>
-                      <th key={h} className="px-4 py-3 font-bold">{h}</th>)}</tr>
+                      <th key={h} className="px-4 py-3 font-mono text-xs font-medium">{h}</th>)}</tr>
                   </thead>
                   <tbody className="divide-y">{data.latestOrders.map(o=><tr key={o.id} className="hover:bg-muted/30">
-                    <td className="px-4 py-3 font-bold">{canOrderDetail?<Link className="text-primary hover:underline"
+                    <td className="px-4 py-3 font-bold">{canOrderDetail?<Link className="text-[#A5ACFF] hover:underline"
                       to={`/orders/${o.id}`}>{o.orderNumber??`#${o.id}`}</Link>:
                       o.orderNumber??`#${o.id}`}</td>
                     <td className="px-4 py-3">{o.customerName}</td>

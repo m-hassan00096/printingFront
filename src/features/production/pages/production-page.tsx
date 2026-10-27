@@ -68,13 +68,13 @@ function ProductionColumn({ column, filters, page, onPage, count, countLoading,
       {result.isPending ? <LoadingState/> : result.isError ?
         <ErrorState error={result.error} retry={()=>void result.refetch()}/> :
         groups.size===0 ?
-          <div className="rounded-xl border border-dashed bg-card p-5 text-center text-xs text-muted-foreground">
+          <div className="rounded-lg border border-dashed bg-card p-5 text-center text-xs text-muted-foreground">
             لا توجد عناصر في هذه المرحلة.
           </div> :
         [...groups.entries()].map(([orderId,items])=>
-          <div key={orderId} className="overflow-hidden rounded-xl border bg-card ">
+          <div key={orderId} className="overflow-hidden rounded-lg border bg-card ">
             <header className="space-y-0.5 border-b bg-card px-3 py-2.5">
-              <p className="text-sm font-bold">{items[0].orderNumber}</p>
+              <p className="font-mono text-xs font-medium text-[#A5ACFF]" dir="auto">{items[0].orderNumber}</p>
               <p className="truncate text-xs font-semibold" title={items[0].customerName}>{items[0].customerName}</p>
               <p className="text-xs text-muted-foreground">{items[0].customerPhone}</p>
               {items[0].isLate && <span className="inline-flex rounded-full bg-[#EB5757]/10 px-2 py-0.5 text-xs font-bold text-[#EB5757]">متأخر</span>}
@@ -226,15 +226,15 @@ export function ProductionPage() {
         ["في الطباعة",summary.data.printingCount],
         ["جاهز للتسليم",summary.data.readyCount],
         ["أوردرات متأخرة",summary.data.lateOrdersCount],
-      ].map(([label,n])=><div key={label} className="rounded-xl border bg-card p-3 ">
+      ].map(([label,n])=><div key={label} className="rounded-lg border bg-card p-3 ">
         <p className="text-xs text-muted-foreground">{label}</p>
         <p className="mt-1 text-xl font-bold tabular-nums">{n}</p>
       </div>)}
     </div>}
-    {can("production.summary.view") && summary.isError && <div className="rounded-xl border p-2">
+    {can("production.summary.view") && summary.isError && <div className="rounded-lg border p-2">
       <ErrorState error={summary.error} retry={()=>void summary.refetch()}/>
     </div>}
-    {can("production.printing.send") && selected.size>0 && <aside className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/25 bg-card p-3">
+    {can("production.printing.send") && selected.size>0 && <aside className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/25 bg-card p-3">
       <p className="text-sm font-semibold"><CheckCheck className="ml-2 inline size-4"/>تم تحديد {selected.size} عنصر مكتمل التصميم</p>
       <div className="flex gap-2">
         <Button disabled={busy} size="sm" onClick={()=>setPending({action:"batch",ids:[...selected]})}>إرسال المحدد للطباعة</Button>

@@ -42,7 +42,7 @@ const foundations = [
 export function FoundationPage() {
   return (
     <div className="space-y-6">
-      <section className="relative isolate overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+      <section className="relative isolate overflow-hidden rounded-lg border border-border bg-card ">
         <div className="absolute left-0 top-0 -z-10 size-64 rounded-full bg-accent/70 blur-3xl" aria-hidden="true" />
         <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center lg:p-10">
           <div className="space-y-5">
@@ -65,20 +65,20 @@ export function FoundationPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-background/90 p-5 sm:p-6">
+          <div className="rounded-lg border border-border bg-background/90 p-5 sm:p-6">
             <div className="mb-5 flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-bold">أساس المشروع</p>
                 <p className="mt-1 text-xs text-muted-foreground">ما يتم تجهيزه قبل بناء الشاشات</p>
               </div>
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
                 <Workflow className="size-5" />
               </div>
             </div>
             <div className="space-y-4">
               {foundations.map((item) => (
                 <div key={item.title} className="flex items-start gap-3">
-                  <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-700" />
+                  <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-[#3DD68C]" />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-sm font-semibold">{item.title}</p>
@@ -102,9 +102,9 @@ export function FoundationPage() {
           {principles.map((principle) => {
             const Icon = principle.icon;
             return (
-              <Card key={principle.title} className="rounded-2xl">
+              <Card key={principle.title} className="rounded-lg">
                 <CardHeader className="gap-3">
-                  <div className="flex size-11 items-center justify-center rounded-xl bg-secondary text-primary">
+                  <div className="flex size-11 items-center justify-center rounded-lg bg-secondary text-primary">
                     <Icon className="size-5" strokeWidth={1.9} />
                   </div>
                   <CardTitle className="text-base">{principle.title}</CardTitle>
@@ -118,7 +118,7 @@ export function FoundationPage() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-2 rounded-2xl border border-dashed border-border bg-muted/40 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <section className="flex flex-col gap-2 rounded-lg border border-dashed border-border bg-muted/40 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
           <p className="text-sm font-bold">الخطوة التالية</p>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">

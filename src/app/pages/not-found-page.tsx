@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui
 export function NotFoundPage() {
   return (
     <div className="grid min-h-[55vh] place-items-center">
-      <Card className="w-full max-w-md rounded-2xl text-center">
+      <Card className="w-full max-w-md rounded-lg text-center">
         <CardHeader>
           <p className="text-sm font-bold text-muted-foreground">404</p>
           <CardTitle className="text-2xl">الصفحة غير موجودة</CardTitle>

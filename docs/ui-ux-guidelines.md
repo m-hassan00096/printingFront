@@ -7,11 +7,11 @@ Tabaa is a daily operations tool. Optimize for quick recognition, low error rate
 ## Visual identity
 
 - Arabic-first, right-to-left layout from the document root.
-- Cairo is the primary typeface.
-- Use a calm ink/navy foundation, warm neutral surfaces, and a restrained teal accent.
-- Reserve strong colors for meaningful states and important actions.
+- Cairo remains the primary Arabic typeface, with Inter for Latin text and JetBrains Mono for order identifiers and shortcut hints.
+- Adopt **Violet Issue**: near-black #101014 canvas, charcoal #1B1B25 cards/sidebar, #1F1F2E elevated surfaces, and violet #5E6AD2 for primary actions.
+- Reserve violet for focus, selection, and primary actions; green #3DD68C for success, gold #F0C000 for warning, and coral #EB5757 for errors.
 - Prefer subtle borders and spacing over nested cards, heavy shadows, and decorative gradients.
-- Use a consistent 8-point spacing rhythm and predictable corner radii.
+- Use a 4px spacing scale (4, 8, 12, 16, 20, 24, 32px); card radius 8px, inputs/buttons 6px, modals 12px.
 - Use Lucide icons consistently. Icon-only controls need an accessible label.
 
 ## Information hierarchy
@@ -29,7 +29,8 @@ Avoid several primary buttons with equal visual weight. Keep summary metrics onl
 - Keep top-level navigation stable and limited to the main work areas.
 - Use clear Arabic labels rather than internal technical terminology.
 - Preserve a visible active state in the sidebar.
-- Support a collapsible desktop sidebar and a dismissible mobile drawer.
+- Support a 220px RTL sidebar collapsing to 48px on desktop, and a dismissible mobile drawer.
+- Add Ctrl/Cmd+K command navigation and keyboard-operable controls; show only destinations allowed by the current user's permissions.
 - Do not use dead links or controls that look functional but do nothing.
 
 ## Tables and lists
@@ -92,3 +93,13 @@ Avoid several primary buttons with equal visual weight. Keep summary metrics onl
 4. Are errors and irreversible actions handled safely?
 5. Are loading, empty, and failure states designed?
 6. Does the layout remain clear with realistic data and long Arabic text?
+
+## Violet Issue integration (October 2026)
+
+- Source: https://designmd.ai/chef/violet-issue. The original specification is committed in `DESIGN.md`.
+- The original spec assumes English/left navigation; Tabaa keeps **Arabic-first RTL** and Cairo for Arabic glyph legibility.
+- Keep data fetching, routes, role access rules, and financial/order workflows unchanged during purely visual updates.
+- Prefer compact information density without compromising mobile touch targets or readability of long Arabic labels.
+- Use a slightly brighter violet (#A5ACFF) for text links on dark surfaces; the brand primary (#5E6AD2) remains the button and active-state fill.
+- Avoid shadows on ordinary cards; allow one soft shadow only for floating dialogs/menus.
+- Review order numbers, EGP formatting, badges, and printing-stage ownership after every redesign.
