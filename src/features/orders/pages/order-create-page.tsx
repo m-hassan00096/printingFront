@@ -173,7 +173,7 @@ export function OrderCreatePage() {
     } finally { setPreviewPending((old) => old === key ? null : old); }
   }
 
-  function useSuggestion(row: ItemDraft) {
+  function applySuggestion(row: ItemDraft) {
     const proposed = suggestions[row.key];
     if (proposed === undefined) return;
     if (cents(row.agreedTotal) !== null && cents(row.agreedTotal) !== cents(proposed) && confirmPriceKey !== row.key) {
@@ -374,12 +374,12 @@ export function OrderCreatePage() {
                 <div><p className="text-xs text-muted-foreground">{uiMessages.orders.suggestedPrice}</p>
                   <strong className="text-base"><MoneyAmount amount={suggestions[item.key]} /></strong>
                   <p className="text-[11px] text-muted-foreground">{uiMessages.orders.suggestedNotAgreed}</p></div>
-                <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => useSuggestion(item)}>{uiMessages.orders.useSuggested}</Button>
+                <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => applySuggestion(item)}>{uiMessages.orders.useSuggested}</Button>
               </div>
               {confirmPriceKey === item.key && <div role="alert" className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-2">
                 <p className="text-xs text-[#9c591b]">{uiMessages.orders.replaceAgreedPrice}: <span dir="ltr" className="inline-block">{item.agreedTotal} ج.م</span> ← <span dir="ltr" className="inline-block">{suggestions[item.key]} ج.م</span></p>
                 <div className="flex gap-2">
-                  <Button type="button" size="sm" onClick={() => useSuggestion(item)}>{uiMessages.orders.confirmReplacement}</Button>
+                  <Button type="button" size="sm" onClick={() => applySuggestion(item)}>{uiMessages.orders.confirmReplacement}</Button>
                   <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmPriceKey(null)}>{uiMessages.orders.keepAgreedPrice}</Button>
                 </div>
               </div>}
