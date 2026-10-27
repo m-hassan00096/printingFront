@@ -159,7 +159,7 @@ describe("Production board against Laravel API contracts",()=>{
     await user.click((await screen.findAllByRole("button",{name:"إرسال للطباعة"}))[0]);
     const dialog=await screen.findByRole("dialog",{name:"إرسال للطباعة"});
     expect(within(dialog).getByRole("button",{name:"تأكيد العملية"}).hasAttribute("disabled")).toBe(true);
-    await user.click(within(dialog).getByRole("combobox",{name:"اختيار مكان الطباعة"}));
+    await user.click(within(dialog).getByRole("combobox",{name:"اختيار المطبعة"}));
     await user.click(within(dialog).getByRole("option",{name:"المطبعة الرئيسية"}));
     await user.click(within(dialog).getByRole("button",{name:"تأكيد العملية"}));
     await waitFor(()=>expect(calls.some(c=>c.url==="/production/items/103/send-to-printing")).toBe(true));
@@ -172,7 +172,7 @@ describe("Production board against Laravel API contracts",()=>{
     await user.click((await screen.findAllByRole("checkbox",{name:/للإرسال/}))[1]);
     await user.click(screen.getByRole("button",{name:"إرسال المحدد للطباعة"}));
     const dialog=await screen.findByRole("dialog",{name:"إرسال العناصر المحددة للطباعة"});
-    await user.click(within(dialog).getByRole("combobox",{name:"اختيار مكان الطباعة"}));
+    await user.click(within(dialog).getByRole("combobox",{name:"اختيار المطبعة"}));
     await user.click(within(dialog).getByRole("option",{name:"المطبعة الرئيسية"}));
     await user.click(within(dialog).getByRole("button",{name:"تأكيد العملية"}));
     await waitFor(()=>expect(calls.some(c=>c.url==="/production/items/send-to-printing")).toBe(true));

@@ -75,7 +75,7 @@ export function ProductionItemCard({item,permissions,selected,busy,onSelect,onAc
       <div className="min-w-0 space-y-1">
         <p className="truncate text-[13px] font-semibold">{item.serviceName}</p>
         <p className="text-xs text-muted-foreground">الكمية: {item.quantity.toLocaleString("en-US")}</p>
-        {stage===3 && <p className="text-xs text-muted-foreground">مكان الطباعة: {item.printingLocationName??"—"}</p>}
+        {stage===3 && <p className="text-xs text-muted-foreground">المطبعة: {item.printingLocationName??"—"}</p>}
       </div>
       <StagePill stage={stage}/>
     </div>
@@ -135,7 +135,7 @@ export function ProductionItemCard({item,permissions,selected,busy,onSelect,onAc
             }}>
             {canChangeLocation && <button type="button" role="menuitem"
               className="block w-full rounded-lg px-3 py-2 text-right text-sm hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
-              onClick={()=>{setExpanded(false);onAction("change-location",item);}}>تغيير مكان الطباعة</button>}
+              onClick={()=>{setExpanded(false);onAction("change-location",item);}}>تغيير المطبعة</button>}
             {canUndo && <button type="button" role="menuitem"
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-right text-sm hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
               onClick={()=>{setExpanded(false);onAction("undo",item);}}>
