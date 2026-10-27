@@ -139,6 +139,8 @@ describe("Orders Laravel API workflow", () => {
     const user=userEvent.setup();
     await user.click(screen.getByRole("checkbox",{name:"لم يتم تسليمها"}));
     await waitFor(()=>expect(calls.some(c=>c.url==="/orders"&&c.query.get("filter[lateOnly]")==="1"&&c.query.get("filter[openOnly]")===null)).toBe(true));
+    await user.click(screen.getByRole("checkbox",{name:"المتأخرة فقط"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/orders"&&c.query.get("filter[lateOnly]")===null&&c.query.get("filter[openOnly]")===null)).toBe(true));
   });
 
   it("creates a draft with registered customer, agreed total, source enum and idempotency key", async () => {
