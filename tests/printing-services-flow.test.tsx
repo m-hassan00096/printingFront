@@ -140,6 +140,35 @@ describe("Printing Services API integration", () => {
     }] });
   });
 
+  it("keeps the existing select control and groups compact tier fields in a single desktop row", async () => {
+    visit("/printing-services/11/edit");
+    const select = await screen.findByRole("combobox", { name: "نوع عميل الشريحة 1" });
+    expect(select.tagName).toBe("SELECT");
+    const tierGroup = screen.getByRole("group", { name: "نطاق الكمية للشريحة 1" });
+    expect(within(tierGroup).getByRole("spinbutton", { name: "الكمية من للشريحة 1" })).toBeTruthy();
+    expect(within(tierGroup).getByRole("spinbutton", { name: "الكمية إلى للشريحة 1" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "حذف الشريحة 1" })).toBeTruthy();
+  });
+
+  it("confirms removal of an existing tier but removes an unsaved tier immediately", async () => {
+    visit("/printing-services/11/edit");
+    expect(await screen.findByRole("combobox", { name: "نوع عميل الشريحة 1" })).toBeTruthy();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "حذف الشريحة 1" }));
+    expect(screen.getByText(/هل تريد حذف هذه الشريحة المحفوظة/)).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "سعر الشريحة 1" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "إلغاء" }));
+    expect(screen.getByRole("textbox", { name: "سعر الشريحة 1" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "حذف الشريحة 1" }));
+    await user.click(screen.getByRole("button", { name: "تأكيد حذف الشريحة 1" }));
+    expect(screen.queryByRole("textbox", { name: "سعر الشريحة 1" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "إضافة شريحة" }));
+    expect(screen.getByRole("textbox", { name: "سعر الشريحة 1" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "حذف الشريحة 1" }));
+    expect(screen.queryByRole("textbox", { name: "سعر الشريحة 1" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "تأكيد حذف الشريحة 1" })).toBeNull();
+  });
+
   it("shows a catch-all tier as a default price and explains its quantity priority", async () => {
     services[0].priceTiers = [
       { priceTierId: 501, customerTypeId: 21, minQuantity: null, maxQuantity: null, price: "20.00" },
@@ -190,6 +219,7 @@ describe("Printing Services API integration", () => {
     expect(within(section).getByText("سعر الوحدة")).toBeTruthy();
     expect(within(section).getByText("5.50 ج.م")).toBeTruthy();
     expect(screen.getByText("10.00 ج.م")).toBeTruthy();
+    expect(within(section).getByText(/يُستخدم عند عدم وجود شريحة سعر مناسبة/)).toBeTruthy();
     expect(screen.queryByText("عدد شرائح الأسعار")).toBeNull();
     expect(screen.getByRole("heading", { name: "حاسبة السعر المقترح" })).toBeTruthy();
     expect(calls.some((c) => c.url === "/printing-services/price-preview")).toBe(false);
@@ -204,7 +234,9 @@ describe("Printing Services API integration", () => {
     expect(calls.find((c) => c.url === "/printing-services/price-preview")?.body)
       .toEqual({ serviceId: 11, customerTypeId: 21, quantity: 200 });
     expect(await within(screen.getByLabelText("نتيجة معاينة السعر")).findByText(/1100.00/)).toBeTruthy();
-    expect(within(screen.getByLabelText("نتيجة معاينة السعر")).getAllByText("شريحة كمية لنوع العميل").length).toBeGreaterThan(0);
+    const preview = screen.getByLabelText("نتيجة معاينة السعر");
+    expect(within(preview).getAllByText("شريحة كمية لنوع العميل")).toHaveLength(1);
+    expect(within(preview).getByText(/200 × 5.50 ج.م/)).toBeTruthy();
 
     await user.clear(quantity);
     await user.type(quantity, "201");

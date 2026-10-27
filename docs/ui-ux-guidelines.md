@@ -120,3 +120,12 @@ Avoid several primary buttons with equal visual weight. Keep summary metrics onl
 - A service with `basePrice: null` suggests **0.00 EGP** when no tier applies; don't display a manual-pricing message or imply that a separate price entry is mandatory.
 - Hide the summary cards for base price and number of tiers; display the base price once in the pricing-table footer. Remove repeated pricing hints and source badges in the preview while keeping the highlighted total.
 - Requires corresponding backend PR in `printingApi` and migrations for nullable customer/order snapshots. Deploy backend before frontend.
+
+## Pricing tier layout refinement (October 27, 2026)
+- Keep the existing native `select` components and their shared field styling unchanged; the user specifically approved them.
+- Align tier title, quantity-range chip and compact delete icon on one line. Avoid repeating the same range label above input fields.
+- Tier card padding and vertical gaps are reduced; customer type, quantity range and unit price align horizontally on desktop and reflow on smaller screens.
+- Confirm removal of **persisted tiers** inline before adding the delete command to the update payload. Unsaved tiers can be removed immediately. No backend changes.
+- In service details, explain the base-price fallback in the pricing table footer (also applicable to customers without a type) instead of repeating pricing-priority prose.
+- Display preview's source once and a compact formula `quantity × unit price` under the prominent suggested total, without making the preview compute pricing client-side.
+- Keep a visible sticky form action bar with save on the right in RTL and cancel beside it.
