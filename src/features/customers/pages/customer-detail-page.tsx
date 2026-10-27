@@ -120,7 +120,7 @@ export function CustomerDetailPage() {
         {activeTab === "details" && <dl className="grid gap-2.5 sm:grid-cols-2">
           <CustomerField label="الاسم" value={value.name} />
           <CustomerField label="الهاتف" value={value.phone} ltr />
-          <CustomerField label="نوع العميل" value={value.customerType?.name ?? "—"} />
+          <CustomerField label="نوع العميل" value={value.customerType?.name ?? "بدون تصنيف"} />
           <CustomerField label="العنوان" value={value.address || "—"} />
         </dl>}
 

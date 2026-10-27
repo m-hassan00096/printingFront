@@ -118,7 +118,7 @@ export function CustomersPage() {
                   <Link to={`/customers/${customer.id}`} className="font-bold hover:underline">{customer.name}</Link>
                 </div></td>
                 <td dir="ltr" className="px-5 py-4 text-right text-muted-foreground">{customer.phone}</td>
-                <td className="px-5 py-4">{customer.customerType?.name ?? "—"}</td>
+                <td className="px-5 py-4">{customer.customerType?.name ?? "بدون تصنيف"}</td>
                 <td className="px-5 py-4"><IdentityStatus status={customer.status} label={customer.statusLabel} /></td>
                 <td className="px-5 py-4"><div className="flex flex-wrap gap-1">
                   <Button size="icon-sm" variant="ghost" asChild title="تفاصيل العميل">

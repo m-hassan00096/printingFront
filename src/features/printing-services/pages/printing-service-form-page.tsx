@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from "react";
 import axios from "axios";
-import { ArrowRight, Info, LoaderCircle, Plus, Trash2, TriangleAlert } from "lucide-react";
+import { ArrowRight, LoaderCircle, Plus, Trash2, TriangleAlert } from "lucide-react";
 import { uiMessages } from "@/shared/translations/ar/ui";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -229,10 +229,10 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
           <label className="block"><span className={fieldLabel}>السعر الأساسي (اختياري)</span>
             <input aria-label="السعر الأساسي" aria-invalid={!!errors.basePrice} type="text"
               inputMode="decimal" dir="ltr" className={fieldClass + " mt-2"}
-              placeholder={copy.emptyBasePrice} value={basePrice} disabled={busy}
+              placeholder="0.00" value={basePrice} disabled={busy}
               onChange={(e) => { setBasePrice(e.target.value); clear("basePrice"); }} />
             {err("basePrice")}
-            <span className="mt-1.5 block text-[11px] leading-5 text-muted-foreground">{copy.zeroBasePrice}</span>
+            <span className="mt-1.5 block text-[11px] leading-5 text-muted-foreground">{copy.basePriceFallbackHelp}</span>
           </label>
           <label className="block"><span className={fieldLabel}>الحالة</span>
             <select aria-label="حالة الخدمة" className={fieldClass + " mt-2"} value={status}
@@ -243,17 +243,13 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
             {err("status")}
           </label>
         </div>
-        <p className="mt-4 flex items-start gap-2 rounded-lg border border-primary/10 bg-primary/5 px-3 py-2.5 text-xs leading-6 text-muted-foreground">
-          <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-          {copy.quantityPriorityHelp}
-        </p>
       </section>
 
       <section className="rounded-lg border bg-card " aria-labelledby="tiers-form-title">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-4 sm:px-5">
           <div>
             <h2 id="tiers-form-title" className="font-bold">شرائح الأسعار</h2>
-            <p className="mt-1 text-xs text-muted-foreground">{copy.tierPriorityHelp}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{copy.tierPriorityShort}</p>
           </div>
           <Button type="button" variant="outline" size="sm" disabled={busy}
             onClick={() => setRows((old) => [...old, blankTier(nextKey.current--)])}>
@@ -282,7 +278,6 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
                   aria-label={`حذف الشريحة ${index + 1}`} title="حذف الشريحة"
                   onClick={() => removeRow(row.key)}>
                   <Trash2 className="size-4" aria-hidden="true" />
-                  حذف الشريحة
                 </Button>
               </div>
               <div className="grid items-start gap-3 md:grid-cols-[minmax(0,1.5fr)_minmax(0,2fr)_minmax(0,1.1fr)]">
@@ -290,7 +285,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
                   <select aria-label={`نوع عميل الشريحة ${index + 1}`} className={fieldClass + " mt-2"}
                     value={row.customerTypeId}
                     onChange={event => editRow(row.key, "customerTypeId", event.target.value)}>
-                    <option value="">كل أنواع العملاء</option>
+                    <option value="">{copy.genericTiers}</option>
                     {currentType(row.customerTypeId)}
                     {types.data?.map(type => <option key={type.value} value={type.value}>{type.label}</option>)}
                   </select>{err(`row.${row.key}.customerTypeId`)}
@@ -326,9 +321,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
             {copy.ambiguousRangesWarning}
           </p>}
           {err("priceTiers")}
-          <p className="text-xs leading-6 text-muted-foreground">
-            {copy.openQuantityHelp} {copy.quantityPriorityHelp}
-          </p>
+          <p className="text-xs leading-6 text-muted-foreground">{copy.openQuantityHelp}</p>
         </div>
       </section>
 

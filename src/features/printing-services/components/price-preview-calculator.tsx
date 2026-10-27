@@ -57,7 +57,7 @@ export function PricePreviewCalculator({ serviceId, active }: { serviceId: numbe
             <select aria-label="نوع عميل المعاينة" value={customerTypeId}
               className={fieldClass + " mt-2"} disabled={preview.isPending}
               onChange={(e) => { setCustomerTypeId(e.target.value); invalidateResult(); }}>
-              <option value="">سعر عام — بدون نوع عميل</option>
+              <option value="">{uiMessages.printingServices.unclassifiedPrice}</option>
               {types.data?.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
             </select>
           </label>
@@ -87,15 +87,13 @@ export function PricePreviewCalculator({ serviceId, active }: { serviceId: numbe
                   <p className="mt-1 text-xs leading-6 text-muted-foreground">{uiMessages.printingServices.manualPreviewHelp}</p>
                 </div>
               </div>
-            : <div className="space-y-3 p-4 sm:p-5">
+            : <div className="space-y-2 p-4 sm:p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground">{uiMessages.printingServices.previewTotal}</p>
                     <p className="mt-1 text-2xl font-extrabold text-[#253050]" dir="ltr">{result.suggestedTotal} ج.م</p>
                   </div>
-                  {result.source && <span className="rounded-lg border border-primary/15 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary">
-                    {sourceLabels[result.source]}
-                  </span>}
+
                 </div>
                 <div className="grid gap-3 border-t pt-3 sm:grid-cols-2">
                   <div>

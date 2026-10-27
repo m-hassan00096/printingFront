@@ -2,6 +2,13 @@
 export const uiMessages = {
 
   printingServices: {
+    unclassifiedPrice: "بدون تصنيف — السعر الأساسي",
+    genericTiers: "الأنواع المصنفة (عام)",
+    basePriceFallbackHelp: "اختياري: عند عدم وجود سعر مناسب يُستخدم السعر الأساسي. تركه فارغًا يعني 0.00 ج.م.",
+    tierSimpleHelp: "أسعار الوحدة حسب نوع العميل والكمية.",
+    tierPriorityShort: "شرائح الكمية المحددة لها الأولوية على السعر الافتراضي.",
+    noTiers: "لا توجد شرائح أسعار مخصصة لهذه الخدمة.",
+
     serviceSummary: "ملخص أسعار الخدمة",
     basePrice: "السعر الأساسي",
     tiersCount: "عدد شرائح الأسعار",

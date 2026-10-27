@@ -1,4 +1,4 @@
-import { ArrowRight, Layers3, Pencil, Printer, Tag } from "lucide-react";
+import { ArrowRight, Pencil, Printer } from "lucide-react";
 import { uiMessages } from "@/shared/translations/ar/ui";
 import { Link, useParams } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
@@ -42,7 +42,7 @@ export function PrintingServiceDetailPage() {
   const tiers = item.priceTiers ?? [];
   const copy = uiMessages.printingServices;
   function typeName(typeId: number | null): string {
-    if (typeId === null) return "كل أنواع العملاء";
+    if (typeId === null) return copy.genericTiers;
     return types.data?.find((type) => type.value === typeId)?.label ?? `نوع عميل #${typeId}`;
   }
 
@@ -62,28 +62,11 @@ export function PrintingServiceDetailPage() {
       </Button>}
     </header>
 
-    <div className="grid gap-3 sm:grid-cols-2" aria-label={copy.serviceSummary}>
-      <div className="flex items-center gap-3 rounded-xl border bg-white px-4 py-4 shadow-[0_4px_18px_#29376b08]">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Tag className="size-5" aria-hidden="true" /></span>
-        <div className="min-w-0">
-          <p className="text-xs text-muted-foreground">{copy.basePrice}</p>
-          <p className="mt-1 text-base font-bold">{item.basePrice === null ? copy.manualPricing : <Currency amount={item.basePrice} />}</p>
-        </div>
-      </div>
-      <div className="flex items-center gap-3 rounded-xl border bg-white px-4 py-4 shadow-[0_4px_18px_#29376b08]">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Layers3 className="size-5" aria-hidden="true" /></span>
-        <div>
-          <p className="text-xs text-muted-foreground">{copy.tiersCount}</p>
-          <p className="mt-1 text-base font-bold tabular-nums">{tiers.length.toLocaleString("ar-EG")}</p>
-        </div>
-      </div>
-    </div>
-
     <section className="overflow-hidden rounded-lg border bg-card " aria-labelledby="service-pricing-title">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
         <div>
           <h2 id="service-pricing-title" className="text-lg font-bold">أسعار الخدمة</h2>
-          <p className="mt-1 text-xs text-muted-foreground">{copy.tierPriorityHelp}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{copy.tierSimpleHelp}</p>
         </div>
 
       </div>
@@ -106,16 +89,13 @@ export function PrintingServiceDetailPage() {
           </tbody>
         </table>
       </div> : <p className="px-5 py-7 text-sm text-muted-foreground">
-        {item.basePrice === null
-          ? "لا توجد أسعار محددة. سيتم تحديد السعر يدويًا عند إنشاء الأوردر."
-          : "لا توجد شرائح خاصة. يُستخدم السعر الأساسي عند عدم وجود شريحة مناسبة."}
+        {copy.noTiers}
       </p>}
 
-      {tiers.length > 0 && <p className="border-t bg-[#fafbff] px-5 py-3 text-xs text-muted-foreground">
-        {item.basePrice === null
-          ? "إذا لم تنطبق أي شريحة على نوع العميل والكمية، يُحدد السعر يدويًا عند إنشاء الأوردر."
-          : "إذا لم تنطبق أي شريحة، يُستخدم السعر الأساسي للخدمة."}
-      </p>}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-[#fafbff] px-5 py-3 text-xs text-muted-foreground">
+        <span>{copy.tierPriorityShort}</span>
+        <span className="whitespace-nowrap">{copy.basePrice}: <strong className="text-foreground"><Currency amount={item.basePrice ?? "0.00"} /></strong></span>
+      </div>}
     </section>
     {mayPreview && <PricePreviewCalculator key={item.id} serviceId={item.id} active={item.status === 1} />}
   </div>;
