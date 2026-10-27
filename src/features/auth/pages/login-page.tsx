@@ -144,7 +144,7 @@ export function LoginPage() {
         <div className="pointer-events-none absolute -top-32 -left-20 size-96 rounded-full border border-[#d6ddfa]" aria-hidden="true" />
         <div className="pointer-events-none absolute top-16 -left-28 size-[30rem] rounded-full border border-[#d6ddfa]" aria-hidden="true" />
         <div className="relative z-10 flex items-center gap-2 text-xs font-semibold text-[#4d5ac6]">
-          <span className="size-2 rounded-full bg-[#A5ACFF]" aria-hidden="true" />
+          <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
           مساحة العمل
         </div>
 
@@ -165,7 +165,7 @@ export function LoginPage() {
           <div className="grid grid-cols-3 gap-2 rounded-lg border border-[#d9def8] bg-white/65 p-4 backdrop-blur-sm sm:gap-3 sm:p-5">
             {["الطلبات", "الإنتاج", "التسليم"].map((step, index) => (
               <div key={step} className="flex flex-col items-center gap-3 rounded-xl bg-card/5 py-4">
-                <span className="flex size-9 items-center justify-center rounded-full border border-[#A5ACFF]/25 bg-[#A5ACFF]/10 text-sm font-extrabold text-[#4d5ac6]">
+                <span className="flex size-9 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-sm font-extrabold text-[#4d5ac6]">
                   {index + 1}
                 </span>
                 <span className="text-sm font-bold">{step}</span>

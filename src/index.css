@@ -111,3 +111,8 @@ a, button { transition-property: background-color, border-color, color, opacity,
 :where(input, select, textarea):focus-visible { border-color: var(--primary); box-shadow: 0 0 0 3px #535fd126; outline: none; }
 :where(input,select,textarea):disabled { background: #f3f4f7; cursor: not-allowed; }
 :where([data-sonner-toast]) { font-family: "Cairo", sans-serif; }
+
+/* Soft elevation from the user's light dashboard reference. */
+:where(section.rounded-lg.border.bg-card, section.rounded-xl.border.bg-card, article.rounded-lg.border.bg-card, article.rounded-xl.border.bg-card) { box-shadow: 0 4px 22px rgba(33, 44, 98, .045); }
+:where(table) tbody tr { border-color: #edf0f6; }
+:where([role="dialog"]) { background-color: #fff; }

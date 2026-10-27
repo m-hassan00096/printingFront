@@ -66,14 +66,14 @@ export function SearchableSelect({
         aria-controls={listId} aria-activedescendant={open && visible[highlight] ? `${listId}-${visible[highlight].value}` : undefined}
         autoComplete="off" disabled={disabled} value={open ? query : (selected?.label ?? "")}
         placeholder={placeholder}
-        className="h-11 w-full rounded-lg border bg-background pr-10 pl-10 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+        className="h-10 w-full rounded-lg border border-input bg-white pr-10 pl-10 text-sm outline-none transition-colors hover:border-[#bfc7e9] focus-visible:ring-2 focus-visible:ring-ring/20 disabled:opacity-50"
         onFocus={() => {setOpen(true);setHighlight(0);setQuery("");}}
         onClick={() => {setOpen(true);setHighlight(0);}}
         onChange={(event) => {setQuery(event.target.value);setHighlight(0);setOpen(true);}}
         onKeyDown={keyboard} />
       <ChevronDown className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
     </div>
-    {open && !disabled && <div className="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-lg border bg-popover shadow-xl">
+    {open && !disabled && <div className="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-xl border border-border bg-white shadow-[0_16px_35px_#29366a1a]">
       <div role="listbox" id={listId} aria-label={label} className="max-h-56 overflow-y-auto p-1">
         {visible.map((item, index) => <button key={item.value} type="button" role="option"
           id={`${listId}-${item.value}`} aria-selected={value === String(item.value)}

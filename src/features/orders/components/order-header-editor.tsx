@@ -44,7 +44,7 @@ export function OrderHeaderEditor({ order, canCreateCustomer, onClose }: {
       onClose();
     } catch (e:unknown) {setError(getApiErrorMessage(e,"تعذّر تحديث المسودة."));}
   }
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-4">
     <section role="dialog" aria-modal="true" aria-label="تعديل بيانات المسودة"
       className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-card p-5 shadow-xl sm:p-6">
       <div className="mb-5 flex items-center justify-between">

@@ -180,7 +180,7 @@ export function ProductionPage() {
       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(240px,1.4fr)_repeat(3,minmax(155px,1fr))]">
         <label className="relative block">
           <span className="sr-only">البحث في الإنتاج</span>
-          <Search className="pointer-events-none absolute right-3 top-3.5 size-4 text-muted-foreground"/>
+          <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/>
           <input className={fieldClass+" pr-10"} value={searchInput} onChange={e=>setSearchInput(e.target.value)}
             placeholder="رقم الأوردر، العميل، الهاتف، الخدمة..."/>
         </label>
