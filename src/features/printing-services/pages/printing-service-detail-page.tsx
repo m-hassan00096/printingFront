@@ -95,7 +95,7 @@ export function PrintingServiceDetailPage() {
       <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-[#fafbff] px-5 py-3 text-xs text-muted-foreground">
         <span>{copy.tierPriorityShort}</span>
         <span className="whitespace-nowrap">{copy.basePrice}: <strong className="text-foreground"><Currency amount={item.basePrice ?? "0.00"} /></strong></span>
-      </div>}
+      </div>
     </section>
     {mayPreview && <PricePreviewCalculator key={item.id} serviceId={item.id} active={item.status === 1} />}
   </div>;
