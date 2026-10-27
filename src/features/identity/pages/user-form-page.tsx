@@ -138,7 +138,7 @@ export function UserFormPage() {
     <Button variant="ghost" asChild><Link to={isNew ? "/users" : `/users/${id}`}><ArrowRight className="size-4" /> رجوع</Link></Button>
     <SectionHeader title={isNew ? "إضافة مستخدم" : "تعديل المستخدم"} detail="أدخل البيانات الأساسية وصلاحية الوصول المطلوبة فقط." />
     <form onSubmit={handleSubmit(submit)} noValidate className="space-y-5">
-      {generalError && <div role="alert" className="rounded-lg border border-[#EB5757]/30 bg-[#EB5757]/10 p-4 text-sm text-[#EB5757]">{generalError}</div>}
+      {generalError && <div role="alert" className="rounded-lg border border-[#efbec6] bg-[#ffecf0] p-4 text-sm text-[#c73a4c]">{generalError}</div>}
       <section className="space-y-5 rounded-lg border bg-card p-5  sm:p-7">
         <div className="border-b pb-4"><h3 className="text-base font-extrabold">البيانات الأساسية</h3><p className="mt-1 text-xs text-muted-foreground">الاسم ومعلومات التواصل داخل الفريق.</p></div>
         <div className="grid gap-5 sm:grid-cols-2">
@@ -177,14 +177,14 @@ export function UserFormPage() {
               {!roleAvailable && existingRole && <option value={existingRole.id}>{existingRole.alias} (الدور الحالي)</option>}
               {activeRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
-            {!canReadRoles && <span className="block text-xs text-[#F0C000]">عرض الأدوار يتطلب صلاحية identity.roles.view.</span>}
+            {!canReadRoles && <span className="block text-xs text-[#a46b0b]">عرض الأدوار يتطلب صلاحية identity.roles.view.</span>}
             {errors.roleId && <span role="alert" className="text-xs text-destructive">{errors.roleId.message}</span>}
           </label>
           <label className="space-y-2"><span className={fieldLabel}>الحالة</span>
             <select className={fieldClass} {...register("status")} disabled={busy || user.data?.role?.name === "admin"}><option value="1">نشط</option><option value="0">غير نشط</option></select>
           </label>
         </div>
-        {user.data?.role?.name === "admin" && <p className="text-xs leading-6 text-[#F0C000]">تغيير حالة ودور حساب Admin غير متاح من هذه الواجهة لحين التأكد من حماية الباك.</p>}
+        {user.data?.role?.name === "admin" && <p className="text-xs leading-6 text-[#a46b0b]">تغيير حالة ودور حساب Admin غير متاح من هذه الواجهة لحين التأكد من حماية الباك.</p>}
         {roles.isError && canReadRoles && <p role="alert" className="text-sm text-destructive">تعذّر تحميل الأدوار. أعد المحاولة قبل اختيار دور.</p>}
       </section>
       <section className="space-y-5 rounded-lg border bg-card p-5  sm:p-7">
@@ -199,7 +199,7 @@ export function UserFormPage() {
             {errors.passwordConfirmation && <span role="alert" className="text-xs text-destructive">{errors.passwordConfirmation.message}</span>}
           </label>
         </div>
-        {!isNew && watch("password") && <p className="text-xs text-[#F0C000]">سيتم تغيير كلمة مرور الحساب عند الحفظ.</p>}
+        {!isNew && watch("password") && <p className="text-xs text-[#a46b0b]">سيتم تغيير كلمة مرور الحساب عند الحفظ.</p>}
       </section>
       <div className="flex flex-wrap justify-end gap-3 pb-6">
         <Button variant="outline" asChild><Link to="/users">إلغاء</Link></Button>

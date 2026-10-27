@@ -104,7 +104,7 @@ export function RoleFormPage() {
     <Button asChild variant="ghost"><Link to="/roles"><ArrowRight className="size-4" /> العودة للأدوار</Link></Button>
     <SectionHeader title={isNew ? "إضافة دور" : "تعديل الدور"} detail="اختر الصلاحيات المناسبة لكل دور لتحديد ما يمكن لمستخدميه الوصول إليه." />
     <form onSubmit={(event) => void submit(event)} className="space-y-5">
-      {error && <p role="alert" className="rounded-lg border border-[#EB5757]/30 bg-[#EB5757]/10 p-4 text-sm text-[#EB5757]">{error}</p>}
+      {error && <p role="alert" className="rounded-lg border border-[#efbec6] bg-[#ffecf0] p-4 text-sm text-[#c73a4c]">{error}</p>}
       <section className="space-y-5 rounded-lg border bg-card p-6 ">
         <label className="block space-y-2"><span className={fieldLabel}>اسم الدور بالعربي <span className="text-destructive">*</span></span>
           <input className={fieldClass} value={nameAr} maxLength={150} onChange={(e) => setNameAr(e.target.value)} disabled={busy} aria-invalid={!!fieldError} />
@@ -145,7 +145,7 @@ export function RoleFormPage() {
             <Search className="pointer-events-none absolute right-3 top-3.5 size-4 text-muted-foreground" />
             <input value={search} onChange={(e) => setSearch(e.target.value)} className={fieldClass + " pr-10"} placeholder="ابحث عن صلاحية..." />
           </label>
-          {unknown.length > 0 && !protectedAdmin && <p role="alert" className="rounded-lg border border-amber-200 bg-[#F0C000]/10 p-3 text-xs text-[#F0C000]">
+          {unknown.length > 0 && !protectedAdmin && <p role="alert" className="rounded-lg border border-amber-200 bg-[#fff4df] p-3 text-xs text-[#a46b0b]">
             يوجد {unknown.length} صلاحيات مرتبطة بالدور لم تعد موجودة في القائمة. راجع بيانات الباك قبل الحفظ.
           </p>}
           <div className="grid max-h-[420px] grid-cols-1 gap-2 overflow-y-auto rounded-lg border bg-muted/20 p-3 sm:grid-cols-2">

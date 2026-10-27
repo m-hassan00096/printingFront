@@ -293,7 +293,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
         </div>
       </section>
 
-      {generalError && <p role="alert" className="rounded-lg border border-[#EB5757]/30 bg-[#EB5757]/10 p-3 text-sm text-[#EB5757]">{generalError}</p>}
+      {generalError && <p role="alert" className="rounded-lg border border-[#efbec6] bg-[#ffecf0] p-3 text-sm text-[#c73a4c]">{generalError}</p>}
       <footer className="flex flex-wrap justify-end gap-3 py-2">
         <Button asChild variant="outline">
           <Link to={service ? `/printing-services/${service.id}` : "/printing-services"}>إلغاء</Link>
