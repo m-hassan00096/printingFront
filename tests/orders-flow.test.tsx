@@ -131,6 +131,18 @@ describe("Orders Laravel API workflow", () => {
     await waitFor(() => expect(calls.some(c=>c.url==="/orders" && c.query.get("filter[productionStatus]")==="3")).toBe(true));
   });
 
+  it("keeps historic lateness distinct from current overdue orders", async () => {
+    visit("/orders?lateOnly=1&openOnly=1");
+    expect(await screen.findByText("مسودة #101")).toBeTruthy();
+    const query=calls.find(c=>c.url==="/orders"&&c.query.get("filter[lateOnly]")==="1");
+    expect(query?.query.get("filter[openOnly]")).toBe("1");
+    const user=userEvent.setup();
+    await user.click(screen.getByRole("checkbox",{name:"لم يتم تسليمها"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/orders"&&c.query.get("filter[lateOnly]")==="1"&&c.query.get("filter[openOnly]")===null)).toBe(true));
+    await user.click(screen.getByRole("checkbox",{name:"المتأخرة فقط"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/orders"&&c.query.get("filter[lateOnly]")===null&&c.query.get("filter[openOnly]")===null)).toBe(true));
+  });
+
   it("creates a draft with registered customer, agreed total, source enum and idempotency key", async () => {
     visit("/orders/new");
     expect(await screen.findByRole("heading",{name:"إضافة أوردر"})).toBeTruthy();

@@ -67,6 +67,7 @@ describe("Live dashboard contract",()=>{
     expect(screen.getByText("جاهزة للتسليم")).toBeTruthy();
     expect(screen.getByText("تسليمات اليوم")).toBeTruthy();
     expect(screen.getAllByText(/ORD-261015001/).length).toBeGreaterThan(0);
+    expect(screen.getByRole("link",{name:/عرض المتأخرة/}).getAttribute("href")).toBe("/orders?lateOnly=1&openOnly=1");
     expect(screen.getAllByText("ORD-261016001").length).toBeGreaterThan(0);
     expect(screen.getByRole("meter",{name:"الطباعة"}).getAttribute("aria-valuenow")).toBe("4");
     expect(screen.getByText(/إجمالي البنود:/)).toBeTruthy();
