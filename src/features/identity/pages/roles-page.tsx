@@ -56,7 +56,7 @@ export function RolesPage() {
     <SectionHeader title="الأدوار والصلاحيات" detail="إدارة أدوار الفريق وحالة كل دور وعدد المستخدمين المرتبطين به."
       actions={permissions.includes("identity.roles.create") && <Button asChild><Link to="/roles/new"><Plus className="size-4" /> إضافة دور</Link></Button>}
     />
-    <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+    <section className="overflow-hidden rounded-lg border bg-card ">
       <div className="flex flex-wrap items-center gap-3 border-b p-4">
         <SearchField value={draft} onChange={setDraft} placeholder="بحث باسم الدور" />
         <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
@@ -77,7 +77,7 @@ export function RolesPage() {
             <tbody className="divide-y">
               {list.data.roles.map((role) => <tr key={role.id} className="hover:bg-muted/30">
                 <td className="px-5 py-4"><div className="flex items-center gap-3">
-                  <span className="flex size-10 items-center justify-center rounded-xl bg-secondary text-primary"><ShieldCheck className="size-5" /></span>
+                  <span className="flex size-10 items-center justify-center rounded-lg bg-secondary text-primary"><ShieldCheck className="size-5" /></span>
                   <p className="font-bold">{role.name}</p>
                 </div></td>
                 <td className="px-5 py-4 text-muted-foreground">{role.usersCount.toLocaleString("ar-EG")}</td>

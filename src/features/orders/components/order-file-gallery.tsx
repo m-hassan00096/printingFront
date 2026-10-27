@@ -24,7 +24,7 @@ function FileArtwork({ file, canPreview, onPreview }: {
   const [imageFailed, setImageFailed] = useState(false);
   const thumbnail = canPreview && imageExtensions.has(ext) && file.url && !imageFailed;
   if (thumbnail) return <button type="button" aria-label={"معاينة " + file.name}
-    onClick={onPreview} className="size-16 shrink-0 overflow-hidden rounded-xl border bg-muted">
+    onClick={onPreview} className="size-16 shrink-0 overflow-hidden rounded-lg border bg-muted">
     <img src={file.url!} alt={file.name} loading="lazy" onError={() => setImageFailed(true)}
       className="size-full object-cover" />
   </button>;
@@ -35,7 +35,7 @@ function FileArtwork({ file, canPreview, onPreview }: {
   const Icon = pdf || document ? FileText : spreadsheet ? FileSpreadsheet :
     design ? FileArchive : imageExtensions.has(ext) ? FileImage : File;
   return <div aria-label={"نوع الملف " + ext.toUpperCase()}
-    className="flex size-16 shrink-0 flex-col items-center justify-center rounded-xl border bg-muted/60">
+    className="flex size-16 shrink-0 flex-col items-center justify-center rounded-lg border bg-muted/60">
     <Icon className="size-6 text-primary" />
     <span className="mt-1 text-[10px] font-extrabold uppercase">{ext || "FILE"}</span>
   </div>;
@@ -96,10 +96,10 @@ export function OrderFileGallery({ orderId, item, canList, canUpload, canDelete,
       files.isPending ? <p className="text-sm text-muted-foreground">جاري تحميل المرفقات...</p> :
       files.isError ? <button type="button" className="text-xs text-destructive underline"
         onClick={() => void files.refetch()}>تعذّر تحميل الملفات — إعادة المحاولة</button> :
-      !files.data?.length ? <p className="rounded-xl border border-dashed p-4 text-center text-xs text-muted-foreground">لا توجد مرفقات حتى الآن.</p> :
+      !files.data?.length ? <p className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">لا توجد مرفقات حتى الآن.</p> :
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {files.data.map((file) => <article key={file.id}
-          className="flex min-w-0 items-center gap-3 rounded-xl border bg-muted/20 p-3">
+          className="flex min-w-0 items-center gap-3 rounded-lg border bg-muted/20 p-3">
           <FileArtwork file={file} canPreview={canView}
             onPreview={() => setPreviewFile(file)} />
           <div className="min-w-0 flex-1 space-y-1">
@@ -122,7 +122,7 @@ export function OrderFileGallery({ orderId, item, canList, canUpload, canDelete,
     {previewFile && previewFile.url && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4"
       onClick={(e) => {if (e.target === e.currentTarget) setPreviewFile(null);}}>
       <div role="dialog" aria-modal="true" aria-label={"معاينة " + previewFile.name}
-        className="relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-card">
+        className="relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg bg-card">
         <div className="flex items-center justify-between gap-3 border-b p-3">
           <span className="min-w-0 truncate text-sm font-bold">{previewFile.name}</span>
           <Button variant="ghost" size="icon-sm" type="button" aria-label="إغلاق المعاينة"

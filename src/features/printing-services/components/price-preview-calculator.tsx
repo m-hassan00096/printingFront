@@ -49,7 +49,7 @@ export function PricePreviewCalculator({ serviceId, active }: { serviceId: numbe
     }
   }
 
-  return <section aria-labelledby="price-preview-heading" className="rounded-2xl border bg-card px-4 py-4 shadow-sm sm:px-5">
+  return <section aria-labelledby="price-preview-heading" className="rounded-lg border bg-card px-4 py-4  sm:px-5">
     <div className="mb-4 flex items-center gap-2">
       <Calculator className="size-5 text-primary" />
       <h2 id="price-preview-heading" className="font-bold">حاسبة السعر المقترح</h2>
@@ -83,7 +83,7 @@ export function PricePreviewCalculator({ serviceId, active }: { serviceId: numbe
         </p>}
         {previewError && <p role="alert" className="text-sm text-destructive">{previewError}</p>}
         {result && <div aria-label="نتيجة معاينة السعر" role="status"
-          className="rounded-xl border bg-muted/40 px-4 py-3">
+          className="rounded-lg border bg-muted/40 px-4 py-3">
           {result.requiresManualTotal ? <p className="text-sm font-medium">
             لا يوجد سعر محدد لهذا النوع والكمية؛ أدخل إجمالي السعر يدويًا عند إنشاء الأوردر.
           </p> : <div className="grid gap-3 sm:grid-cols-3">

@@ -98,10 +98,10 @@ export function OrderItemEditor({ order, item, canPricePreview, onClose }: {
 
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
     <section role="dialog" aria-modal="true" aria-label={item ? "تعديل عنصر" : "إضافة عنصر"}
-      className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-card p-5 shadow-xl sm:p-6">
+      className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-card p-5 shadow-xl sm:p-6">
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-extrabold">{item ? "تعديل عنصر" : "إضافة عنصر"}</h2>
+          <h2 className="text-base font-semibold">{item ? "تعديل عنصر" : "إضافة عنصر"}</h2>
           <p className="mt-1 text-xs text-muted-foreground">يمكن تعديل الخدمة والكمية والسعر في المسودة فقط.</p>
         </div>
         <Button type="button" variant="ghost" size="icon-sm" onClick={onClose} disabled={busy} aria-label="إغلاق">
@@ -139,7 +139,7 @@ export function OrderItemEditor({ order, item, canPricePreview, onClose }: {
             {previewBusy ? <LoaderCircle className="size-4 animate-spin" /> : <Calculator className="size-4" />}
             السعر المقترح
           </Button>
-          {suggestion && <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-muted/40 px-3 py-2 text-sm">
+          {suggestion && <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
             <span>الإجمالي المقترح: <strong>{suggestion} ج.م</strong></span>
             <Button type="button" variant="outline" size="sm" onClick={() => {setAgreedTotal(suggestion);reset("agreedTotal");}}>
               استخدام السعر

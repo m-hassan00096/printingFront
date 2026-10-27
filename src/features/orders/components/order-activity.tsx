@@ -35,7 +35,7 @@ function dateLabel(date: string | null) {
 function ActivityRow({ activity }: { activity: Activity }) {
   const Icon = icons[activity.eventType] ?? History;
   return <li className="flex items-center gap-3 border-b py-3 last:border-b-0">
-    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted">
+    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
       <Icon className="size-4 text-primary" />
     </span>
     <div className="min-w-0">
@@ -48,7 +48,7 @@ export function OrderActivityTimeline({ orderId, enabled }: { orderId: number; e
   const activities = useOrderActivities(orderId, enabled);
   const [showAll, setShowAll] = useState(false);
   if (!enabled) return null;
-  return <section className="rounded-2xl border bg-card p-5 shadow-sm">
+  return <section className="rounded-lg border bg-card p-5 ">
     <h2 className="mb-2 flex items-center gap-2 font-bold"><History className="size-4 text-primary" /> سجل النشاط</h2>
     {activities.isPending ? <p className="py-3 text-sm text-muted-foreground">جاري تحميل السجل...</p> :
       activities.isError ? <button type="button" onClick={() => void activities.refetch()}

@@ -104,8 +104,8 @@ export function RoleFormPage() {
     <Button asChild variant="ghost"><Link to="/roles"><ArrowRight className="size-4" /> العودة للأدوار</Link></Button>
     <SectionHeader title={isNew ? "إضافة دور" : "تعديل الدور"} detail="اختر الصلاحيات المناسبة لكل دور لتحديد ما يمكن لمستخدميه الوصول إليه." />
     <form onSubmit={(event) => void submit(event)} className="space-y-5">
-      {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</p>}
-      <section className="space-y-5 rounded-2xl border bg-card p-6 shadow-sm">
+      {error && <p role="alert" className="rounded-lg border border-[#EB5757]/30 bg-[#EB5757]/10 p-4 text-sm text-[#EB5757]">{error}</p>}
+      <section className="space-y-5 rounded-lg border bg-card p-6 ">
         <label className="block space-y-2"><span className={fieldLabel}>اسم الدور بالعربي <span className="text-destructive">*</span></span>
           <input className={fieldClass} value={nameAr} maxLength={150} onChange={(e) => setNameAr(e.target.value)} disabled={busy} aria-invalid={!!fieldError} />
           {fieldError && <span role="alert" className="text-xs text-destructive">{fieldError}</span>}
@@ -121,7 +121,7 @@ export function RoleFormPage() {
           {protectedAdmin && <span className="block text-xs text-muted-foreground">دور مدير النظام محمي من التعطيل وتعديل صلاحياته، لكن يمكن تغيير اسمه الظاهر.</span>}
         </label>
       </section>
-      <section className="space-y-4 rounded-2xl border bg-card p-6 shadow-sm">
+      <section className="space-y-4 rounded-lg border bg-card p-6 ">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="font-extrabold">الصلاحيات</h3>
@@ -145,10 +145,10 @@ export function RoleFormPage() {
             <Search className="pointer-events-none absolute right-3 top-3.5 size-4 text-muted-foreground" />
             <input value={search} onChange={(e) => setSearch(e.target.value)} className={fieldClass + " pr-10"} placeholder="ابحث عن صلاحية..." />
           </label>
-          {unknown.length > 0 && !protectedAdmin && <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+          {unknown.length > 0 && !protectedAdmin && <p role="alert" className="rounded-lg border border-amber-200 bg-[#F0C000]/10 p-3 text-xs text-[#F0C000]">
             يوجد {unknown.length} صلاحيات مرتبطة بالدور لم تعد موجودة في القائمة. راجع بيانات الباك قبل الحفظ.
           </p>}
-          <div className="grid max-h-[420px] grid-cols-1 gap-2 overflow-y-auto rounded-xl border bg-muted/20 p-3 sm:grid-cols-2">
+          <div className="grid max-h-[420px] grid-cols-1 gap-2 overflow-y-auto rounded-lg border bg-muted/20 p-3 sm:grid-cols-2">
             {visible.map((permission) => <label key={permission.value}
               className="flex cursor-pointer items-start gap-3 rounded-lg border bg-card px-3 py-3 text-sm leading-6 hover:border-primary/40">
               <input

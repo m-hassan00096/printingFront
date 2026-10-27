@@ -67,7 +67,7 @@ export function PrintingServicesPage() {
   return <div className="space-y-6">
     <SectionHeader title="خدمات الطباعة" detail="إدارة أنواع الطباعة وأسعارها وشرائح الكميات وأنواع العملاء."
       actions={canCreate && <Button asChild><Link to="/printing-services/new"><Plus /> إضافة خدمة طباعة</Link></Button>} />
-    <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+    <section className="overflow-hidden rounded-lg border bg-card ">
       <div className="flex flex-wrap items-center gap-3 border-b p-4">
         <SearchField value={draftSearch} onChange={setDraftSearch} placeholder="بحث باسم خدمة الطباعة" />
         <label className="flex items-center gap-2 text-xs font-bold">الحالة
@@ -98,7 +98,7 @@ export function PrintingServicesPage() {
                 <tr key={service.id} className="hover:bg-muted/30">
                   <td className="px-5 py-4"><Link className="inline-flex items-center gap-3 font-bold hover:underline"
                     to={`/printing-services/${service.id}`}>
-                    <span className="rounded-xl bg-secondary p-2 text-primary"><Printer className="size-5" /></span>
+                    <span className="rounded-lg bg-secondary p-2 text-primary"><Printer className="size-5" /></span>
                     {service.name}
                   </Link></td>
                   <td className="px-5 py-4 tabular-nums">{service.basePrice === null ? "غير محدد" : `${service.basePrice} ج.م`}</td>

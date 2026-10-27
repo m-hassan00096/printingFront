@@ -50,7 +50,7 @@ export function PrintingServiceDetailPage() {
     <header className="flex flex-wrap items-center justify-between gap-4">
       <div className="space-y-2">
         <p className="text-xs text-muted-foreground">إدارة الطباعة / خدمات الطباعة</p>
-        <h1 className="flex items-center gap-2 text-2xl font-extrabold">
+        <h1 className="flex items-center gap-2 text-xl font-semibold">
           <Printer className="size-5 text-primary" /> {item.name}
         </h1>
         <IdentityStatus status={item.status} label={item.status === 1 ? "نشط" : "غير نشط"} />
@@ -60,7 +60,7 @@ export function PrintingServiceDetailPage() {
       </Button>}
     </header>
 
-    <section className="overflow-hidden rounded-2xl border bg-card shadow-sm" aria-labelledby="service-pricing-title">
+    <section className="overflow-hidden rounded-lg border bg-card " aria-labelledby="service-pricing-title">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
         <div>
           <h2 id="service-pricing-title" className="text-lg font-bold">أسعار الخدمة</h2>

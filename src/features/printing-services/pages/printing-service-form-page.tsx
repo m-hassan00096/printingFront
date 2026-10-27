@@ -192,12 +192,12 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
       </Link>
     </Button>
     <header>
-      <h1 className="text-2xl font-extrabold">{service ? "تعديل خدمة طباعة" : "إضافة خدمة طباعة"}</h1>
+      <h1 className="text-xl font-semibold">{service ? "تعديل خدمة طباعة" : "إضافة خدمة طباعة"}</h1>
       <p className="mt-1 text-sm text-muted-foreground">حدد بيانات الخدمة وأسعارها بالجنيه المصري.</p>
     </header>
 
     <form onSubmit={(event) => void save(event)} noValidate className="space-y-4">
-      <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+      <section className="rounded-lg border bg-card p-4  sm:p-5">
         <h2 className="mb-4 font-bold">بيانات الخدمة</h2>
         <div className="grid gap-4 md:grid-cols-3">
           <label className="block"><span className={fieldLabel}>اسم الخدمة *</span>
@@ -227,7 +227,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
         </p>
       </section>
 
-      <section className="rounded-2xl border bg-card shadow-sm" aria-labelledby="tiers-form-title">
+      <section className="rounded-lg border bg-card " aria-labelledby="tiers-form-title">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-4 sm:px-5">
           <div>
             <h2 id="tiers-form-title" className="font-bold">شرائح الأسعار</h2>
@@ -243,11 +243,11 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
             تعذّر تحميل أنواع العملاء.{" "}
             <button type="button" className="underline" onClick={() => void types.refetch()}>إعادة المحاولة</button>
           </p>}
-          {rows.length === 0 && <p className="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+          {rows.length === 0 && <p className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
             لا توجد شرائح مضافة. اضغط «إضافة شريحة» لتخصيص الأسعار حسب العميل أو الكمية.
           </p>}
           {rows.map((row, index) => <fieldset key={row.key} disabled={busy}
-            className="min-w-0 rounded-xl border bg-muted/20 p-3 sm:p-4">
+            className="min-w-0 rounded-lg border bg-muted/20 p-3 sm:p-4">
             <legend className="px-1 text-xs font-bold text-muted-foreground">شريحة {index + 1}</legend>
             <div className="grid items-start gap-3 md:grid-cols-[minmax(0,2fr)_repeat(2,minmax(0,1fr))_minmax(0,1.1fr)_auto]">
               <label className="block text-xs font-semibold">نوع العميل
@@ -293,7 +293,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
         </div>
       </section>
 
-      {generalError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{generalError}</p>}
+      {generalError && <p role="alert" className="rounded-lg border border-[#EB5757]/30 bg-[#EB5757]/10 p-3 text-sm text-[#EB5757]">{generalError}</p>}
       <footer className="flex flex-wrap justify-end gap-3 py-2">
         <Button asChild variant="outline">
           <Link to={service ? `/printing-services/${service.id}` : "/printing-services"}>إلغاء</Link>
