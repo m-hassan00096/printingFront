@@ -98,6 +98,8 @@ export const uiMessages = {
     createdFrom: "من",
     createdTo: "إلى",
     createdAtColumn: "تاريخ الإنشاء",
+    morningAbbreviation: "ص",
+    eveningAbbreviation: "م",
     clearCreatedFilter: "مسح التاريخ",
     invalidCreatedRange: "تاريخ البداية يجب أن يكون قبل أو مساويًا لتاريخ النهاية.",
     dueDateColumn: "موعد التسليم",

@@ -22,23 +22,32 @@ function formatCreatedAt(value: string | null): { date: string; time: string } |
   if (!value) return null;
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
-  return {
-    date: new Intl.DateTimeFormat("en-GB", {day:"2-digit",month:"2-digit",year:"numeric",timeZone:"Africa/Cairo"}).format(parsed),
-    time: new Intl.DateTimeFormat("en-GB", {hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Africa/Cairo"}).format(parsed),
-  };
+  const dateParts = new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Africa/Cairo",
+  }).formatToParts(parsed);
+  const timeParts = new Intl.DateTimeFormat("en-US", {
+    hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Africa/Cairo",
+  }).formatToParts(parsed);
+  const part = (parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((entry) => entry.type === type)?.value ?? "";
+  const date = `${part(dateParts, "day")} / ${part(dateParts, "month")} / ${part(dateParts, "year")}`;
+  const suffix = part(timeParts, "dayPeriod") === "PM"
+    ? uiMessages.orders.eveningAbbreviation : uiMessages.orders.morningAbbreviation;
+  const time = `${part(timeParts, "hour")}:${part(timeParts, "minute")} ${suffix}`;
+  return { date, time };
 }
 const productionStyles: Record<number, string> = {
   0: "border-slate-200 bg-slate-100 text-slate-700",
   1: "border-indigo-100 bg-indigo-50 text-indigo-700",
   2: "border-amber-100 bg-amber-50 text-amber-700",
-  3: "border-emerald-100 bg-emerald-50 text-emerald-700",
+  3: "border-emerald-200 bg-emerald-100 text-emerald-800",
   4: "border-teal-100 bg-teal-50 text-teal-700",
 };
 function ProductionBadge({ order }: { order: Pick<Order, "status" | "productionStatus" | "productionStatusLabel"> }) {
   if (order.productionStatus === null) return <span className="text-muted-foreground">—</span>;
   const archived = order.status === 2;
   return <div className="flex flex-col items-start gap-1">
-    <Badge variant="outline" className={archived ? "border-slate-200 bg-slate-100 text-slate-500" : productionStyles[order.productionStatus] ?? productionStyles[0]}>
+    <Badge variant="outline" className={productionStyles[order.productionStatus] ?? productionStyles[0]}>
       {order.productionStatusLabel ?? "—"}
     </Badge>
     {archived && <span className="text-[11px] text-muted-foreground">{uiMessages.orders.lastProductionStage}</span>}

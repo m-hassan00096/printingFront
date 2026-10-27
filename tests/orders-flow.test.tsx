@@ -155,9 +155,35 @@ describe("Orders Laravel API workflow", () => {
     visit("/orders");
     const table = await screen.findByRole("table");
     expect(within(table).getByRole("columnheader", {name:"تاريخ الإنشاء"})).toBeTruthy();
-    expect(within(table).getByText("28/10/2026")).toBeTruthy();
+    expect(within(table).getByText("28 / 10 / 2026")).toBeTruthy();
+    expect(within(table).getByText("12:15 ص")).toBeTruthy();
     const production = within(table).getByText("في الإنتاج");
     expect(production.closest('[data-slot="badge"]')).toBeTruthy();
+  });
+
+  it("formats Cairo creation time in 12 hours with Arabic AM/PM suffix", async () => {
+    orders[0] = {...orders[0], createdAt:"2026-10-27T15:18:00Z"};
+    visit("/orders");
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("27 / 10 / 2026")).toBeTruthy();
+    expect(within(table).getByText("06:18 م")).toBeTruthy();
+  });
+
+  it("visually distinguishes not-started from ready-for-delivery, including canceled orders", async () => {
+    orders = [
+      {...orders[0],id:201,orderNumber:"ORD-201",status:1,statusLabel:"مؤكد",
+        productionStatus:0,productionStatusLabel:"لم يبدأ"},
+      {...orders[0],id:202,orderNumber:"ORD-202",status:2,statusLabel:"ملغي",
+        productionStatus:3,productionStatusLabel:"جاهز للتسليم"},
+    ];
+    visit("/orders");
+    const table = await screen.findByRole("table");
+    const notStarted = within(table).getByText("لم يبدأ").closest('[data-slot="badge"]');
+    const ready = within(table).getByText("جاهز للتسليم").closest('[data-slot="badge"]');
+    expect(notStarted?.className).toContain("bg-slate-100");
+    expect(ready?.className).toContain("bg-emerald-100");
+    expect(ready?.className).not.toContain("bg-slate-100");
+    expect(within(table).getByText("آخر مرحلة إنتاج مسجلة")).toBeTruthy();
   });
 
   it("uses themed creation date pickers and persists a server-side inclusive date range in the URL", async () => {
