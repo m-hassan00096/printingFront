@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from "react";
 import axios from "axios";
-import { ArrowRight, LoaderCircle, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, Info, LoaderCircle, Plus, Trash2, TriangleAlert } from "lucide-react";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
@@ -56,6 +57,24 @@ function validMoney(value: string, zeroAllowed: boolean): boolean {
   return Number.isFinite(number) && (zeroAllowed ? number >= 0 : number > 0);
 }
 
+/** UI-only advisory; the backend remains the source of truth for tier precedence. */
+function hasAmbiguousQuantityRanges(rows: TierInput[]): boolean {
+  const ranges = rows.filter(row =>
+    row.minQuantity !== "" || row.maxQuantity !== ""
+  ).filter(row =>
+    (!row.minQuantity || /^\\d+$/.test(row.minQuantity)) &&
+    (!row.maxQuantity || /^\\d+$/.test(row.maxQuantity))
+  );
+  return ranges.some((row, index) => ranges.slice(index + 1).some(next => {
+    if (row.customerTypeId !== next.customerTypeId) return false;
+    const startA = row.minQuantity ? Number(row.minQuantity) : 1;
+    const endA = row.maxQuantity ? Number(row.maxQuantity) : Infinity;
+    const startB = next.minQuantity ? Number(next.minQuantity) : 1;
+    const endB = next.maxQuantity ? Number(next.maxQuantity) : Infinity;
+    return startA <= endA && startB <= endB && startA <= endB && startB <= endA;
+  }));
+}
+
 function PrintingServiceForm({ service }: { service?: PrintingService }) {
   const navigate = useNavigate();
   const mutations = usePrintingServiceMutations();
@@ -69,6 +88,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
   const [errors, setErrors] = useState<Errors>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
   const busy = mutations.create.isPending || mutations.update.isPending;
+  const copy = uiMessages.printingServices;
   const existing = new Map(service?.priceTiers?.map((tier) => [tier.priceTierId, tier]) ?? []);
 
   function clear(key: string) {
@@ -209,9 +229,10 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
           <label className="block"><span className={fieldLabel}>السعر الأساسي (اختياري)</span>
             <input aria-label="السعر الأساسي" aria-invalid={!!errors.basePrice} type="text"
               inputMode="decimal" dir="ltr" className={fieldClass + " mt-2"}
-              placeholder="0.00" value={basePrice} disabled={busy}
+              placeholder={copy.emptyBasePrice} value={basePrice} disabled={busy}
               onChange={(e) => { setBasePrice(e.target.value); clear("basePrice"); }} />
             {err("basePrice")}
+            <span className="mt-1.5 block text-[11px] leading-5 text-muted-foreground">{copy.zeroBasePrice}</span>
           </label>
           <label className="block"><span className={fieldLabel}>الحالة</span>
             <select aria-label="حالة الخدمة" className={fieldClass + " mt-2"} value={status}
@@ -222,8 +243,9 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
             {err("status")}
           </label>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">
-          السعر الأساسي يُستخدم إذا لم تنطبق أي شريحة. اتركه فارغًا للسعر اليدوي، أو أدخل 0 للخدمة المجانية.
+        <p className="mt-4 flex items-start gap-2 rounded-lg border border-primary/10 bg-primary/5 px-3 py-2.5 text-xs leading-6 text-muted-foreground">
+          <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+          {copy.quantityPriorityHelp}
         </p>
       </section>
 
@@ -231,7 +253,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
         <header className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-4 sm:px-5">
           <div>
             <h2 id="tiers-form-title" className="font-bold">شرائح الأسعار</h2>
-            <p className="mt-1 text-xs text-muted-foreground">حدد نوع العميل ونطاق الكمية وسعر الوحدة لكل شريحة.</p>
+            <p className="mt-1 text-xs text-muted-foreground">{copy.tierPriorityHelp}</p>
           </div>
           <Button type="button" variant="outline" size="sm" disabled={busy}
             onClick={() => setRows((old) => [...old, blankTier(nextKey.current--)])}>
@@ -246,49 +268,66 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
           {rows.length === 0 && <p className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
             لا توجد شرائح مضافة. اضغط «إضافة شريحة» لتخصيص الأسعار حسب العميل أو الكمية.
           </p>}
-          {rows.map((row, index) => <fieldset key={row.key} disabled={busy}
-            className="min-w-0 rounded-lg border bg-muted/20 p-3 sm:p-4">
-            <legend className="px-1 text-xs font-bold text-muted-foreground">شريحة {index + 1}</legend>
-            <div className="grid items-start gap-3 md:grid-cols-[minmax(0,2fr)_repeat(2,minmax(0,1fr))_minmax(0,1.1fr)_auto]">
-              <label className="block text-xs font-semibold">نوع العميل
-                <select aria-label={`نوع عميل الشريحة ${index + 1}`} className={fieldClass + " mt-2"}
-                  value={row.customerTypeId}
-                  onChange={(e) => editRow(row.key, "customerTypeId", e.target.value)}>
-                  <option value="">كل أنواع العملاء</option>
-                  {currentType(row.customerTypeId)}
-                  {types.data?.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
-                </select>{err(`row.${row.key}.customerTypeId`)}
-              </label>
-              <label className="block text-xs font-semibold">الكمية من
-                <input aria-label={`الكمية من للشريحة ${index + 1}`} className={fieldClass + " mt-2"}
-                  type="number" min="1" value={row.minQuantity} placeholder="بدون حد"
-                  onChange={(e) => editRow(row.key, "minQuantity", e.target.value)} />
-                {err(`row.${row.key}.minQuantity`)}
-              </label>
-              <label className="block text-xs font-semibold">الكمية إلى
-                <input aria-label={`الكمية إلى للشريحة ${index + 1}`} className={fieldClass + " mt-2"}
-                  type="number" min="1" value={row.maxQuantity} placeholder="بدون حد"
-                  onChange={(e) => editRow(row.key, "maxQuantity", e.target.value)} />
-                {err(`row.${row.key}.maxQuantity`)}
-              </label>
-              <label className="block text-xs font-semibold">سعر الوحدة *
-                <input aria-label={`سعر الشريحة ${index + 1}`} className={fieldClass + " mt-2"}
-                  dir="ltr" inputMode="decimal" value={row.price} placeholder="0.00"
-                  onChange={(e) => editRow(row.key, "price", e.target.value)} />
-                {err(`row.${row.key}.price`)}
-              </label>
-              <div className="flex justify-end md:pt-6">
-                <Button type="button" size="icon-sm" variant="ghost"
+          {rows.map((row, index) => {
+            const isDefault = row.minQuantity === "" && row.maxQuantity === "";
+            return <fieldset key={row.key} disabled={busy}
+              className="min-w-0 rounded-xl border border-[#e6e9f2] bg-[#fafbff] p-3 sm:p-4">
+              <legend className="px-2 text-xs font-bold text-[#596781]">شريحة {index + 1}</legend>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {isDefault ? copy.defaultTier : copy.rangeGroup}
+                </span>
+                <Button type="button" size="sm" variant="ghost"
+                  className="text-destructive hover:bg-[#fff0f2] hover:text-destructive"
                   aria-label={`حذف الشريحة ${index + 1}`} title="حذف الشريحة"
                   onClick={() => removeRow(row.key)}>
-                  <Trash2 className="size-4 text-destructive" />
+                  <Trash2 className="size-4" aria-hidden="true" />
+                  حذف الشريحة
                 </Button>
               </div>
-            </div>
-          </fieldset>)}
+              <div className="grid items-start gap-3 md:grid-cols-[minmax(0,1.5fr)_minmax(0,2fr)_minmax(0,1.1fr)]">
+                <label className="block text-xs font-semibold">نوع العميل
+                  <select aria-label={`نوع عميل الشريحة ${index + 1}`} className={fieldClass + " mt-2"}
+                    value={row.customerTypeId}
+                    onChange={event => editRow(row.key, "customerTypeId", event.target.value)}>
+                    <option value="">كل أنواع العملاء</option>
+                    {currentType(row.customerTypeId)}
+                    {types.data?.map(type => <option key={type.value} value={type.value}>{type.label}</option>)}
+                  </select>{err(`row.${row.key}.customerTypeId`)}
+                </label>
+                <div role="group" aria-label={`${copy.rangeGroup} للشريحة ${index + 1}`} className="min-w-0">
+                  <p className="text-xs font-semibold">{copy.rangeGroup}</p>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <label className="block min-w-0 text-[11px] text-muted-foreground">من
+                      <input aria-label={`الكمية من للشريحة ${index + 1}`} className={fieldClass + " mt-1"}
+                        type="number" min="1" value={row.minQuantity} placeholder="بدون حد"
+                        onChange={event => editRow(row.key, "minQuantity", event.target.value)} />
+                      {err(`row.${row.key}.minQuantity`)}
+                    </label>
+                    <label className="block min-w-0 text-[11px] text-muted-foreground">إلى
+                      <input aria-label={`الكمية إلى للشريحة ${index + 1}`} className={fieldClass + " mt-1"}
+                        type="number" min="1" value={row.maxQuantity} placeholder="بدون حد"
+                        onChange={event => editRow(row.key, "maxQuantity", event.target.value)} />
+                      {err(`row.${row.key}.maxQuantity`)}
+                    </label>
+                  </div>
+                </div>
+                <label className="block text-xs font-semibold">سعر الوحدة *
+                  <input aria-label={`سعر الشريحة ${index + 1}`} className={fieldClass + " mt-2"}
+                    dir="ltr" inputMode="decimal" value={row.price} placeholder="0.00"
+                    onChange={event => editRow(row.key, "price", event.target.value)} />
+                  {err(`row.${row.key}.price`)}
+                </label>
+              </div>
+            </fieldset>;
+          })}
+          {hasAmbiguousQuantityRanges(rows) && <p role="status" className="flex items-start gap-2 rounded-lg border border-[#f3dda6] bg-[#fff8e8] px-3 py-2.5 text-xs leading-6 text-[#996610]">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            {copy.ambiguousRangesWarning}
+          </p>}
           {err("priceTiers")}
-          <p className="text-xs text-muted-foreground">
-            ترك الكمية فارغة يعني بدون حد. لا يمكن تداخل نطاقات الكميات لنفس نوع العميل.
+          <p className="text-xs leading-6 text-muted-foreground">
+            {copy.openQuantityHelp} {copy.quantityPriorityHelp}
           </p>
         </div>
       </section>
