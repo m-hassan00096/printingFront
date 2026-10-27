@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { getApiErrorMessage } from "@/shared/api/http";
 import type { ApiErrorResponse } from "@/shared/api/api-types";
 import { CustomerFormModal } from "@/features/customers/components/customer-form-modal";
@@ -60,6 +61,7 @@ export function OrderCreatePage() {
   const [suggestions, setSuggestions] = useState<Record<number, string>>({});
   const [previewPending, setPreviewPending] = useState<number | null>(null);
   const [previewError, setPreviewError] = useState<Record<number, string>>({});
+  const [confirmPriceKey, setConfirmPriceKey] = useState<number | null>(null);
   const [depositAmount, setDepositAmount] = useState("0");
   const [paymentMethod, setPaymentMethod] = useState<"0" | "1" | "2">("0");
   const [destinationOverride, setDestinationOverride] = useState<string | null>(null);
@@ -113,6 +115,7 @@ export function OrderCreatePage() {
     previewEpoch.current += 1;
     setSuggestions({});
     setPreviewError({});
+    setConfirmPriceKey(null);
   }
   function setCustomer(id: string) {
     setCustomerId(id);
@@ -124,6 +127,7 @@ export function OrderCreatePage() {
     setItems((old) => old.map((item) => item.key === key ? { ...item, [field]: value } : item));
     clear("items." + key + "." + field);
     if (field === "serviceId" || field === "quantity") {
+      setConfirmPriceKey(null);
       previewEpoch.current += 1;
       setSuggestions((old) => {const updated = { ...old };delete updated[key];return updated;});
       setPreviewError((old) => {const updated = { ...old };delete updated[key];return updated;});
@@ -169,6 +173,19 @@ export function OrderCreatePage() {
     } finally { setPreviewPending((old) => old === key ? null : old); }
   }
 
+  function useSuggestion(row: ItemDraft) {
+    const proposed = suggestions[row.key];
+    if (proposed === undefined) return;
+    if (cents(row.agreedTotal) !== null && cents(row.agreedTotal) !== cents(proposed) && confirmPriceKey !== row.key) {
+      setConfirmPriceKey(row.key);return;
+    }
+    changeItem(row.key, "agreedTotal", proposed);
+    setConfirmPriceKey(null);
+  }
+  function agreedUnit(row: ItemDraft) {
+    const total = cents(row.agreedTotal), qty = Number(row.quantity);
+    return total !== null && Number.isSafeInteger(qty) && qty > 0 ? (total / (qty * 100)).toFixed(2) : null;
+  }
   function validate(mode: Mode): Errors {
     const issues: Errors = {};
     if (!customerId) issues.customerId = "اختر عميلًا مسجلًا.";
@@ -267,7 +284,7 @@ export function OrderCreatePage() {
               onCreate={canAddCustomer ? () => setCustomerModal(true) : undefined} createLabel="إضافة عميل جديد" />
             {message("customerId")}
             {selectedCustomer && <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs text-muted-foreground">نوع العميل: {selectedCustomer.customerType?.name ?? "حسب الملف المسجل"}</p>
+              <p className="text-xs text-muted-foreground">نوع العميل: {selectedCustomer.customerType?.name ?? uiMessages.customers.unclassified}</p>
               {canEditCustomer && <Button type="button" variant="ghost" size="sm" disabled={busy}
                 onClick={() => setEditCustomer(true)}>تعديل بيانات العميل</Button>}
             </div>}
@@ -281,6 +298,9 @@ export function OrderCreatePage() {
           <label className="text-sm font-semibold">تاريخ التسليم (اختياري)
             <input type="date" aria-label="تاريخ التسليم" className={fieldClass + " mt-2"}
               value={dueDate} disabled={busy} onChange={(e) => {setDueDate(e.target.value);clear("dueDate");}} />
+            {dueDate && <span className="mt-1 block text-xs text-muted-foreground" aria-label={uiMessages.orders.readableDeliveryDate}>
+              {dueDate.slice(8,10)}/{dueDate.slice(5,7)}/{dueDate.slice(0,4)}
+            </span>}
             {message("dueDate")}
           </label>
           <div className="flex items-center"><Button type="button" variant="ghost" size="sm" onClick={() => setShowNotes(!showNotes)}>
@@ -330,6 +350,10 @@ export function OrderCreatePage() {
                 {message("items." + item.key + ".agreedTotal")}
               </label>
             </div>
+            {agreedUnit(item) !== null && <p className="mt-2 text-xs text-muted-foreground">
+              {uiMessages.orders.agreedUnitPrice}: <span dir="ltr" className="inline-block font-semibold tabular-nums">{agreedUnit(item)} ج.م</span>
+              <span className="mx-1">×</span> {item.quantity} {uiMessages.orders.pieces}
+            </p>}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Button type="button" variant="ghost" size="sm" disabled={busy}
                 onClick={() => setItems((old) => old.map((row) => row.key === item.key ? { ...row, expanded: !row.expanded } : row))}>
@@ -345,10 +369,20 @@ export function OrderCreatePage() {
               className={fieldClass + " mt-2 min-h-20 py-2"} maxLength={20000} disabled={busy}
               placeholder="المقاس، الخامة، الألوان أو أي تفاصيل أخرى..."
               value={item.specifications} onChange={(e) => changeItem(item.key, "specifications", e.target.value)} />}
-            {suggestions[item.key] && <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-3 py-2">
-              <span className="text-sm">الإجمالي المقترح: <strong><MoneyAmount amount={suggestions[item.key]} /></strong></span>
-              <Button type="button" variant="outline" size="sm" disabled={busy}
-                onClick={() => changeItem(item.key, "agreedTotal", suggestions[item.key])}>استخدام السعر</Button>
+            {suggestions[item.key] !== undefined && <div className="mt-3 rounded-lg border border-primary/15 bg-[#f8f9ff] p-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div><p className="text-xs text-muted-foreground">{uiMessages.orders.suggestedPrice}</p>
+                  <strong className="text-base"><MoneyAmount amount={suggestions[item.key]} /></strong>
+                  <p className="text-[11px] text-muted-foreground">{uiMessages.orders.suggestedNotAgreed}</p></div>
+                <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => useSuggestion(item)}>{uiMessages.orders.useSuggested}</Button>
+              </div>
+              {confirmPriceKey === item.key && <div role="alert" className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-2">
+                <p className="text-xs text-[#9c591b]">{uiMessages.orders.replaceAgreedPrice}: <span dir="ltr" className="inline-block">{item.agreedTotal} ج.م</span> ← <span dir="ltr" className="inline-block">{suggestions[item.key]} ج.م</span></p>
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" onClick={() => useSuggestion(item)}>{uiMessages.orders.confirmReplacement}</Button>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmPriceKey(null)}>{uiMessages.orders.keepAgreedPrice}</Button>
+                </div>
+              </div>}
             </div>}
             {previewError[item.key] && <p role="alert" className="mt-2 text-xs text-destructive">{previewError[item.key]}</p>}
           </div>)}
