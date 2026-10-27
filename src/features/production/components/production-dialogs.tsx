@@ -45,7 +45,7 @@ const modalTitles:Record<ProductionPendingAction["action"],string> = {
   "complete-design":"إنهاء التصميم",
   "complete-and-send-to-printing":"إنهاء التصميم والإرسال للطباعة",
   "send-to-printing":"إرسال للطباعة",
-  "change-location":"تغيير مكان الطباعة",
+  "change-location":"تغيير المطبعة",
   "mark-ready":"إنهاء الطباعة وتجهيز العنصر",
   undo:"التراجع عن آخر مرحلة",
   batch:"إرسال العناصر المحددة للطباعة",
@@ -62,7 +62,7 @@ export function ProductionActionDialog({ intent, busy, onClose, onConfirm }: {
     intent.action!=="change-location" || option.value!==intent.item?.printingLocationId);
   async function submit() {
     if (requiresLocation && !choices.some(option=>String(option.value)===locationId)) {
-      setError("اختر مكان طباعة نشطًا.");return;
+      setError("اختر مطبعة نشطة.");return;
     }
     setError("");
     try {await onConfirm(requiresLocation?Number(locationId):undefined);}
@@ -92,12 +92,12 @@ export function ProductionActionDialog({ intent, busy, onClose, onConfirm }: {
         سيتم نقل العنصر إلى «جاهز للتسليم». لن يتم تسليم الأوردر للعميل من هذه الشاشة.
       </p>}
       {requiresLocation && <div className="space-y-2">
-        <label className="block text-sm font-bold">مكان الطباعة *</label>
-        <SearchableSelect label="اختيار مكان الطباعة" placeholder="ابحث عن مكان طباعة..."
+        <label className="block text-sm font-bold">المطبعة *</label>
+        <SearchableSelect label="اختيار المطبعة" placeholder="ابحث عن مطبعة..."
           options={choices} loading={selects.isPending} value={locationId} onChange={(v)=>{setLocationId(v);setError("");}}
           disabled={busy || selects.isError}/>
         {selects.isError && <div role="alert" className="text-sm text-destructive">
-          تعذّر تحميل أماكن الطباعة.
+          تعذّر تحميل المطابع.
           <button type="button" className="mr-2 underline" onClick={()=>void selects.refetch()}>إعادة المحاولة</button>
         </div>}
         {!selects.isPending && !selects.isError && choices.length===0 && <p className="text-sm text-muted-foreground">
@@ -147,7 +147,7 @@ export function ProductionDetailDialog({ item, onClose }: { item:ProductionItem;
             <div><dt className="text-muted-foreground">موعد التسليم</dt><dd className="font-bold">{item.dueDate??"غير محدد"}{item.isLate?" · متأخر":""}</dd></div>
             <div><dt className="text-muted-foreground">المصمم</dt><dd className="font-bold">{item.designerName??"لم يُحدد"}</dd></div>
             <div><dt className="text-muted-foreground">أنهى التصميم</dt><dd className="font-bold">{item.designCompletedByName??"—"}</dd></div>
-            <div><dt className="text-muted-foreground">مكان الطباعة</dt><dd className="font-bold">{item.printingLocationName??"لم يُحدد"}</dd></div>
+            <div><dt className="text-muted-foreground">المطبعة</dt><dd className="font-bold">{item.printingLocationName??"لم يُحدد"}</dd></div>
           </dl>
           {canViewOrder && <Link to={`/orders/${item.orderId}`} className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
             <ArrowRight className="size-4"/> فتح الأوردر
@@ -189,7 +189,7 @@ export function ProductionDetailDialog({ item, onClose }: { item:ProductionItem;
                   <p className="text-xs text-muted-foreground">{event.actorName??"موظف"} · {dateTime(event.createdAt)}</p>
                   {event.oldPrintingLocationId !== event.newPrintingLocationId &&
                     <p className="text-xs text-muted-foreground">
-                      مكان الطباعة: من <span dir="auto">{event.oldPrintingLocationName??"غير محدد"}</span> إلى{" "}
+                      المطبعة: من <span dir="auto">{event.oldPrintingLocationName??"غير محدد"}</span> إلى{" "}
                       <span dir="auto">{event.newPrintingLocationName??"غير محدد"}</span>
                     </p>}
                   {event.fromStage !== event.toStage &&

@@ -25,7 +25,7 @@ const successMessages: Record<Exclude<ProductionPendingAction["action"],"batch">
   "complete-design":"تم إنهاء التصميم.",
   "complete-and-send-to-printing":"تم إنهاء التصميم وإرساله للطباعة.",
   "send-to-printing":"تم إرسال العنصر للطباعة.",
-  "change-location":"تم تغيير مكان الطباعة.",
+  "change-location":"تم تغيير المطبعة.",
   "mark-ready":"أصبح العنصر جاهزًا للتسليم.",
   undo:"تم التراجع عن المرحلة السابقة.",
 };
@@ -214,7 +214,7 @@ export function ProductionPage() {
         <Button variant="ghost" size="sm" onClick={reset}>مسح الفلاتر</Button>
       </div>
       {selects.isError && <div role="alert" className="text-xs text-destructive">
-        تعذّر تحميل قوائم العملاء والخدمات وأماكن الطباعة.
+        تعذّر تحميل قوائم العملاء والخدمات والمطابع.
         <button className="mr-2 underline" type="button" onClick={()=>void selects.refetch()}>إعادة المحاولة</button>
       </div>}
     </section>
