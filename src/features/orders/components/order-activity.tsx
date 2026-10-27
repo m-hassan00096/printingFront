@@ -34,13 +34,16 @@ function dateLabel(date: string | null) {
 }
 function ActivityRow({ activity }: { activity: Activity }) {
   const Icon = icons[activity.eventType] ?? History;
-  return <li className="flex items-center gap-3 border-b py-3 last:border-b-0">
-    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+  return <li className="relative grid min-w-0 grid-cols-[36px_minmax(0,1fr)] gap-3 pb-5 last:pb-0">
+    <span aria-hidden="true" className="absolute right-[17px] top-8 bottom-0 w-px bg-border last:hidden" />
+    <span className="relative z-10 flex size-9 shrink-0 items-center justify-center rounded-full border border-primary/15 bg-primary/5">
       <Icon className="size-4 text-primary" />
     </span>
-    <div className="min-w-0">
-      <p className="text-sm font-semibold">{labels[activity.eventType] ?? "تم تحديث الأوردر"}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{dateLabel(activity.createdAt)}</p>
+    <div className="min-w-0 rounded-lg border border-[#e8eaf2] bg-white px-3 py-2.5 sm:px-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <p className="text-sm font-bold">{labels[activity.eventType] ?? "تم تحديث الأوردر"}</p>
+        <time dateTime={activity.createdAt ?? undefined} className="text-xs text-muted-foreground">{dateLabel(activity.createdAt)}</time>
+      </div>
     </div>
   </li>;
 }
@@ -48,14 +51,14 @@ export function OrderActivityTimeline({ orderId, enabled }: { orderId: number; e
   const activities = useOrderActivities(orderId, enabled);
   const [showAll, setShowAll] = useState(false);
   if (!enabled) return null;
-  return <section className="rounded-lg border bg-card p-5 ">
-    <h2 className="mb-2 flex items-center gap-2 font-bold"><History className="size-4 text-primary" /> سجل النشاط</h2>
+  return <section className="rounded-xl border bg-card p-4 sm:p-5">
+    <h2 className="mb-4 flex items-center gap-2 font-bold"><History className="size-4 text-primary" /> سجل النشاط</h2>
     {activities.isPending ? <p className="py-3 text-sm text-muted-foreground">جاري تحميل السجل...</p> :
       activities.isError ? <button type="button" onClick={() => void activities.refetch()}
         className="text-sm text-destructive underline">تعذّر تحميل السجل — إعادة المحاولة</button> :
       !activities.data?.activities.length ? <p className="py-3 text-sm text-muted-foreground">لا توجد أنشطة.</p> :
       <>
-        <ul>{(showAll ? activities.data.activities : activities.data.activities.slice(0, 5)).map((entry) =>
+        <ul className="max-w-4xl">{(showAll ? activities.data.activities : activities.data.activities.slice(0, 5)).map((entry) =>
           <ActivityRow key={entry.id} activity={entry} />)}</ul>
         {activities.data.activities.length > 5 && <button type="button" onClick={() => setShowAll(!showAll)}
           className="mt-3 text-xs font-bold text-primary underline">

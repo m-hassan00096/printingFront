@@ -6,6 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getOrderPaymentOptions } from "../api/order-options.api";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
+import { Badge } from "@/shared/components/ui/badge";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { getApiErrorMessage } from "@/shared/api/http";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { ConfirmDialog, ErrorState, LoadingState, fieldClass } from "@/features/identity/components/identity-ui";
@@ -136,22 +138,26 @@ export function OrderDetailPage() {
     <Button asChild variant="ghost"><Link to="/orders"><ArrowRight /> العودة للأوردرات</Link></Button>
     <header className="flex flex-wrap justify-between gap-4">
       <div className="space-y-1"><p className="text-xs text-muted-foreground">تفاصيل الأوردر</p>
-        <h1 className="text-xl font-semibold">{item.orderNumber ?? `مسودة #${item.id}`}</h1>
+        <div className="flex flex-wrap items-center gap-3"><h1 className="text-xl font-semibold">{item.orderNumber ?? `مسودة #${item.id}`}</h1>
+          <Badge variant={item.status === 2 ? "destructive" : item.status === 0 ? "outline" : "default"}>{item.statusLabel}</Badge>
+        </div>
         <p className="text-sm text-muted-foreground">{item.customerName} — {item.customerPhone}</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-lg bg-muted px-3 py-2 text-sm font-bold">{item.statusLabel}</span>
         {draft && mayEdit && <Button variant="outline" onClick={() => setEditHeader(true)}><Pencil className="size-4" /> تعديل البيانات</Button>}
 
         {draft && mayConfirm && <Button onClick={() => openPaymentDialog("confirm")}><CheckCircle2 className="size-4" /> تأكيد الأوردر</Button>}
         {item.status === 1 && item.deliveredAt === null && mayCancel && <Button variant="outline" onClick={() => {setError("");setCancelOpen(true);}}>إلغاء الأوردر</Button>}
       </div>
     </header>
-    <section className="grid gap-3 rounded-lg border bg-card p-5  sm:grid-cols-3">
+    <section className="grid gap-4 rounded-xl border bg-card px-5 py-4 shadow-[0_4px_18px_#29376b08] sm:grid-cols-3">
       <div><p className="text-xs text-muted-foreground">الإجمالي</p><p className="mt-2 text-xl font-extrabold"><MoneyAmount amount={item.totalAmount} /></p></div>
-      <div><p className="text-xs text-muted-foreground">موعد التسليم</p><p className="mt-2 font-semibold">{item.dueDate ?? "غير محدد"}</p></div>
-      <div><p className="text-xs text-muted-foreground">حالة الإنتاج</p><p className="mt-2 font-semibold">{item.productionStatusLabel ?? "لم يبدأ"}</p>
-        {item.delayStatusLabel && <p className="mt-1 text-xs text-destructive">{item.delayStatusLabel}</p>}</div>
+      <div><p className="text-xs text-muted-foreground">موعد التسليم</p><p className="mt-2 font-semibold">{item.dueDate ? `${item.dueDate.slice(8,10)}/${item.dueDate.slice(5,7)}/${item.dueDate.slice(0,4)}` : uiMessages.orders.noDueDate}</p></div>
+      <div><p className="text-xs text-muted-foreground">{item.status === 2 ? uiMessages.orders.lastProductionStage : "حالة الإنتاج"}</p>
+        <p className={item.status === 2 ? "mt-2 font-semibold text-muted-foreground" : "mt-2 font-semibold"}>{item.productionStatusLabel ?? "لم يبدأ"}</p>
+        {item.status !== 2 && item.delayStatus === 1 && item.delayStatusLabel && <p className="mt-1 text-xs text-destructive">{item.delayStatusLabel}</p>}
+        {item.status === 2 && <p className="mt-1 text-xs text-muted-foreground">{uiMessages.orders.cancelledProductionNote}</p>}
+      </div>
       {item.notes && <p className="text-sm text-muted-foreground sm:col-span-3">ملاحظات: {item.notes}</p>}
     </section>
     <nav role="tablist" aria-label="أقسام الأوردر" className="inline-flex max-w-full items-center gap-1 rounded-xl bg-muted p-1">
@@ -205,7 +211,7 @@ export function OrderDetailPage() {
         {draft && perms.includes("orders.items.create") && <Button variant="outline" size="sm" onClick={() => setEditItem("new")}><Plus className="size-4" /> إضافة عنصر</Button>}
       </header>
       <div className="space-y-3 p-4">
-        {item.items?.map((line) => <article key={line.id} className="rounded-xl border p-4">
+        {item.items?.map((line) => <article key={line.id} className="rounded-xl border p-3 sm:p-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div><h3 className="font-bold">{line.serviceName}</h3>
               <p className="mt-1 text-xs text-muted-foreground">الكمية: {line.quantity} — الوحدة: <MoneyAmount amount={line.unitPrice} maximumFractionDigits={4} /></p>

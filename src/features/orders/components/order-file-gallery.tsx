@@ -24,7 +24,7 @@ function FileArtwork({ file, canPreview, onPreview }: {
   const [imageFailed, setImageFailed] = useState(false);
   const thumbnail = canPreview && imageExtensions.has(ext) && file.url && !imageFailed;
   if (thumbnail) return <button type="button" aria-label={"معاينة " + file.name}
-    onClick={onPreview} className="size-16 shrink-0 overflow-hidden rounded-lg border bg-muted">
+    onClick={onPreview} className="size-12 shrink-0 overflow-hidden rounded-lg border bg-muted">
     <img src={file.url!} alt={file.name} loading="lazy" onError={() => setImageFailed(true)}
       className="size-full object-cover" />
   </button>;
@@ -35,7 +35,7 @@ function FileArtwork({ file, canPreview, onPreview }: {
   const Icon = pdf || document ? FileText : spreadsheet ? FileSpreadsheet :
     design ? FileArchive : imageExtensions.has(ext) ? FileImage : File;
   return <div aria-label={"نوع الملف " + ext.toUpperCase()}
-    className="flex size-16 shrink-0 flex-col items-center justify-center rounded-lg border bg-muted/60">
+    className="flex size-12 shrink-0 flex-col items-center justify-center rounded-lg border bg-muted/60">
     <Icon className="size-6 text-primary" />
     <span className="mt-1 text-[10px] font-extrabold uppercase">{ext || "FILE"}</span>
   </div>;
@@ -78,8 +78,8 @@ export function OrderFileGallery({ orderId, item, canList, canUpload, canDelete,
       setDeleting(null);
     } catch (e: unknown) {setError(getApiErrorMessage(e, "تعذّر حذف الملف."));}
   }
-  return <section className="mt-3 border-t pt-3" aria-label={"مرفقات " + item.serviceName}>
-    <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+  return <section className="mt-2 border-t pt-2" aria-label={"مرفقات " + item.serviceName}>
+    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
       <h4 className="flex items-center gap-2 text-sm font-semibold">
         <Paperclip className="size-4" /> المرفقات
         {canList && files.data && <span className="text-xs text-muted-foreground">({files.data.length})</span>}
@@ -97,15 +97,15 @@ export function OrderFileGallery({ orderId, item, canList, canUpload, canDelete,
       files.isError ? <button type="button" className="text-xs text-destructive underline"
         onClick={() => void files.refetch()}>تعذّر تحميل الملفات — إعادة المحاولة</button> :
       !files.data?.length ? <p className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">لا توجد مرفقات حتى الآن.</p> :
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {files.data.map((file) => <article key={file.id}
-          className="flex min-w-0 items-center gap-3 rounded-lg border bg-muted/20 p-3">
+          className="flex min-w-0 items-center gap-2.5 rounded-lg border bg-muted/20 p-2.5">
           <FileArtwork file={file} canPreview={canView}
             onPreview={() => setPreviewFile(file)} />
           <div className="min-w-0 flex-1 space-y-1">
             <p className="truncate text-sm font-semibold" title={file.name}>{file.name}</p>
             <p className="text-xs text-muted-foreground">{kind(file).toUpperCase()} · {fileSize(file.sizeBytes)}</p>
-            <div className="flex items-center gap-3 pt-1">
+            <div className="flex items-center gap-3">
               {canView && <button type="button" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                 onClick={() => void download(file)}><Download className="size-3.5" /> تحميل</button>}
               {canDelete && <button type="button" className="inline-flex items-center gap-1 text-xs font-semibold text-destructive hover:underline"

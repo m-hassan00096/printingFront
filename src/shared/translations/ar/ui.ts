@@ -79,6 +79,8 @@ export const uiMessages = {
     logoutError: "تعذّر تسجيل الخروج. حاول مرة أخرى.",
   },
   orders: {
+    lastProductionStage: "آخر مرحلة إنتاج مسجلة",
+    cancelledProductionNote: "الأوردر ملغي ولا توجد إجراءات إنتاج جديدة.",
     readableDeliveryDate: "تاريخ التسليم بصيغة يوم/شهر/سنة",
     agreedUnitPrice: "سعر الوحدة المتفق عليه",
     pieces: "قطعة",
