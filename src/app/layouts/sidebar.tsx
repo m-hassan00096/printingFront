@@ -1,4 +1,9 @@
-import { Printer } from "lucide-react";
+import { LoaderCircle, LogOut, Printer } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { useLogout } from "@/features/auth/hooks/use-logout";
+import { getApiErrorMessage } from "@/shared/api/http";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { NavLink } from "react-router-dom";
 import { canAccessNavigation, navigationGroups } from "@/app/navigation";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
@@ -10,6 +15,17 @@ export function Sidebar() {
   const isMobileSidebarOpen = useUiStore(state => state.isMobileSidebarOpen);
   const closeMobileSidebar = useUiStore(state => state.closeMobileSidebar);
   const { data: user } = useCurrentUser();
+  const logout = useLogout();
+  const navigate = useNavigate();
+  async function handleLogout() {
+    try {
+      await logout.mutateAsync();
+      closeMobileSidebar();
+      navigate("/login", { replace: true });
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, uiMessages.sidebar.logoutError));
+    }
+  }
   const groups = navigationGroups.map(group => ({
     ...group, items: group.items.filter(item => canAccessNavigation(item, user?.permissions ?? [])),
   })).filter(group => group.items.length > 0);
@@ -55,16 +71,16 @@ export function Sidebar() {
           </section>
         ))}
       </nav>
-      <div className="shrink-0 border-t border-sidebar-border bg-white/60 p-3">
-        <div className={cn("flex items-center gap-2 rounded-lg px-2.5 py-2", isSidebarCollapsed && "lg:justify-center")}>
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#e9edff] text-primary">
-            <Printer className="size-3.5" aria-hidden="true"/>
-          </span>
-          <div className={cn("min-w-0", isSidebarCollapsed && "lg:hidden")}>
-            <p className="text-xs font-semibold">مساحة العمل</p>
-            <p className="truncate text-[10px] text-sidebar-muted">حسب صلاحيات حسابك</p>
-          </div>
-        </div>
+      <div className="shrink-0 border-t border-sidebar-border bg-white/75 p-3">
+        <button type="button" aria-label={uiMessages.sidebar.logout} title={uiMessages.sidebar.logout}
+          disabled={logout.isPending} onClick={() => void handleLogout()}
+          className={cn(
+            "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-start text-[13px] font-bold text-[#b33c4b] transition-colors hover:bg-[#fff0f2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-60",
+            isSidebarCollapsed && "lg:justify-center lg:px-0",
+          )}>
+          {logout.isPending ? <LoaderCircle className="size-[18px] shrink-0 animate-spin" /> : <LogOut className="size-[18px] shrink-0" />}
+          <span className={cn(isSidebarCollapsed && "lg:sr-only")}>{uiMessages.sidebar.logout}</span>
+        </button>
       </div>
     </aside>
   );

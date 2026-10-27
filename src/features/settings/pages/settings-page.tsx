@@ -14,11 +14,11 @@ import {
   type SettingsFilters, type SettingsKind, type SettingsPayload, type SettingsRecord,
 } from "../types/settings.types";
 
-const control = "h-11 w-full rounded-xl border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/20";
+const control = "h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/20";
 const fieldLabel = "mb-2 block text-sm font-bold";
 const icons = [MapPin, UsersRound, Banknote, CreditCard];
 const names: Record<SettingsKind, string> = {
-  "printing-locations": "مكان طباعة",
+  "printing-locations": "مطبعة",
   "customer-types": "نوع عميل",
   "bank-accounts": "حساب بنكي",
   "e-wallets": "محفظة إلكترونية",
@@ -242,7 +242,7 @@ export function SettingsPage() {
       <div className="flex flex-wrap gap-3 border-b p-4">
         <label className="relative block min-w-52 flex-1">
           <span className="sr-only">بحث في {current.label}</span>
-          <Search className="pointer-events-none absolute right-3 top-3.5 size-4 text-muted-foreground" />
+          <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <input className={control + " pr-10"} placeholder="ابحث بالاسم أو البيانات..." value={filters.search}
             onChange={(e) => setFilter("search", e.target.value)} />
         </label>
@@ -265,19 +265,39 @@ export function SettingsPage() {
           <Button type="button" variant="outline" onClick={() => void list.refetch()}>إعادة المحاولة</Button>
         </div>
         : list.data?.items.length === 0 ? <p className="p-14 text-center text-sm text-muted-foreground">لا توجد نتائج في هذا القسم.</p>
-        : <div className="divide-y">
-          {list.data?.items.map((row) => <div key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 hover:bg-muted/30">
-            <div className="min-w-0 space-y-1">
-              <p className="break-words text-sm font-bold">{displayName(row)}</p>
-              {secondaryName(row) && <p className="break-all text-xs text-muted-foreground">{secondaryName(row)}</p>}
-            </div>
-            <div className="flex items-center gap-3">
-              <Status value={row.status} />
-              {isDefault(row) && <span className="rounded-full bg-secondary px-2 py-1 text-xs font-semibold">افتراضي</span>}
-              {canEdit && <Button size="icon-sm" variant="ghost" aria-label={`تعديل ${displayName(row)}`} title="تعديل" onClick={() => openForm(row)}><Pencil /></Button>}
-              {canDelete && <Button size="icon-sm" variant="ghost" aria-label={`حذف ${displayName(row)}`} title="حذف" onClick={() => setRemoving(row)}><Trash2 className="text-destructive" /></Button>}
-            </div>
-          </div>)}
+        : <div className="overflow-x-auto">
+          <table className="w-full min-w-[670px] text-right text-sm">
+            <thead className="bg-muted/50 text-xs text-muted-foreground">
+              <tr>
+                <th scope="col" className="px-5 py-3 font-semibold">{kind === "printing-locations" ? "اسم المطبعة" : kind === "customer-types" ? "نوع العميل" : kind === "bank-accounts" ? "اسم البنك" : "المحفظة الإلكترونية"}</th>
+                <th scope="col" className="px-5 py-3 font-semibold">البيانات</th>
+                <th scope="col" className="px-5 py-3 font-semibold">الحالة</th>
+                <th scope="col" className="px-5 py-3 font-semibold">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {list.data?.items.map((row) => (
+                <tr key={row.id} className="transition-colors hover:bg-muted/30">
+                  <td className="px-5 py-4 font-semibold">{displayName(row)}</td>
+                  <td className="max-w-[340px] px-5 py-4 text-xs text-muted-foreground">
+                    {secondaryName(row) ? <span className="break-all">{secondaryName(row)}</span> : "—"}
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Status value={row.status} />
+                      {isDefault(row) && <span className="rounded-md bg-secondary px-2 py-1 text-xs font-semibold text-primary">افتراضي</span>}
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-1">
+                      {canEdit && <Button size="icon-sm" variant="ghost" aria-label={`تعديل ${displayName(row)}`} title="تعديل" onClick={() => openForm(row)}><Pencil /></Button>}
+                      {canDelete && <Button size="icon-sm" variant="ghost" aria-label={`حذف ${displayName(row)}`} title="حذف" onClick={() => setRemoving(row)}><Trash2 className="text-destructive" /></Button>}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>}
       {list.data && list.data.pagination.total > 0 && <footer className="flex flex-wrap items-center justify-between gap-4 border-t p-4 text-xs text-muted-foreground">
         <span>إجمالي النتائج: {list.data.pagination.total.toLocaleString("ar-EG")}</span>
