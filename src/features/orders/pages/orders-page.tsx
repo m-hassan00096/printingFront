@@ -22,7 +22,7 @@ export function OrdersPage() {
   const [draftSearch, setDraftSearch] = useState(search);
   const filters: OrderFilters = {
     search, status: params.get("status") ?? "", productionStatus: params.get("productionStatus") ?? "",
-    lateOnly: params.get("lateOnly") === "1", sort: params.get("sort") ?? "-id", page: pageOf(params.get("page")),
+    lateOnly: params.get("lateOnly") === "1", openOnly: params.get("openOnly") === "1", sort: params.get("sort") ?? "-id", page: pageOf(params.get("page")),
   };
   const orders = useOrders(filters);
   const actions = useOrderActions();
@@ -80,6 +80,11 @@ export function OrdersPage() {
           <input type="checkbox" checked={filters.lateOnly} onChange={(e) => setFilter("lateOnly", e.target.checked ? "1" : "")} />
           المتأخرة فقط
         </label>
+        {filters.lateOnly && <label className="flex items-center gap-2 text-sm font-medium">
+          <input type="checkbox" aria-label="لم يتم تسليمها" checked={filters.openOnly}
+            onChange={(e) => setFilter("openOnly", e.target.checked ? "1" : "")} />
+          لم يتم تسليمها (المتأخرة حاليًا)
+        </label>}
       </div>
       {orders.isPending ? <LoadingState /> : orders.isError ?
         <ErrorState error={orders.error} retry={() => void orders.refetch()} /> :
