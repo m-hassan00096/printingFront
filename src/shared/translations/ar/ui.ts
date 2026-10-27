@@ -1,5 +1,10 @@
 /** Arabic-only UI copy. Future locales can provide the same keys without changing components. */
 export const uiMessages = {
+  orders: {
+    filtersLabel: "فلاتر الأوردرات",
+    dueDateColumn: "موعد التسليم",
+    noDueDate: "بدون موعد",
+  },
   command: {
     trigger: "بحث سريع أو انتقال",
     triggerPlaceholder: "بحث أو انتقال...",
