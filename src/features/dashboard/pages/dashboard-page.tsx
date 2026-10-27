@@ -160,7 +160,7 @@ export function DashboardPage(){
           <div className="space-y-4">
             <section aria-label="أوردرات تحتاج المتابعة" className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
               <SectionTitle title="أوردرات تحتاج المتابعة" detail="الأقرب في موعد التسليم، مع إظهار المتأخر أولًا"
-                link="/orders?lateOnly=1" label="عرض المتأخرة"/>
+                link="/orders?lateOnly=1&openOnly=1" label="عرض المتأخرة"/>
               {data.attentionOrders.length
                 ? <div className="mt-3 divide-y">{data.attentionOrders.map(o=>
                     <OrderSummary order={o} allowView={canOrderDetail} key={o.id}/>)}</div>
