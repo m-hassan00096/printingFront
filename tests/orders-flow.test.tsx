@@ -194,7 +194,7 @@ describe("Orders Laravel API workflow", () => {
     await user.type(screen.getByRole("spinbutton", {name:"كمية العنصر 1"}), "100");
     const input = screen.getByRole("textbox", {name:"إجمالي العنصر 1"}) as HTMLInputElement;
     await user.type(input, "350.00");
-    expect(screen.getByText("سعر الوحدة المتفق عليه:")).toBeTruthy();
+    expect(screen.getByText((_, element) => element?.tagName === "P" && element.textContent?.includes("سعر الوحدة المتفق عليه:") === true)).toBeTruthy();
     await user.click(screen.getByRole("button", {name:"السعر المقترح"}));
     expect(await screen.findByText("الإجمالي المقترح من النظام")).toBeTruthy();
     await user.click(screen.getByRole("button", {name:"استخدام السعر المقترح"}));
