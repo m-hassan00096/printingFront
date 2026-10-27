@@ -69,7 +69,7 @@ export function UsersPage() {
     <SectionHeader title="المستخدمون" detail="إدارة حسابات الفريق والأدوار وحالة الوصول للنظام." actions={
       permissions.includes("identity.users.create") && <Button asChild><Link to="/users/new"><Plus className="size-4" /> إضافة مستخدم</Link></Button>
     } />
-    <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+    <section className="overflow-hidden rounded-lg border bg-card ">
       <div className="flex flex-wrap items-center gap-3 border-b p-4">
         <SearchField value={searchDraft} onChange={setSearchDraft} placeholder="بحث بالاسم أو المستخدم أو الهاتف" />
         <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
@@ -98,8 +98,8 @@ export function UsersPage() {
               {users.data.users.map((user) => <tr key={user.id} className="transition-colors hover:bg-muted/30">
                 <td className="px-5 py-3.5">
                   <div className="flex items-center gap-3">
-                    {user.avatar ? <img src={user.avatar} alt="" className="size-10 rounded-xl object-cover" /> :
-                    <span className="flex size-10 items-center justify-center rounded-xl bg-secondary text-primary"><UserRound className="size-5" /></span>}
+                    {user.avatar ? <img src={user.avatar} alt="" className="size-10 rounded-lg object-cover" /> :
+                    <span className="flex size-10 items-center justify-center rounded-lg bg-secondary text-primary"><UserRound className="size-5" /></span>}
                     <Link className="max-w-52 truncate font-bold hover:underline" to={`/users/${user.id}`}>{user.name}</Link>
                   </div>
                 </td>

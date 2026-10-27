@@ -21,9 +21,9 @@ function DialogFrame({ title, children, busy, onClose }: {
     onMouseDown={event => { if (event.target===event.currentTarget && !busy) onClose(); }}>
     <section role="dialog" aria-modal="true" aria-label={title} dir="rtl"
       onKeyDown={event => { if (event.key==="Escape" && !busy) onClose(); }}
-      className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-card shadow-2xl">
+      className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-lg bg-card shadow-2xl">
       <header className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 sm:px-5">
-        <h2 className="text-lg font-extrabold">{title}</h2>
+        <h2 className="text-base font-semibold">{title}</h2>
         <Button type="button" variant="ghost" size="icon-sm" disabled={busy}
           aria-label="إغلاق" onClick={onClose}><X className="size-4"/></Button>
       </header>
@@ -97,7 +97,7 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
     {preview.isPending ? <LoadingState/> : preview.isError ?
       <ErrorState error={preview.error} retry={()=>void preview.refetch()}/> : preview.data &&
       <div className="space-y-4">
-        <div className="grid gap-3 rounded-xl bg-muted/40 p-4 sm:grid-cols-2">
+        <div className="grid gap-3 rounded-lg bg-muted/40 p-4 sm:grid-cols-2">
           <DeliveryField label="رقم الأوردر">{preview.data.order.orderNumber}</DeliveryField>
           <DeliveryField label="العميل">{preview.data.order.customerName}</DeliveryField>
           <DeliveryField label="التليفون">{preview.data.order.customerPhone}</DeliveryField>
@@ -111,7 +111,7 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
               : "غير متاح وفق الصلاحيات"}
           </DeliveryField>
         </div>
-        {!preview.data.canDeliver && <p role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+        {!preview.data.canDeliver && <p role="alert" className="rounded-lg bg-[#F0C000]/10 p-3 text-sm text-[#F0C000]">
           لا يمكن التسليم قبل جاهزية جميع منتجات الأوردر.
         </p>}
         <label className="block space-y-1 text-sm font-semibold">
@@ -128,7 +128,7 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
         {paid===null && <p role="alert" className="text-sm text-destructive">
           أدخل مبلغًا صحيحًا موجبًا أو صفرًا، بحد أقصى خانتين عشريتين.
         </p>}
-        {needsPayment && !canCollect && <p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+        {needsPayment && !canCollect && <p role="alert" className="rounded-lg bg-[#F0C000]/10 p-3 text-sm text-[#F0C000]">
           لا تملك صلاحية التحصيل المالي. يمكنك تسليم الأوردر بدون تحصيل.
         </p>}
         {needsPayment && canCollect && <>
@@ -153,14 +153,14 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
             </p>}
           </div>}
         </>}
-        {estimated !== null && paid !== null && <div className="rounded-xl border p-3 text-sm">
+        {estimated !== null && paid !== null && <div className="rounded-lg border p-3 text-sm">
           الرصيد التقديري بعد التحصيل: <strong>
             {estimated < 0 ? "دائن" : estimated > 0 ? "مدين" : "متوازن"} ·
             {" "}<MoneyAmount amount={centsToMoney(Math.abs(estimated))}/>
           </strong>
           <p className="mt-1 text-xs text-muted-foreground">تقديري فقط؛ النظام يعيد حساب الرصيد عند الحفظ.</p>
         </div>}
-        {willCreateCredit && <label className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+        {willCreateCredit && <label className="flex items-start gap-2 rounded-lg border border-amber-200 bg-[#F0C000]/10 p-3 text-sm text-[#F0C000]">
           <input type="checkbox" checked={creditConfirmed} onChange={e=>setCreditConfirmed(e.target.checked)}
             aria-label="تأكيد الرصيد الدائن"/>
           أؤكد أن المبلغ سيُنشئ أو يزيد رصيدًا دائنًا لحساب العميل.
@@ -218,7 +218,7 @@ export function DeliveryDetailsDialog({ deliveryId, onClose, onSuccess }: {
     {detail.isPending ? <LoadingState/> : detail.isError ?
       <ErrorState error={detail.error} retry={()=>void detail.refetch()}/> : item &&
       <div className="space-y-4">
-        <div className="grid gap-4 rounded-xl bg-muted/40 p-4 sm:grid-cols-2">
+        <div className="grid gap-4 rounded-lg bg-muted/40 p-4 sm:grid-cols-2">
           <DeliveryField label="الأوردر">{item.orderNumber??"—"}</DeliveryField>
           <DeliveryField label="العميل">{item.customerName??"—"}</DeliveryField>
           <DeliveryField label="رقم الهاتف">{item.customerPhone??"—"}</DeliveryField>
@@ -233,14 +233,14 @@ export function DeliveryDetailsDialog({ deliveryId, onClose, onSuccess }: {
             {item.collection.paymentMethodLabel} {item.collection.destinationLabel??""}
           </DeliveryField>}
         </div>
-        {item.status===2 && <div className="space-y-2 rounded-xl border border-amber-200 p-3 text-sm">
+        {item.status===2 && <div className="space-y-2 rounded-lg border border-amber-200 p-3 text-sm">
           <p className="font-bold">بيانات إلغاء التسليم</p>
           <p>بواسطة: {item.cancelledByName??"—"} · {cairoDate(item.cancelledAt)}</p>
           <p className="whitespace-pre-wrap">السبب: {item.cancellationReason??"—"}</p>
         </div>}
         {item.canCancel && !cancelMode && <Button type="button" variant="destructive"
           onClick={()=>setCancelMode(true)}>إلغاء التسليم</Button>}
-        {item.canCancel && cancelMode && <div className="space-y-3 rounded-xl border border-destructive/30 p-4">
+        {item.canCancel && cancelMode && <div className="space-y-3 rounded-lg border border-destructive/30 p-4">
           <p className="flex items-center gap-2 text-sm font-bold text-destructive">
             <AlertTriangle className="size-4"/> تأكيد إلغاء التسليم
           </p>
@@ -249,7 +249,7 @@ export function DeliveryDetailsDialog({ deliveryId, onClose, onSuccess }: {
             <textarea className={fieldClass+" min-h-24 py-2"} maxLength={3000}
               value={reason} onChange={e=>setReason(e.target.value)} placeholder="اكتب سبب الإلغاء..."/>
           </label>
-          {hasActiveCollection && <label className="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+          {hasActiveCollection && <label className="flex items-start gap-2 rounded-lg bg-[#F0C000]/10 p-3 text-sm text-[#F0C000]">
             <input type="checkbox" aria-label="تأكيد التسوية الفعلية للأموال" checked={fundsConfirmed}
               onChange={e=>setFundsConfirmed(e.target.checked)}/>
             أؤكد أن ردّ الأموال أو تسويتها مع العميل تم فعليًا خارج النظام.

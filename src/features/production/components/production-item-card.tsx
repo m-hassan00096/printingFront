@@ -70,16 +70,16 @@ export function ProductionItemCard({item,permissions,selected,busy,onSelect,onAc
       window.removeEventListener("keydown",keydown);
     };
   },[expanded,canChangeLocation,canUndo]);
-  return <article aria-label={`عنصر ${item.serviceName}`} className="space-y-2.5 border-t px-3 py-3 first:border-t-0">
+  return <article aria-label={`عنصر ${item.serviceName}`} className="space-y-2.5 border-t border-border px-3 py-3 transition-colors duration-100 first:border-t-0 hover:bg-muted/35">
     <div className="flex flex-wrap items-start justify-between gap-2">
       <div className="min-w-0 space-y-1">
-        <p className="truncate text-sm font-bold">{item.serviceName}</p>
+        <p className="truncate text-[13px] font-semibold">{item.serviceName}</p>
         <p className="text-xs text-muted-foreground">الكمية: {item.quantity.toLocaleString("en-US")}</p>
         {stage===3 && <p className="text-xs text-muted-foreground">مكان الطباعة: {item.printingLocationName??"—"}</p>}
       </div>
       <StagePill stage={stage}/>
     </div>
-    {(stage===1 || completed) && <div className="rounded-lg bg-muted/50 px-2.5 py-2"
+    {(stage===1 || completed) && <div className="rounded-md border border-border bg-muted/60 px-2.5 py-2"
       aria-label="مسؤول التصميم">
       <div className="flex min-w-0 items-center gap-2">
         <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-card text-primary"
@@ -121,7 +121,7 @@ export function ProductionItemCard({item,permissions,selected,busy,onSelect,onAc
         {expanded && createPortal(
           <div ref={menuRef} role="menu" id={menuId} dir="rtl"
             aria-label={`عمليات إضافية للعنصر ${item.id}`}
-            className="fixed z-[100] rounded-xl border bg-card p-1 shadow-xl"
+            className="fixed z-[100] rounded-lg border bg-card p-1 shadow-xl"
             style={{top:menuPosition.top,left:menuPosition.left,width:208}}
             onKeyDown={(event)=>{
               if(event.key!=="ArrowDown"&&event.key!=="ArrowUp"&&event.key!=="Home"&&event.key!=="End")return;

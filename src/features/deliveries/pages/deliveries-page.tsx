@@ -23,7 +23,7 @@ function dateTime(value: string | null) {
 function ReadyCard({ order, canViewOrder, onPreview }: {
   order: ReadyOrder; canViewOrder:boolean; onPreview:(id:number)=>void;
 }) {
-  return <article className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+  return <article className="overflow-hidden rounded-lg border bg-card ">
     <header className="flex flex-wrap items-start justify-between gap-2 border-b bg-muted/30 p-4">
       <div className="min-w-0 space-y-1">
         <h3 className="font-bold" dir="ltr">{order.orderNumber}</h3>
@@ -31,7 +31,7 @@ function ReadyCard({ order, canViewOrder, onPreview }: {
         <p className="text-xs text-muted-foreground" dir="ltr">{order.customerPhone}</p>
       </div>
       <span className={"rounded-full px-2.5 py-1 text-xs font-bold " +
-        (order.isReadyForDelivery?"bg-emerald-50 text-emerald-800":"bg-amber-50 text-amber-800")}>
+        (order.isReadyForDelivery?"bg-[#3DD68C]/10 text-[#3DD68C]":"bg-[#F0C000]/10 text-[#F0C000]")}>
         {order.isReadyForDelivery?"جاهز بالكامل":"جاهز جزئيًا"}
       </span>
     </header>
@@ -51,7 +51,7 @@ function ReadyCard({ order, canViewOrder, onPreview }: {
       <div className="space-y-2 border-t pt-3">
         {order.items.map(item=><div key={item.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
           <span className="min-w-0 truncate font-semibold">{item.serviceName} · كمية {item.quantity.toLocaleString("en-US")}</span>
-          <span className={item.productionStage===4?"text-emerald-700":"text-amber-700"}>
+          <span className={item.productionStage===4?"text-[#3DD68C]":"text-[#F0C000]"}>
             {item.productionStageLabel}
           </span>
         </div>)}
@@ -61,7 +61,7 @@ function ReadyCard({ order, canViewOrder, onPreview }: {
           <Button type="button" size="sm" onClick={()=>onPreview(order.orderId)}>
             <ClipboardCheck className="size-4"/> تسليم الأوردر
           </Button>}
-        {!order.isReadyForDelivery && <p className="text-xs font-semibold text-amber-700">
+        {!order.isReadyForDelivery && <p className="text-xs font-semibold text-[#F0C000]">
           التسليم متاح بعد جاهزية كل المنتجات.
         </p>}
         {canViewOrder && <Button asChild type="button" size="sm" variant="outline">
@@ -121,13 +121,13 @@ export function DeliveriesPage() {
       </Button>}/>
     <div role="tablist" aria-label="أقسام التسليمات" className="flex flex-wrap gap-2 border-b pb-3">
       {canReady && <button type="button" role="tab" aria-selected={activeTab==="ready"}
-        className={"rounded-xl px-4 py-2 text-sm font-bold "+(activeTab==="ready"?"bg-primary text-primary-foreground":"bg-muted text-muted-foreground")}
+        className={"rounded-lg px-4 py-2 text-sm font-bold "+(activeTab==="ready"?"bg-primary text-primary-foreground":"bg-muted text-muted-foreground")}
         onClick={()=>{setTab("ready");reset();}}>جاهزة للتسليم</button>}
       {canHistory && <button type="button" role="tab" aria-selected={activeTab==="history"}
-        className={"rounded-xl px-4 py-2 text-sm font-bold "+(activeTab==="history"?"bg-primary text-primary-foreground":"bg-muted text-muted-foreground")}
+        className={"rounded-lg px-4 py-2 text-sm font-bold "+(activeTab==="history"?"bg-primary text-primary-foreground":"bg-muted text-muted-foreground")}
         onClick={()=>{setTab("history");reset();}}>سجل التسليمات</button>}
     </div>
-    <section aria-label="فلاتر التسليمات" className="space-y-3 rounded-2xl border bg-card p-3 sm:p-4">
+    <section aria-label="فلاتر التسليمات" className="space-y-3 rounded-lg border bg-card p-3 sm:p-4">
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         <label className="block space-y-1 text-xs font-semibold">
           <span>البحث برقم الأوردر أو العميل أو الهاتف</span>
@@ -181,7 +181,7 @@ export function DeliveriesPage() {
       </div> : <EmptyState title="لا توجد أوردرات جاهزة" detail="ستظهر الأوردرات هنا عند وصول منتجاتها لمرحلة الجاهزية."/> : null}
     {activeTab==="history" && canHistory ? history.isPending ? <LoadingState/> : history.isError ?
       <ErrorState error={history.error} retry={()=>void history.refetch()}/> :
-      history.data?.deliveries.length ? <section className="overflow-hidden rounded-2xl border bg-card">
+      history.data?.deliveries.length ? <section className="overflow-hidden rounded-lg border bg-card">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[950px] text-right text-sm">
             <thead className="bg-muted/60 text-xs text-muted-foreground"><tr>
@@ -198,7 +198,7 @@ export function DeliveriesPage() {
                 <td className="px-3 py-3"><MoneyAmount amount={record.effectiveReceivedAmount}/></td>
                 <td className="whitespace-nowrap px-3 py-3">{dateTime(record.deliveredAt)}</td>
                 <td className="px-3 py-3"><span className={"rounded-full px-2 py-1 text-xs font-bold " +
-                  (record.status===1?"bg-emerald-50 text-emerald-800":"bg-rose-50 text-rose-800")}>{record.statusLabel}</span></td>
+                  (record.status===1?"bg-[#3DD68C]/10 text-[#3DD68C]":"bg-[#EB5757]/10 text-rose-800")}>{record.statusLabel}</span></td>
                 <td className="px-3 py-3">{canViewDelivery &&
                   <Button type="button" variant="outline" size="sm" onClick={()=>setDetails(record.id)}>
                     <Eye className="size-4"/> التفاصيل
@@ -208,7 +208,7 @@ export function DeliveriesPage() {
           </table>
         </div>
       </section> : <EmptyState title="لا توجد تسليمات مطابقة" detail="غيّر الفلاتر أو التاريخ لعرض سجلات أخرى."/> : null}
-    {resultPage && resultPage.lastPage>1 && <div className="overflow-hidden rounded-2xl border bg-card">
+    {resultPage && resultPage.lastPage>1 && <div className="overflow-hidden rounded-lg border bg-card">
       <PaginationBar pagination={resultPage} onPage={setPage}/>
     </div>}
     {resultPage && resultPage.lastPage<=1 && <p className="text-xs text-muted-foreground">

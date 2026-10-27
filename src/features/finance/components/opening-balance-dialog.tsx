@@ -36,16 +36,16 @@ export function OpeningBalanceDialog({customerId,customerName,onClose,onSuccess}
     onMouseDown={e=>{if(e.target===e.currentTarget&&!post.isPending)onClose();}}>
     <section role="dialog" aria-modal="true" aria-label="تسجيل الرصيد الافتتاحي" dir="rtl"
       onKeyDown={e=>{if(e.key==="Escape"&&!post.isPending)onClose();}}
-      className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-card shadow-2xl">
+      className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-lg bg-card shadow-2xl">
       <header className="flex items-center justify-between border-b px-4 py-3">
-        <h2 className="text-lg font-extrabold">تسجيل الرصيد الافتتاحي</h2>
+        <h2 className="text-base font-semibold">تسجيل الرصيد الافتتاحي</h2>
         <Button type="button" variant="ghost" size="icon-sm" aria-label="إغلاق" disabled={post.isPending} onClick={onClose}><X className="size-4"/></Button>
       </header>
       <div className="space-y-4 overflow-y-auto p-4 sm:p-5">
-        <div className="rounded-xl bg-muted/50 p-3 text-sm">
+        <div className="rounded-lg bg-muted/50 p-3 text-sm">
           العميل: <strong>{customerName}</strong>
         </div>
-        <p className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
+        <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-[#F0C000]/10 p-3 text-sm leading-6 text-amber-950">
           <AlertTriangle className="mt-1 size-4 shrink-0"/>
           يُسمح بتسجيل رصيد افتتاحي واحد فقط لكل عميل. لا يمكن تعديل الحركة بعد ترحيلها؛ اختر نوع الرصيد بعناية.
         </p>

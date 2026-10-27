@@ -108,7 +108,7 @@ export function CustomerFormModal({ customer, onClose, onSaved }: {
     onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) onClose(); }}>
     <section role="dialog" aria-modal="true" aria-label={customer ? "تعديل عميل" : "إضافة عميل"}
       onKeyDown={(event) => { if (event.key === "Escape" && !busy) onClose(); }}
-      className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-card p-5 shadow-2xl sm:p-7">
+      className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-lg bg-card p-5 shadow-2xl sm:p-7">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div><h3 className="text-xl font-extrabold">{customer ? "تعديل عميل" : "إضافة عميل"}</h3>
           <p className="mt-1 text-xs text-muted-foreground">الحقول المميزة بالنجمة مطلوبة.</p></div>
@@ -154,7 +154,7 @@ export function CustomerFormModal({ customer, onClose, onSaved }: {
             {fieldError("address")}
           </label>
         </div>
-        {generalError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{generalError}</p>}
+        {generalError && <p role="alert" className="rounded-lg border border-[#EB5757]/30 bg-[#EB5757]/10 p-3 text-sm text-[#EB5757]">{generalError}</p>}
         <div className="flex justify-end gap-3 border-t pt-5">
           <Button type="button" variant="outline" disabled={busy} onClick={onClose}>إلغاء</Button>
           <Button type="submit" disabled={busy || types.isError || types.isPending || (!types.data?.length && !customer?.customerType)}>

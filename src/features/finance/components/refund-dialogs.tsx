@@ -17,10 +17,10 @@ function Modal({title,onClose,busy,children}:{title:string;onClose:()=>void;busy
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3"
     onMouseDown={event=>{if(event.target===event.currentTarget&&!busy)onClose();}}>
     <section role="dialog" aria-modal="true" aria-label={title} dir="rtl"
-      className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-card shadow-2xl"
+      className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-lg bg-card shadow-2xl"
       onKeyDown={event=>{if(event.key==="Escape"&&!busy)onClose();}}>
       <header className="flex shrink-0 items-center justify-between border-b p-4">
-        <h2 className="text-lg font-extrabold">{title}</h2>
+        <h2 className="text-base font-semibold">{title}</h2>
         <Button type="button" size="icon-sm" variant="ghost" aria-label="إغلاق" disabled={busy}
           onClick={onClose}><X className="size-4"/></Button>
       </header>
@@ -73,7 +73,7 @@ export function CreateRefundDialog({initialCustomerId=0,onClose,onSuccess}:{
   }
   return <Modal title="رد رصيد دائن للعميل" busy={post.isPending} onClose={onClose}>
     <div className="space-y-4">
-      <p className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
+      <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-[#F0C000]/10 p-3 text-sm leading-6 text-amber-950">
         <AlertTriangle className="mt-1 size-4 shrink-0"/>
         سجل العملية بعد رد الأموال فعليًا للعميل. النظام يُعدّل رصيده المحاسبي فقط ولا ينفذ تحويلًا أو صرفًا تلقائيًا.
       </p>
@@ -87,7 +87,7 @@ export function CreateRefundDialog({initialCustomerId=0,onClose,onSuccess}:{
       </div>
       {customerId>0&&(credit.isPending?<LoadingState/>:credit.isError?
         <ErrorState error={credit.error} retry={()=>void credit.refetch()}/>:
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+        <div className="rounded-lg border border-emerald-200 bg-[#3DD68C]/10 p-3 text-sm text-[#3DD68C]">
           <p className="text-xs font-semibold">الرصيد المتاح للرد حاليًا</p>
           <p className="mt-1 text-xl font-extrabold"><MoneyAmount amount={credit.data!.availableCredit}/></p>
           {!credit.data!.canRefund&&<p role="alert" className="mt-1 text-xs font-semibold">العميل ليس له رصيد دائن متاح للرد.</p>}
@@ -114,7 +114,7 @@ export function CreateRefundDialog({initialCustomerId=0,onClose,onSuccess}:{
           value={destination} options={destinations} loading={options.isPending} disabled={options.isError}
           onChange={value=>{setDestination(value);setAck(false);}}/>
         {options.isError&&<ErrorState error={options.error} retry={()=>void options.refetch()}/>}
-        {options.isSuccess&&destinations.length===0&&<p role="alert" className="text-xs text-amber-800">لا توجد حسابات نشطة لهذه الطريقة.</p>}
+        {options.isSuccess&&destinations.length===0&&<p role="alert" className="text-xs text-[#F0C000]">لا توجد حسابات نشطة لهذه الطريقة.</p>}
         {validation.paymentDestinationId&&<p role="alert" className="text-xs text-destructive">{validation.paymentDestinationId}</p>}
       </div>}
       <label className="block space-y-1 text-sm font-semibold">
@@ -125,7 +125,7 @@ export function CreateRefundDialog({initialCustomerId=0,onClose,onSuccess}:{
         {reason.length>0&&reason.trim().length<3&&<p role="alert" className="text-xs text-destructive">السبب لازم يكون 3 أحرف على الأقل.</p>}
         {validation.reason&&<p role="alert" className="text-xs text-destructive">{validation.reason}</p>}
       </label>
-      <label className="flex items-start gap-2 rounded-xl border p-3 text-sm leading-6">
+      <label className="flex items-start gap-2 rounded-lg border p-3 text-sm leading-6">
         <input type="checkbox" checked={ack} aria-label="تأكيد رد الأموال فعليًا" className="mt-1 accent-primary"
           onChange={e=>setAck(e.target.checked)}/>
         أؤكد أن المبلغ تم رده فعليًا للعميل بالطريقة المحددة، وأن تسجيل العملية سيخصمه من رصيده الدائن.
@@ -144,7 +144,7 @@ export function RefundDetailsDialog({id,onClose}:{id:number;onClose:()=>void}){
   return <Modal title="تفاصيل رد الرصيد" busy={false} onClose={onClose}>
     {details.isPending?<LoadingState/>:details.isError?<ErrorState error={details.error} retry={()=>void details.refetch()}/>:item&&
       <div className="space-y-4">
-        <div className="grid gap-4 rounded-xl bg-muted/40 p-4 text-sm sm:grid-cols-2">
+        <div className="grid gap-4 rounded-lg bg-muted/40 p-4 text-sm sm:grid-cols-2">
           {[
             ["رقم المستند",item.refundNumber],["العميل",item.customerName],
             ["تاريخ الرد",item.refundedOn],["طريقة الرد",item.paymentMethodLabel],
@@ -154,7 +154,7 @@ export function RefundDetailsDialog({id,onClose}:{id:number;onClose:()=>void}){
             <p className="mt-1 whitespace-pre-wrap break-words font-semibold">{value}</p>
           </div>)}
           <div><p className="text-xs text-foreground/70">المبلغ المسترد</p>
-            <p className="mt-1 text-lg font-extrabold"><MoneyAmount amount={item.amount}/></p></div>
+            <p className="mt-1 text-base font-semibold"><MoneyAmount amount={item.amount}/></p></div>
         </div>
         <p className="text-xs text-muted-foreground">هذا المستند المالي معتمد ولا يمكن حذفه أو تعديله من الواجهة.</p>
         <div className="border-t pt-3"><Button variant="outline" onClick={onClose}>إغلاق</Button></div>

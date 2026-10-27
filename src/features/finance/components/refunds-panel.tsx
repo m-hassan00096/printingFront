@@ -32,7 +32,7 @@ export function RefundsPanel(){
       <History className="size-4 text-primary"/>
       <h2 className="text-sm font-bold">سجل رد الأرصدة الدائنة</h2>
     </div>
-    <div className="grid gap-2.5 rounded-xl border bg-card p-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-2.5 rounded-lg border bg-card p-3 sm:grid-cols-2 xl:grid-cols-4">
       <label className="space-y-1 text-xs font-semibold"><span>بحث بالعميل أو رقم المستند أو الهاتف</span>
         <input className={fieldClass} aria-label="بحث في المبالغ المرتجعة" value={searchInput} maxLength={200}
           onChange={e=>setSearchInput(e.target.value)} placeholder="بحث..."/>
@@ -50,7 +50,7 @@ export function RefundsPanel(){
     </div>
     {query.isPending?<LoadingState/>:query.isError?
       <ErrorState error={query.error} retry={()=>void query.refetch()}/>:
-      query.data?.refunds.length?<div className="overflow-hidden rounded-2xl border bg-card">
+      query.data?.refunds.length?<div className="overflow-hidden rounded-lg border bg-card">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <h3 className="text-sm font-bold">سجل المبالغ المرتجعة</h3>
           <span className="text-xs text-foreground/70">{query.data.pagination.total.toLocaleString("ar-EG")} عملية</span>
@@ -75,7 +75,7 @@ export function RefundsPanel(){
           </tbody>
         </table></div>
       </div>:<EmptyState title="لا توجد عمليات رد مطابقة" detail="ستظهر هنا عمليات رد الأرصدة بعد تسجيلها." />}
-    {query.data&&query.data.pagination.lastPage>1&&<div className="rounded-xl border bg-card">
+    {query.data&&query.data.pagination.lastPage>1&&<div className="rounded-lg border bg-card">
       <PaginationBar pagination={query.data.pagination} onPage={page=>setFilters(old=>({...old,page}))}/>
     </div>}
     {details!==null&&<RefundDetailsDialog id={details} onClose={()=>setDetails(null)}/>}
