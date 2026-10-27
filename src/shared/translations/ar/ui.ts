@@ -11,6 +11,13 @@ export const uiMessages = {
     genericTiers: "الأنواع المصنفة (عام)",
     basePriceFallbackHelp: "اختياري: عند عدم وجود سعر مناسب يُستخدم السعر الأساسي. تركه فارغًا يعني 0.00 ج.م.",
     tierSimpleHelp: "أسعار الوحدة حسب نوع العميل والكمية.",
+    basePriceDescription: "يُستخدم عند عدم وجود شريحة سعر مناسبة، وللعملاء بدون تصنيف.",
+    quantityFrom: "الكمية من",
+    quantityTo: "الكمية إلى",
+    deleteTier: "حذف الشريحة",
+    confirmDeleteTier: "هل تريد حذف هذه الشريحة المحفوظة؟ سيتم تطبيق الحذف عند حفظ الخدمة.",
+    confirmDeleteAction: "حذف الشريحة",
+    cancelDeleteAction: "إلغاء",
     tierPriorityShort: "شرائح الكمية المحددة لها الأولوية على السعر الافتراضي.",
     noTiers: "لا توجد شرائح أسعار مخصصة لهذه الخدمة.",
 

@@ -85,6 +85,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
   const [status, setStatus] = useState<"0" | "1">(service?.status === 0 ? "0" : "1");
   const [rows, setRows] = useState<TierInput[]>(service?.priceTiers?.map(fromTier) ?? []);
   const [removedIds, setRemovedIds] = useState<number[]>([]);
+  const [pendingRemovalKey, setPendingRemovalKey] = useState<number | null>(null);
   const [errors, setErrors] = useState<Errors>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
   const busy = mutations.create.isPending || mutations.update.isPending;
@@ -105,9 +106,25 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
   }
   function removeRow(key: number) {
     const row = rows.find((item) => item.key === key);
+    setPendingRemovalKey(null);
     if (row?.priceTierId) setRemovedIds((old) => [...old, row.priceTierId!]);
     setRows((old) => old.filter((item) => item.key !== key));
     setErrors((old) => Object.fromEntries(Object.entries(old).filter(([name]) => !name.startsWith(`row.${key}.`))));
+  }
+  function requestRowRemoval(key: number) {
+    const row = rows.find((item) => item.key === key);
+    if (!row) return;
+    if (row.priceTierId) {
+      setPendingRemovalKey(key);
+    } else {
+      removeRow(key);
+    }
+  }
+  function tierQuantityLabel(row: TierInput): string {
+    if (!row.minQuantity && !row.maxQuantity) return copy.defaultTier;
+    if (row.minQuantity && row.maxQuantity) return `${row.minQuantity} – ${row.maxQuantity} قطعة`;
+    if (row.minQuantity) return `من ${row.minQuantity} قطعة`;
+    return `حتى ${row.maxQuantity} قطعة`;
   }
   function validate(): Errors {
     const issues: Errors = {};
@@ -256,7 +273,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
             <Plus className="size-4" /> إضافة شريحة
           </Button>
         </header>
-        <div className="space-y-3 p-4 sm:p-5">
+        <div className="space-y-2.5 p-3 sm:p-4">
           {types.isError && <p role="alert" className="text-sm text-destructive">
             تعذّر تحميل أنواع العملاء.{" "}
             <button type="button" className="underline" onClick={() => void types.refetch()}>إعادة المحاولة</button>
@@ -267,19 +284,36 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
           {rows.map((row, index) => {
             const isDefault = row.minQuantity === "" && row.maxQuantity === "";
             return <fieldset key={row.key} disabled={busy}
-              className="min-w-0 rounded-xl border border-[#e6e9f2] bg-[#fafbff] p-3 sm:p-4">
-              <legend className="px-2 text-xs font-bold text-[#596781]">شريحة {index + 1}</legend>
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs text-muted-foreground">
-                  {isDefault ? copy.defaultTier : copy.rangeGroup}
+              className="min-w-0 rounded-lg border border-[#e6e9f2] bg-[#fafbff] px-3 py-3 sm:px-4">
+              <legend className="sr-only">شريحة {index + 1}</legend>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-[#53617c]">شريحة {index + 1}</span>
+                <span className={isDefault
+                  ? "rounded-md border border-primary/15 bg-primary/5 px-2 py-0.5 text-[11px] font-semibold text-primary"
+                  : "rounded-md border border-border bg-white px-2 py-0.5 text-[11px] font-medium text-muted-foreground"}>
+                  {tierQuantityLabel(row)}
                 </span>
-                <Button type="button" size="sm" variant="ghost"
-                  className="text-destructive hover:bg-[#fff0f2] hover:text-destructive"
-                  aria-label={`حذف الشريحة ${index + 1}`} title="حذف الشريحة"
-                  onClick={() => removeRow(row.key)}>
-                  <Trash2 className="size-4" aria-hidden="true" />
-                </Button>
+                <div className="ms-auto">
+                  <Button type="button" size="icon-sm" variant="ghost"
+                    className="text-destructive hover:bg-[#fff0f2] hover:text-destructive"
+                    aria-label={`حذف الشريحة ${index + 1}`} title={copy.deleteTier}
+                    onClick={() => requestRowRemoval(row.key)}>
+                    <Trash2 className="size-4" aria-hidden="true" />
+                  </Button>
+                </div>
               </div>
+              {pendingRemovalKey === row.key && <div role="alert"
+                className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#f2d9de] bg-[#fff3f5] px-3 py-2">
+                <p className="text-xs font-semibold text-[#a33b4c]">{copy.confirmDeleteTier}</p>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="destructive" size="sm"
+                    aria-label={`تأكيد حذف الشريحة ${index + 1}`}
+                    onClick={() => removeRow(row.key)}>{copy.confirmDeleteAction}</Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setPendingRemovalKey(null)}>
+                    {copy.cancelDeleteAction}
+                  </Button>
+                </div>
+              </div>}
               <div className="grid items-start gap-3 md:grid-cols-[minmax(0,1.5fr)_minmax(0,2fr)_minmax(0,1.1fr)]">
                 <label className="block text-xs font-semibold">نوع العميل
                   <select aria-label={`نوع عميل الشريحة ${index + 1}`} className={fieldClass + " mt-2"}
@@ -291,16 +325,15 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
                   </select>{err(`row.${row.key}.customerTypeId`)}
                 </label>
                 <div role="group" aria-label={`${copy.rangeGroup} للشريحة ${index + 1}`} className="min-w-0">
-                  <p className="text-xs font-semibold">{copy.rangeGroup}</p>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <label className="block min-w-0 text-[11px] text-muted-foreground">من
-                      <input aria-label={`الكمية من للشريحة ${index + 1}`} className={fieldClass + " mt-1"}
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block min-w-0 text-xs font-semibold">{copy.quantityFrom}
+                      <input aria-label={`الكمية من للشريحة ${index + 1}`} className={fieldClass + " mt-2"}
                         type="number" min="1" value={row.minQuantity} placeholder="بدون حد"
                         onChange={event => editRow(row.key, "minQuantity", event.target.value)} />
                       {err(`row.${row.key}.minQuantity`)}
                     </label>
-                    <label className="block min-w-0 text-[11px] text-muted-foreground">إلى
-                      <input aria-label={`الكمية إلى للشريحة ${index + 1}`} className={fieldClass + " mt-1"}
+                    <label className="block min-w-0 text-xs font-semibold">{copy.quantityTo}
+                      <input aria-label={`الكمية إلى للشريحة ${index + 1}`} className={fieldClass + " mt-2"}
                         type="number" min="1" value={row.maxQuantity} placeholder="بدون حد"
                         onChange={event => editRow(row.key, "maxQuantity", event.target.value)} />
                       {err(`row.${row.key}.maxQuantity`)}
@@ -326,13 +359,13 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
       </section>
 
       {generalError && <p role="alert" className="rounded-lg border border-[#efbec6] bg-[#ffecf0] p-3 text-sm text-[#c73a4c]">{generalError}</p>}
-      <footer className="flex flex-wrap justify-end gap-3 py-2">
-        <Button asChild variant="outline">
-          <Link to={service ? `/printing-services/${service.id}` : "/printing-services"}>إلغاء</Link>
-        </Button>
+      <footer className="sticky bottom-3 z-10 flex flex-wrap items-center justify-start gap-3 rounded-xl border border-border bg-white/95 px-4 py-3 shadow-[0_8px_24px_#27396b14] backdrop-blur-sm">
         <Button type="submit" disabled={busy || types.isError}>
           {busy && <LoaderCircle className="size-4 animate-spin" />}
           {service ? "حفظ التعديلات" : "حفظ الخدمة"}
+        </Button>
+        <Button asChild variant="outline">
+          <Link to={service ? `/printing-services/${service.id}` : "/printing-services"}>إلغاء</Link>
         </Button>
       </footer>
     </form>

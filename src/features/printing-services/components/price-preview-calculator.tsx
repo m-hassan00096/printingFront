@@ -45,13 +45,13 @@ export function PricePreviewCalculator({ serviceId, active }: { serviceId: numbe
   }
 
   return <section aria-labelledby="price-preview-heading" className="rounded-lg border bg-card px-4 py-4  sm:px-5">
-    <div className="mb-4 flex items-center gap-2">
+    <div className="mb-3 flex items-center gap-2">
       <Calculator className="size-5 text-primary" />
       <h2 id="price-preview-heading" className="font-bold">حاسبة السعر المقترح</h2>
     </div>
 
     {!active ? <p className="text-sm text-muted-foreground">الخدمة غير نشطة، ولا يمكن حساب سعرها حاليًا.</p> :
-      <form onSubmit={(event) => void calculate(event)} className="space-y-4">
+      <form onSubmit={(event) => void calculate(event)} className="space-y-3">
         <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto]">
           <label className="block text-xs font-semibold">نوع العميل
             <select aria-label="نوع عميل المعاينة" value={customerTypeId}
@@ -66,7 +66,7 @@ export function PricePreviewCalculator({ serviceId, active }: { serviceId: numbe
               type="number" min="1" step="1" value={quantity} disabled={preview.isPending}
               onChange={(e) => { setQuantity(e.target.value); invalidateResult(); }} />
           </label>
-          <Button type="submit" disabled={preview.isPending}>
+          <Button type="submit" className="self-end" disabled={preview.isPending}>
             {preview.isPending && <LoaderCircle className="size-4 animate-spin" />}
             حساب السعر المقترح
           </Button>
@@ -87,24 +87,19 @@ export function PricePreviewCalculator({ serviceId, active }: { serviceId: numbe
                   <p className="mt-1 text-xs leading-6 text-muted-foreground">{uiMessages.printingServices.manualPreviewHelp}</p>
                 </div>
               </div>
-            : <div className="space-y-2 p-4 sm:p-5">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+            : <div className="space-y-3 p-3 sm:p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground">{uiMessages.printingServices.previewTotal}</p>
-                    <p className="mt-1 text-2xl font-extrabold text-[#253050]" dir="ltr">{result.suggestedTotal} ج.م</p>
+                    <p className="mt-1 text-2xl font-extrabold text-[#253050] tabular-nums" dir="ltr">{result.suggestedTotal} ج.م</p>
                   </div>
-
+                  {result.source && <span className="rounded-md border border-primary/15 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                    {sourceLabels[result.source]}
+                  </span>}
                 </div>
-                <div className="grid gap-3 border-t pt-3 sm:grid-cols-2">
-                  <div>
-                    <p className="text-xs text-muted-foreground">{uiMessages.printingServices.unitPrice}</p>
-                    <p className="mt-1 text-sm font-bold tabular-nums" dir="ltr">{result.suggestedUnitPrice} ج.م</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">{uiMessages.printingServices.priceSource}</p>
-                    <p className="mt-1 text-sm font-semibold">{result.source ? sourceLabels[result.source] : uiMessages.printingServices.unspecified}</p>
-                  </div>
-                </div>
+                <p className="border-t border-primary/10 pt-2.5 text-xs font-medium text-muted-foreground">
+                  <span dir="ltr" className="inline-block tabular-nums">{result.quantity} × {result.suggestedUnitPrice} ج.م</span>
+                </p>
               </div>}
         </div>}
       </form>}

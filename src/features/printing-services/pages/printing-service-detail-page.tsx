@@ -46,7 +46,7 @@ export function PrintingServiceDetailPage() {
     return types.data?.find((type) => type.value === typeId)?.label ?? `نوع عميل #${typeId}`;
   }
 
-  return <div className="space-y-5">
+  return <div className="space-y-4">
     <Button asChild variant="ghost" className="px-0"><Link to="/printing-services"><ArrowRight className="size-4" /> العودة لخدمات الطباعة</Link></Button>
 
     <header className="flex flex-wrap items-center justify-between gap-4">
@@ -62,8 +62,8 @@ export function PrintingServiceDetailPage() {
       </Button>}
     </header>
 
-    <section className="overflow-hidden rounded-lg border bg-card " aria-labelledby="service-pricing-title">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
+    <section className="overflow-hidden rounded-xl border bg-card shadow-[0_4px_18px_#29376b08]" aria-labelledby="service-pricing-title">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
         <div>
           <h2 id="service-pricing-title" className="text-lg font-bold">أسعار الخدمة</h2>
           <p className="mt-1 text-xs text-muted-foreground">{copy.tierSimpleHelp}</p>
@@ -92,9 +92,12 @@ export function PrintingServiceDetailPage() {
         {copy.noTiers}
       </p>}
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-[#fafbff] px-5 py-3 text-xs text-muted-foreground">
-        <span>{copy.tierPriorityShort}</span>
-        <span className="whitespace-nowrap">{copy.basePrice}: <strong className="text-foreground"><Currency amount={item.basePrice ?? "0.00"} /></strong></span>
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t bg-[#f8f9ff] px-5 py-3">
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-foreground">{copy.basePrice}</p>
+          <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{copy.basePriceDescription}</p>
+        </div>
+        <strong className="shrink-0 text-base font-bold text-foreground"><Currency amount={item.basePrice ?? "0.00"} /></strong>
       </div>
     </section>
     {mayPreview && <PricePreviewCalculator key={item.id} serviceId={item.id} active={item.status === 1} />}
