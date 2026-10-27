@@ -104,7 +104,7 @@ export function CustomerFormModal({ customer, onClose, onSaved }: {
     return errors[key] ? <span role="alert" className="mt-1 block text-xs text-destructive">{errors[key]}</span> : null;
   }
 
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-4"
     onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) onClose(); }}>
     <section role="dialog" aria-modal="true" aria-label={customer ? "تعديل عميل" : "إضافة عميل"}
       onKeyDown={(event) => { if (event.key === "Escape" && !busy) onClose(); }}
@@ -154,7 +154,7 @@ export function CustomerFormModal({ customer, onClose, onSaved }: {
             {fieldError("address")}
           </label>
         </div>
-        {generalError && <p role="alert" className="rounded-lg border border-[#EB5757]/30 bg-[#EB5757]/10 p-3 text-sm text-[#EB5757]">{generalError}</p>}
+        {generalError && <p role="alert" className="rounded-lg border border-[#efbec6] bg-[#ffecf0] p-3 text-sm text-[#c73a4c]">{generalError}</p>}
         <div className="flex justify-end gap-3 border-t pt-5">
           <Button type="button" variant="outline" disabled={busy} onClick={onClose}>إلغاء</Button>
           <Button type="submit" disabled={busy || types.isError || types.isPending || (!types.data?.length && !customer?.customerType)}>

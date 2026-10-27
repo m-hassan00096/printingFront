@@ -17,7 +17,7 @@ import type { DeliverPayload, PaymentMethod } from "../types/deliveries.types";
 function DialogFrame({ title, children, busy, onClose }: {
   title: string; children: React.ReactNode; busy: boolean; onClose: () => void;
 }) {
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3 sm:p-4"
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-3 sm:p-4"
     onMouseDown={event => { if (event.target===event.currentTarget && !busy) onClose(); }}>
     <section role="dialog" aria-modal="true" aria-label={title} dir="rtl"
       onKeyDown={event => { if (event.key==="Escape" && !busy) onClose(); }}
@@ -111,7 +111,7 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
               : "غير متاح وفق الصلاحيات"}
           </DeliveryField>
         </div>
-        {!preview.data.canDeliver && <p role="alert" className="rounded-lg bg-[#F0C000]/10 p-3 text-sm text-[#F0C000]">
+        {!preview.data.canDeliver && <p role="alert" className="rounded-lg bg-[#fff4df] p-3 text-sm text-[#a46b0b]">
           لا يمكن التسليم قبل جاهزية جميع منتجات الأوردر.
         </p>}
         <label className="block space-y-1 text-sm font-semibold">
@@ -128,7 +128,7 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
         {paid===null && <p role="alert" className="text-sm text-destructive">
           أدخل مبلغًا صحيحًا موجبًا أو صفرًا، بحد أقصى خانتين عشريتين.
         </p>}
-        {needsPayment && !canCollect && <p role="alert" className="rounded-lg bg-[#F0C000]/10 p-3 text-sm text-[#F0C000]">
+        {needsPayment && !canCollect && <p role="alert" className="rounded-lg bg-[#fff4df] p-3 text-sm text-[#a46b0b]">
           لا تملك صلاحية التحصيل المالي. يمكنك تسليم الأوردر بدون تحصيل.
         </p>}
         {needsPayment && canCollect && <>
@@ -160,7 +160,7 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
           </strong>
           <p className="mt-1 text-xs text-muted-foreground">تقديري فقط؛ النظام يعيد حساب الرصيد عند الحفظ.</p>
         </div>}
-        {willCreateCredit && <label className="flex items-start gap-2 rounded-lg border border-amber-200 bg-[#F0C000]/10 p-3 text-sm text-[#F0C000]">
+        {willCreateCredit && <label className="flex items-start gap-2 rounded-lg border border-amber-200 bg-[#fff4df] p-3 text-sm text-[#a46b0b]">
           <input type="checkbox" checked={creditConfirmed} onChange={e=>setCreditConfirmed(e.target.checked)}
             aria-label="تأكيد الرصيد الدائن"/>
           أؤكد أن المبلغ سيُنشئ أو يزيد رصيدًا دائنًا لحساب العميل.
@@ -249,7 +249,7 @@ export function DeliveryDetailsDialog({ deliveryId, onClose, onSuccess }: {
             <textarea className={fieldClass+" min-h-24 py-2"} maxLength={3000}
               value={reason} onChange={e=>setReason(e.target.value)} placeholder="اكتب سبب الإلغاء..."/>
           </label>
-          {hasActiveCollection && <label className="flex items-start gap-2 rounded-lg bg-[#F0C000]/10 p-3 text-sm text-[#F0C000]">
+          {hasActiveCollection && <label className="flex items-start gap-2 rounded-lg bg-[#fff4df] p-3 text-sm text-[#a46b0b]">
             <input type="checkbox" aria-label="تأكيد التسوية الفعلية للأموال" checked={fundsConfirmed}
               onChange={e=>setFundsConfirmed(e.target.checked)}/>
             أؤكد أن ردّ الأموال أو تسويتها مع العميل تم فعليًا خارج النظام.

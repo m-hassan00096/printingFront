@@ -14,7 +14,7 @@ import { useCreateRefund,useRefundCredit,useRefundDetails } from "../hooks/use-r
 import type { RefundPayload,RefundPaymentMethod } from "../types/refunds.types";
 
 function Modal({title,onClose,busy,children}:{title:string;onClose:()=>void;busy:boolean;children:React.ReactNode}){
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3"
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-3"
     onMouseDown={event=>{if(event.target===event.currentTarget&&!busy)onClose();}}>
     <section role="dialog" aria-modal="true" aria-label={title} dir="rtl"
       className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-lg bg-card shadow-2xl"
@@ -73,7 +73,7 @@ export function CreateRefundDialog({initialCustomerId=0,onClose,onSuccess}:{
   }
   return <Modal title="رد رصيد دائن للعميل" busy={post.isPending} onClose={onClose}>
     <div className="space-y-4">
-      <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-[#F0C000]/10 p-3 text-sm leading-6 text-amber-950">
+      <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-[#fff4df] p-3 text-sm leading-6 text-amber-950">
         <AlertTriangle className="mt-1 size-4 shrink-0"/>
         سجل العملية بعد رد الأموال فعليًا للعميل. النظام يُعدّل رصيده المحاسبي فقط ولا ينفذ تحويلًا أو صرفًا تلقائيًا.
       </p>
@@ -87,7 +87,7 @@ export function CreateRefundDialog({initialCustomerId=0,onClose,onSuccess}:{
       </div>
       {customerId>0&&(credit.isPending?<LoadingState/>:credit.isError?
         <ErrorState error={credit.error} retry={()=>void credit.refetch()}/>:
-        <div className="rounded-lg border border-emerald-200 bg-[#3DD68C]/10 p-3 text-sm text-[#3DD68C]">
+        <div className="rounded-lg border border-emerald-200 bg-[#e5f7ee] p-3 text-sm text-[#14815b]">
           <p className="text-xs font-semibold">الرصيد المتاح للرد حاليًا</p>
           <p className="mt-1 text-xl font-extrabold"><MoneyAmount amount={credit.data!.availableCredit}/></p>
           {!credit.data!.canRefund&&<p role="alert" className="mt-1 text-xs font-semibold">العميل ليس له رصيد دائن متاح للرد.</p>}
@@ -114,7 +114,7 @@ export function CreateRefundDialog({initialCustomerId=0,onClose,onSuccess}:{
           value={destination} options={destinations} loading={options.isPending} disabled={options.isError}
           onChange={value=>{setDestination(value);setAck(false);}}/>
         {options.isError&&<ErrorState error={options.error} retry={()=>void options.refetch()}/>}
-        {options.isSuccess&&destinations.length===0&&<p role="alert" className="text-xs text-[#F0C000]">لا توجد حسابات نشطة لهذه الطريقة.</p>}
+        {options.isSuccess&&destinations.length===0&&<p role="alert" className="text-xs text-[#a46b0b]">لا توجد حسابات نشطة لهذه الطريقة.</p>}
         {validation.paymentDestinationId&&<p role="alert" className="text-xs text-destructive">{validation.paymentDestinationId}</p>}
       </div>}
       <label className="block space-y-1 text-sm font-semibold">

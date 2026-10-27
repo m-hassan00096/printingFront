@@ -24,7 +24,7 @@ function Frame({title,busy,onClose,children}:{title:string;busy:boolean;onClose:
     document.body.style.overflow="hidden";
     return ()=>{document.body.style.overflow=previousOverflow;};
   },[]);
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3 sm:p-4"
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-3 sm:p-4"
     onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)onClose();}}>
     <section role="dialog" aria-modal="true" aria-labelledby={titleId} dir="rtl"
       className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-lg bg-card shadow-2xl"
@@ -129,7 +129,7 @@ export function CreateCollectionDialog({onClose,onSuccess}:{onClose:()=>void;onS
           <button type="button" className="mr-2 underline" onClick={()=>void paymentOptions.refetch()}>إعادة المحاولة</button>
         </p>}
         {!paymentOptions.isPending&&!paymentOptions.isError&&destinations.length===0&&
-          <p className="text-sm text-[#F0C000]">لا توجد حسابات نشطة لطريقة الدفع المختارة. يمكن مراجعتها من الإعدادات.</p>}
+          <p className="text-sm text-[#a46b0b]">لا توجد حسابات نشطة لطريقة الدفع المختارة. يمكن مراجعتها من الإعدادات.</p>}
         {fieldErrors.paymentDestinationId&&<p role="alert" className="text-xs text-destructive">{fieldErrors.paymentDestinationId}</p>}
       </div>}
       <div className="space-y-1">
@@ -193,7 +193,7 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
         </div>
         {c.note&&<p className="whitespace-pre-wrap rounded-lg border p-3 text-sm">ملاحظات: {c.note}</p>}
         {c.orderId&&canViewOrders&&<Link to={`/orders/${c.orderId}`} className="text-sm font-semibold text-primary underline">فتح الأوردر المرتبط</Link>}
-        {c.status===1&&<p className="flex items-center gap-2 text-sm font-semibold text-[#3DD68C]"><CheckCircle2 className="size-4"/> إيصال معتمد ومسجل في حساب العميل.</p>}
+        {c.status===1&&<p className="flex items-center gap-2 text-sm font-semibold text-[#14815b]"><CheckCircle2 className="size-4"/> إيصال معتمد ومسجل في حساب العميل.</p>}
         {c.status===2&&<div className="rounded-lg border border-amber-200 p-3 text-sm">
           <p className="font-bold">تحصيل معكوس</p>
           <p className="mt-1">سبب العكس: {c.reversalReason??"—"}</p>
@@ -204,7 +204,7 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
         {reversable&&!reversing&&<Button variant="destructive" onClick={()=>setReversing(true)}>عكس التحصيل</Button>}
         {reversable&&reversing&&<div className="space-y-3 rounded-lg border border-destructive/30 p-4">
           <p className="flex items-center gap-2 text-sm font-bold text-destructive"><AlertTriangle className="size-4"/> عكس التحصيل</p>
-          <p className="rounded-lg bg-[#F0C000]/10 p-3 text-sm leading-6 text-[#F0C000]">
+          <p className="rounded-lg bg-[#fff4df] p-3 text-sm leading-6 text-[#a46b0b]">
             سيعود تأثير هذا المبلغ على رصيد العميل من خلال حركة عكسية، مع الاحتفاظ بالإيصال الأصلي.
             لا تعيد هذه العملية أموالًا نقدية أو بنكية تلقائيًا.
           </p>

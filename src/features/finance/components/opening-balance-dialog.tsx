@@ -32,7 +32,7 @@ export function OpeningBalanceDialog({customerId,customerName,onClose,onSuccess}
       setError(getApiErrorMessage(err,"تعذّر تسجيل الرصيد الافتتاحي. ربما سبق تسجيله للعميل."));
     }
   }
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3"
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-3"
     onMouseDown={e=>{if(e.target===e.currentTarget&&!post.isPending)onClose();}}>
     <section role="dialog" aria-modal="true" aria-label="تسجيل الرصيد الافتتاحي" dir="rtl"
       onKeyDown={e=>{if(e.key==="Escape"&&!post.isPending)onClose();}}
@@ -45,7 +45,7 @@ export function OpeningBalanceDialog({customerId,customerName,onClose,onSuccess}
         <div className="rounded-lg bg-muted/50 p-3 text-sm">
           العميل: <strong>{customerName}</strong>
         </div>
-        <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-[#F0C000]/10 p-3 text-sm leading-6 text-amber-950">
+        <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-[#fff4df] p-3 text-sm leading-6 text-amber-950">
           <AlertTriangle className="mt-1 size-4 shrink-0"/>
           يُسمح بتسجيل رصيد افتتاحي واحد فقط لكل عميل. لا يمكن تعديل الحركة بعد ترحيلها؛ اختر نوع الرصيد بعناية.
         </p>

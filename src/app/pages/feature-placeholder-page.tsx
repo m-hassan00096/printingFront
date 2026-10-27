@@ -116,7 +116,7 @@ export function FeaturePlaceholderPage({ featureKey }: FeaturePlaceholderPagePro
           <ul className="space-y-4">
             {feature.principles.map((principle) => (
               <li key={principle} className="flex items-start gap-3 text-sm leading-6">
-                <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-[#3DD68C]" />
+                <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-[#14815b]" />
                 <span>{principle}</span>
               </li>
             ))}

@@ -78,7 +78,7 @@ export function FoundationPage() {
             <div className="space-y-4">
               {foundations.map((item) => (
                 <div key={item.title} className="flex items-start gap-3">
-                  <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-[#3DD68C]" />
+                  <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-[#14815b]" />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-sm font-semibold">{item.title}</p>
