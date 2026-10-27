@@ -3,16 +3,16 @@ import type { ComponentProps } from "react";
 import { cn } from "@/shared/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex w-fit items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors",
+  "inline-flex w-fit items-center justify-center gap-1 whitespace-nowrap rounded-sm border px-2 py-0.5 text-[11px] font-semibold leading-4 transition-colors",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground",
-        secondary: "border-transparent bg-secondary text-secondary-foreground",
+        default: "border-primary/25 bg-primary/15 text-[#B5BAFF]",
+        secondary: "border-border bg-secondary text-secondary-foreground",
         outline: "border-border bg-transparent text-foreground",
-        success: "border-transparent bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
-        warning: "border-transparent bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-300",
-        destructive: "border-transparent bg-red-50 text-red-800 dark:bg-red-950 dark:text-red-300",
+        success: "border-[#3DD68C]/20 bg-[#3DD68C]/10 text-[#3DD68C]",
+        warning: "border-[#F0C000]/20 bg-[#F0C000]/10 text-[#F0C000]",
+        destructive: "border-[#EB5757]/20 bg-[#EB5757]/10 text-[#EB5757]",
       },
     },
     defaultVariants: { variant: "secondary" },
@@ -20,7 +20,6 @@ const badgeVariants = cva(
 );
 
 type BadgeProps = ComponentProps<"span"> & VariantProps<typeof badgeVariants>;
-
 export function Badge({ className, variant, ...props }: BadgeProps) {
   return <span data-slot="badge" className={cn(badgeVariants({ variant }), className)} {...props} />;
 }

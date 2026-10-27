@@ -19,22 +19,22 @@ export function AppShell() {
         <button
           type="button"
           aria-label="إغلاق القائمة الجانبية"
-          className="fixed inset-0 z-30 bg-slate-950/45 backdrop-blur-[2px] lg:hidden"
+          className="fixed inset-0 z-30 bg-black/65 backdrop-blur-[2px] lg:hidden"
           onClick={closeMobileSidebar}
         />
       )}
 
       <div
         className={cn(
-          "min-h-screen transition-[margin] duration-200",
-          isSidebarCollapsed ? "lg:mr-20" : "lg:mr-64",
+          "min-h-screen transition-[margin] duration-150",
+          isSidebarCollapsed ? "lg:mr-12" : "lg:mr-[220px]",
         )}
       >
         <Topbar title={getPageTitle(location.pathname)} />
-        <main className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">
+        <main className="w-full p-4 sm:p-5 lg:p-6">
           <Outlet />
         </main>
-        <footer className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 px-4 pb-6 text-xs text-muted-foreground sm:px-6 lg:px-8">
+        <footer className="flex items-center justify-between gap-3 px-4 pb-4 text-[11px] text-muted-foreground sm:px-5 lg:px-6">
           <span>طَبعة · إدارة الطباعة بوضوح</span>
           <span>لوحة تشغيل يومية</span>
         </footer>

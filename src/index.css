@@ -1,11 +1,12 @@
-@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Cairo", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Cairo", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -32,85 +33,85 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
 }
 
 :root {
-  color-scheme: light;
-  --radius: 0.9rem;
-  --background: oklch(0.985 0.004 245);
-  --foreground: oklch(0.23 0.025 255);
-  --card: oklch(1 0 0);
-  --card-foreground: var(--foreground);
-  --popover: oklch(1 0 0);
-  --popover-foreground: var(--foreground);
-  --primary: oklch(0.36 0.07 255);
-  --primary-foreground: oklch(0.99 0.003 245);
-  --secondary: oklch(0.955 0.01 245);
-  --secondary-foreground: oklch(0.3 0.03 255);
-  --muted: oklch(0.96 0.008 245);
-  --muted-foreground: oklch(0.52 0.025 255);
-  --accent: oklch(0.94 0.035 175);
-  --accent-foreground: oklch(0.31 0.055 180);
-  --destructive: oklch(0.58 0.22 27);
-  --border: oklch(0.91 0.012 245);
-  --input: oklch(0.91 0.012 245);
-  --ring: oklch(0.65 0.075 205);
-  --sidebar: oklch(0.21 0.035 255);
-  --sidebar-foreground: oklch(0.95 0.008 245);
-  --sidebar-muted: oklch(0.76 0.018 250);
-  --sidebar-border: oklch(0.32 0.03 255);
-  --sidebar-accent: oklch(0.29 0.045 255);
-  --sidebar-accent-foreground: oklch(0.99 0.003 245);
-  --sidebar-primary: oklch(0.82 0.105 170);
-  --sidebar-primary-foreground: oklch(0.21 0.035 255);
+  color-scheme: dark;
+  --radius: 8px;
+  --background: #101014;
+  --foreground: #f1f1f4;
+  --card: #1b1b25;
+  --card-foreground: #f1f1f4;
+  --popover: #1f1f2e;
+  --popover-foreground: #f1f1f4;
+  --primary: #5e6ad2;
+  --primary-foreground: #fff;
+  --secondary: #252536;
+  --secondary-foreground: #f1f1f4;
+  --muted: #1f1f2e;
+  --muted-foreground: #9ba0ab;
+  --accent: #303047;
+  --accent-foreground: #f1f1f4;
+  --destructive: #eb5757;
+  --border: #2c2c3a;
+  --input: #3b3b4c;
+  --ring: #6e79d6;
+  --sidebar: #1b1b25;
+  --sidebar-foreground: #f1f1f4;
+  --sidebar-muted: #9ba0ab;
+  --sidebar-border: #2c2c3a;
+  --sidebar-accent: #5e6ad21a;
+  --sidebar-accent-foreground: #f1f1f4;
+  --sidebar-primary: #5e6ad2;
+  --sidebar-primary-foreground: #fff;
+  --success: #3dd68c;
+  --warning: #f0c000;
 }
 
-* {
-  border-color: var(--border);
-}
+* { box-sizing: border-box; border-color: var(--border); }
 
-html {
-  min-width: 320px;
-  direction: rtl;
-  scroll-behavior: smooth;
-}
-
+html { min-width: 320px; direction: rtl; }
 body {
   min-width: 320px;
+  min-height: 100vh;
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: "Cairo", ui-sans-serif, system-ui, sans-serif;
-  font-feature-settings: "ss01" on;
+  font-family: "Cairo", "Inter", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
-
-button,
-input,
-textarea,
-select {
-  font: inherit;
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+input, textarea, select { color: var(--foreground); accent-color: var(--primary); }
+input::placeholder, textarea::placeholder { color: var(--muted-foreground); opacity: 1; }
+option { background: var(--popover); color: var(--foreground); }
+::selection { background: #5e6ad266; color: #fff; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+a, button { transition-property: background-color, border-color, color, opacity; transition-duration: 120ms; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 
-button {
-  cursor: pointer;
+/* Shared high-density patterns. Existing forms keep their behavior and labels. */
+@layer components {
+  .violet-panel { background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
+  .violet-elevated { background: var(--popover); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 24px 48px #0006; }
+  .violet-shortcut { font: 11px "JetBrains Mono", monospace; border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; color: var(--muted-foreground); direction: ltr; }
 }
-
-button:disabled {
-  cursor: not-allowed;
-}
-
-::selection {
-  background: oklch(0.87 0.07 175);
-  color: oklch(0.2 0.035 255);
-}
-
-:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-}
+:where(table) { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+:where(table) thead { background: var(--muted); }
+:where(table) th { color: var(--muted-foreground); font-size: 12px; font-weight: 600; }
+:where(table) tbody tr { transition: background-color 120ms; }
+:where(table) tbody tr:hover { background: #ffffff08; }
+:where([role="dialog"]) { border: 1px solid var(--border); box-shadow: 0 24px 48px #0006; }
+:where([role="menu"], [role="listbox"]) { background: var(--popover); color: var(--foreground); border-color: var(--border); box-shadow: 0 14px 28px #0006; }
+:where(input, select, textarea):focus-visible { border-color: var(--primary); box-shadow: 0 0 0 2px #5e6ad226; outline: none; }
+:where([data-sonner-toast]) { font-family: "Cairo", sans-serif; }
