@@ -11,11 +11,38 @@ import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { formatCollectionDate } from "@/features/collections/components/collection-date-field";
 import { ConfirmDialog, EmptyState, ErrorState, LoadingState, PaginationBar, SearchField, SectionHeader, fieldClass } from "@/features/identity/components/identity-ui";
 import { useOrderActions, useOrders } from "../hooks/use-orders";
+import { CreatedDatePicker } from "../components/created-date-picker";
 import type { Order, OrderFilters } from "../types/orders.types";
 
 function pageOf(raw: string | null): number {
   const result = Number(raw);
   return Number.isSafeInteger(result) && result > 0 ? result : 1;
+}
+function formatCreatedAt(value: string | null): { date: string; time: string } | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return {
+    date: new Intl.DateTimeFormat("en-GB", {day:"2-digit",month:"2-digit",year:"numeric",timeZone:"Africa/Cairo"}).format(parsed),
+    time: new Intl.DateTimeFormat("en-GB", {hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Africa/Cairo"}).format(parsed),
+  };
+}
+const productionStyles: Record<number, string> = {
+  0: "border-slate-200 bg-slate-100 text-slate-700",
+  1: "border-indigo-100 bg-indigo-50 text-indigo-700",
+  2: "border-amber-100 bg-amber-50 text-amber-700",
+  3: "border-emerald-100 bg-emerald-50 text-emerald-700",
+  4: "border-teal-100 bg-teal-50 text-teal-700",
+};
+function ProductionBadge({ order }: { order: Pick<Order, "status" | "productionStatus" | "productionStatusLabel"> }) {
+  if (order.productionStatus === null) return <span className="text-muted-foreground">—</span>;
+  const archived = order.status === 2;
+  return <div className="flex flex-col items-start gap-1">
+    <Badge variant="outline" className={archived ? "border-slate-200 bg-slate-100 text-slate-500" : productionStyles[order.productionStatus] ?? productionStyles[0]}>
+      {order.productionStatusLabel ?? "—"}
+    </Badge>
+    {archived && <span className="text-[11px] text-muted-foreground">{uiMessages.orders.lastProductionStage}</span>}
+  </div>;
 }
 function OrderStatusBadge({ order }: { order: Pick<Order, "status" | "statusLabel"> }) {
   const variant = order.status === 0 ? "outline" : order.status === 1 ? "default" : "destructive";
@@ -34,7 +61,7 @@ export function OrdersPage() {
   const [draftSearch, setDraftSearch] = useState(search);
   const filters: OrderFilters = {
     search, status: params.get("status") ?? "", productionStatus: params.get("productionStatus") ?? "",
-    lateOnly: params.get("lateOnly") === "1", openOnly: params.get("openOnly") === "1", sort: params.get("sort") ?? "-id", page: pageOf(params.get("page")),
+    lateOnly: params.get("lateOnly") === "1", openOnly: params.get("openOnly") === "1", createdFrom: params.get("createdFrom") ?? "", createdTo: params.get("createdTo") ?? "", sort: params.get("sort") ?? "-id", page: pageOf(params.get("page")),
   };
   const orders = useOrders(filters);
   const actions = useOrderActions();
@@ -114,13 +141,35 @@ export function OrdersPage() {
           )}
         </div>
       </div>
+      <div className="flex flex-wrap items-end gap-3 border-b border-[#e8eaf2] bg-[#fbfcff] px-4 py-3 xl:px-5">
+        <div className="flex h-9 shrink-0 items-center gap-2 text-xs font-semibold text-[#4c5975]">
+          <CalendarDays className="size-4 text-primary" />
+          {uiMessages.orders.createdDateFilter}
+        </div>
+        <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:grid-cols-[160px_160px]">
+          <CreatedDatePicker label={uiMessages.orders.createdFrom} value={filters.createdFrom} max={filters.createdTo || undefined}
+            onChange={(value) => setFilter("createdFrom", value)} />
+          <CreatedDatePicker label={uiMessages.orders.createdTo} value={filters.createdTo} min={filters.createdFrom || undefined}
+            onChange={(value) => setFilter("createdTo", value)} />
+        </div>
+        {(filters.createdFrom || filters.createdTo) && <Button type="button" variant="ghost" size="sm"
+          onClick={() => setParams(previous => {
+            const next = new URLSearchParams(previous);
+            next.delete("createdFrom");
+            next.delete("createdTo");
+            next.delete("page");
+            return next;
+          })}>{uiMessages.orders.clearCreatedFilter}</Button>}
+        {filters.createdFrom && filters.createdTo && filters.createdFrom > filters.createdTo &&
+          <p role="alert" className="text-xs text-destructive">{uiMessages.orders.invalidCreatedRange}</p>}
+      </div>
       {orders.isPending ? <LoadingState /> : orders.isError ?
         <ErrorState error={orders.error} retry={() => void orders.refetch()} /> :
         orders.data.orders.length === 0 ? <EmptyState title="لا توجد أوردرات" detail="أضف أوردر جديد أو غيّر الفلاتر." /> :
         <>
-          <div className="overflow-x-auto"><table className="w-full min-w-[1000px] text-right text-sm">
+          <div className="overflow-x-auto"><table className="w-full min-w-[1140px] text-right text-sm">
             <thead className="bg-muted/50 text-xs text-muted-foreground"><tr>
-              {["الأوردر", "العميل", "الهاتف", "الإجمالي", "الحالة", "الإنتاج", uiMessages.orders.dueDateColumn, "الإجراءات"].map((label) =>
+              {["الأوردر", "العميل", "الهاتف", "الإجمالي", "الحالة", "الإنتاج", uiMessages.orders.createdAtColumn, uiMessages.orders.dueDateColumn, "الإجراءات"].map((label) =>
                 <th scope="col" key={label} className="px-4 py-3 font-semibold">{label}</th>)}
             </tr></thead>
             <tbody className="divide-y">{orders.data.orders.map((order) => <tr key={order.id} className="hover:bg-muted/30">
@@ -133,11 +182,12 @@ export function OrdersPage() {
               <td className="px-4 py-3">{order.customerName}</td><td className="px-4 py-3 tabular-nums">{order.customerPhone}</td>
               <td className="px-4 py-3 font-semibold"><MoneyAmount amount={order.totalAmount} /></td>
               <td className="px-4 py-3"><OrderStatusBadge order={order} /></td>
+              <td className="px-4 py-3"><ProductionBadge order={order} /></td>
               <td className="px-4 py-3">
-                <span className={order.status === 2 ? "text-xs text-muted-foreground" : undefined}>
-                  {order.productionStatusLabel ?? "—"}
-                </span>
-                {order.status === 2 && <p className="text-[11px] text-muted-foreground">{uiMessages.orders.lastProductionStage}</p>}
+                {formatCreatedAt(order.createdAt) ? <div className="flex flex-col items-start gap-0.5">
+                  <span dir="ltr" className="whitespace-nowrap tabular-nums font-medium">{formatCreatedAt(order.createdAt)?.date}</span>
+                  <span dir="ltr" className="text-[11px] text-muted-foreground tabular-nums">{formatCreatedAt(order.createdAt)?.time}</span>
+                </div> : <span className="text-muted-foreground">—</span>}
               </td>
               <td className="px-4 py-3">
                 {order.dueDate ? (

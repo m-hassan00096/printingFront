@@ -13,6 +13,8 @@ export async function listOrders(filters: OrderFilters): Promise<{ orders: Order
   if (filters.productionStatus !== "") params.set("filter[productionStatus]", filters.productionStatus);
   if (filters.lateOnly) params.set("filter[lateOnly]", "1");
   if (filters.openOnly) params.set("filter[openOnly]", "1");
+  if (filters.createdFrom) params.set("filter[createdFrom]", filters.createdFrom);
+  if (filters.createdTo) params.set("filter[createdTo]", filters.createdTo);
   const { data } = await apiClient.get<ApiResponse<{ orders: Order[]; pagination: Pagination }>>(path, { params });
   if (!Array.isArray(data.data?.orders) || !data.data?.pagination) throw new Error("استجابة قائمة الأوردرات غير صحيحة.");
   return data.data;
