@@ -183,6 +183,52 @@ describe("Orders Laravel API workflow", () => {
     await waitFor(()=>expect(calls.some(c=>c.url==="/orders"&&c.query.get("filter[lateOnly]")===null&&c.query.get("filter[openOnly]")===null)).toBe(true));
   });
 
+  it("does not replace an agreed price with the system suggestion without explicit confirmation", async () => {
+    visit("/orders/new");
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("combobox", {name:"اختيار العميل"}));
+    await user.click(await screen.findByRole("option", {name:/أحمد - 01012345678/}));
+    await user.click(await screen.findByRole("combobox", {name:"خدمة العنصر 1"}));
+    await user.click(await screen.findByRole("option", {name:"كروت شخصية"}));
+    await user.clear(screen.getByRole("spinbutton", {name:"كمية العنصر 1"}));
+    await user.type(screen.getByRole("spinbutton", {name:"كمية العنصر 1"}), "100");
+    const input = screen.getByRole("textbox", {name:"إجمالي العنصر 1"}) as HTMLInputElement;
+    await user.type(input, "350.00");
+    expect(screen.getByText("سعر الوحدة المتفق عليه:")).toBeTruthy();
+    await user.click(screen.getByRole("button", {name:"السعر المقترح"}));
+    expect(await screen.findByText("الإجمالي المقترح من النظام")).toBeTruthy();
+    await user.click(screen.getByRole("button", {name:"استخدام السعر المقترح"}));
+    expect(input.value).toBe("350.00");
+    expect(screen.getByRole("button", {name:"تأكيد الاستبدال"})).toBeTruthy();
+    await user.click(screen.getByRole("button", {name:"الاحتفاظ بالسعر الحالي"}));
+    expect(input.value).toBe("350.00");
+    await user.click(screen.getByRole("button", {name:"استخدام السعر المقترح"}));
+    await user.click(screen.getByRole("button", {name:"تأكيد الاستبدال"}));
+    expect(input.value).toBe("500.00");
+    expect(screen.queryByRole("button", {name:"تأكيد الاستبدال"})).toBeNull();
+  });
+
+  it("separates the customer's existing balance from the current order and explains collection timing", async () => {
+    visit("/orders/new");
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("combobox", {name:"اختيار العميل"}));
+    await user.click(await screen.findByRole("option", {name:/أحمد - 01012345678/}));
+    expect(await screen.findByText("رصيد العميل السابق")).toBeTruthy();
+    expect(screen.getByText("الرصيد السابق مستقل عن المتبقي من الأوردر الحالي.")).toBeTruthy();
+    expect(screen.getByText(/حفظ المسودة لا يسجل تحصيلًا/)).toBeTruthy();
+  });
+
+  it("shows cancellation as an order-level status and marks the last production stage as historical", async () => {
+    orders[0] = {...orders[0],status:2,statusLabel:"ملغي",orderNumber:"ORD-CANCELLED-1",
+      productionStatus:3,productionStatusLabel:"جاهز للتسليم",delayStatus:1,delayStatusLabel:"متأخر"};
+    visit("/orders/101");
+    expect(await screen.findByRole("heading",{name:"ORD-CANCELLED-1"})).toBeTruthy();
+    expect(screen.getByText("ملغي").closest('[data-slot="badge"]')).toBeTruthy();
+    expect(screen.getByText("آخر مرحلة إنتاج مسجلة")).toBeTruthy();
+    expect(screen.getByText("الأوردر ملغي ولا توجد إجراءات إنتاج جديدة.")).toBeTruthy();
+    expect(screen.queryByText("متأخر")).toBeNull();
+  });
+
   it("creates a draft with registered customer, agreed total, source enum and idempotency key", async () => {
     visit("/orders/new");
     expect(await screen.findByRole("heading",{name:"إضافة أوردر"})).toBeTruthy();
