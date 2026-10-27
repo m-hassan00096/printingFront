@@ -113,3 +113,10 @@ Avoid several primary buttons with equal visual weight. Keep summary metrics onl
 - Distinguish blank `basePrice` (manual pricing fallback) from explicit numeric `0` (free fallback), without changing `null` or `0` values being saved.
 - Show a compact service-level base-price and tier-count summary, visually emphasize the previewed grand total, and keep legacy permissions/gates unchanged.
 - Quantity input labels and backend schema names (`minQuantity`, `maxQuantity`, `price`) remain unchanged.
+
+## Optional customer type / base-price fallback (2026-10-27)
+- Customer type selection is optional; save `customerTypeId: null` for unclassified customers (and permit clearing a type on update).
+- Backend pricing preview with `customerTypeId: null` **uses the service base price**, bypassing generic quantity tiers. Classified clients retain current specific/generic tier priority.
+- A service with `basePrice: null` suggests **0.00 EGP** when no tier applies; don't display a manual-pricing message or imply that a separate price entry is mandatory.
+- Hide the summary cards for base price and number of tiers; display the base price once in the pricing-table footer. Remove repeated pricing hints and source badges in the preview while keeping the highlighted total.
+- Requires corresponding backend PR in `printingApi` and migrations for nullable customer/order snapshots. Deploy backend before frontend.

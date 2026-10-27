@@ -149,8 +149,8 @@ describe("Printing Services API integration", () => {
     const pricing = await screen.findByRole("region", { name: "أسعار الخدمة" });
     expect(within(pricing).getByText("السعر الافتراضي")).toBeTruthy();
     expect(within(pricing).getByText("من 50 – إلى 200")).toBeTruthy();
-    expect(screen.getByText("عدد شرائح الأسعار")).toBeTruthy();
-    expect(within(pricing).getByText(/شريحة الكمية المحددة لها الأولوية/)).toBeTruthy();
+    expect(screen.queryByText("عدد شرائح الأسعار")).toBeNull();
+    expect(within(pricing).getByText(/شرائح الكمية المحددة لها الأولوية/)).toBeTruthy();
   });
 
   it("explains open quantity bounds and warns only about overlapping explicit quantity ranges", async () => {
@@ -173,6 +173,15 @@ describe("Printing Services API integration", () => {
     expect(calls.filter(call => call.method === "post" && call.url === "/printing-services")).toHaveLength(0);
   });
 
+  it("displays zero for an empty base price without the manual pricing summary", async () => {
+    services[0].basePrice = null;
+    visit("/printing-services/11");
+    expect(await screen.findByRole("heading", { name: "كروت شخصية" })).toBeTruthy();
+    expect(screen.getByText("0.00 ج.م")).toBeTruthy();
+    expect(screen.queryByText("تسعير يدوي")).toBeNull();
+    expect(screen.queryByText("عدد شرائح الأسعار")).toBeNull();
+  });
+
   it("shows compact pricing and calculates the suggested price using Laravel", async () => {
     visit("/printing-services/11");
     expect(await screen.findByRole("heading", { name: "كروت شخصية" })).toBeTruthy();
@@ -181,7 +190,7 @@ describe("Printing Services API integration", () => {
     expect(within(section).getByText("سعر الوحدة")).toBeTruthy();
     expect(within(section).getByText("5.50 ج.م")).toBeTruthy();
     expect(screen.getByText("10.00 ج.م")).toBeTruthy();
-    expect(screen.getByText("عدد شرائح الأسعار")).toBeTruthy();
+    expect(screen.queryByText("عدد شرائح الأسعار")).toBeNull();
     expect(screen.getByRole("heading", { name: "حاسبة السعر المقترح" })).toBeTruthy();
     expect(calls.some((c) => c.url === "/printing-services/price-preview")).toBe(false);
 

@@ -47,8 +47,9 @@ const api: AxiosAdapter = async (config) => {
   if (path === "/customers" && config.method === "post") {
     const created: Customer = {
       id: 103, name: String(body.name), phone: String(body.phone),
-      address: body.address ? String(body.address) : null, customerTypeId: Number(body.customerTypeId),
-      customerType: { id: Number(body.customerTypeId), name: "شركة" },
+      address: body.address ? String(body.address) : null,
+      customerTypeId: body.customerTypeId == null ? null : Number(body.customerTypeId),
+      customerType: body.customerTypeId == null ? null : { id: Number(body.customerTypeId), name: "شركة" },
       status: Number(body.status) as 0 | 1, statusLabel: "فعال",
     };
     customers = [...customers, created];
@@ -65,6 +66,8 @@ const api: AxiosAdapter = async (config) => {
     }
     customers = customers.map((c) => c.id === 101 ? {
       ...c, name: String(body.name), phone: String(body.phone), address: body.address === null ? null : String(body.address),
+      customerTypeId: Object.hasOwn(body, "customerTypeId") ? (body.customerTypeId == null ? null : Number(body.customerTypeId)) : c.customerTypeId,
+      customerType: Object.hasOwn(body, "customerTypeId") ? (body.customerTypeId == null ? null : { id: Number(body.customerTypeId), name: "شركة" }) : c.customerType,
     } : c);
     return response(config, null);
   }
@@ -126,6 +129,22 @@ describe("Customers Laravel integration", () => {
       name: "مطبعة الندى", phone: "01112345678", customerTypeId: 21, status: 1, address: null,
     });
     expect(await screen.findByText("مطبعة الندى")).toBeTruthy();
+  });
+
+  it("creates an unclassified customer with null type and renders its label", async () => {
+    visit("/customers");
+    expect(await screen.findByText("أحمد محمد")).toBeTruthy();
+    const u = userEvent.setup();
+    await u.click(screen.getByRole("button", { name: "إضافة عميل" }));
+    await u.type(screen.getByRole("textbox", { name: "اسم العميل" }), "عميل بدون نوع");
+    await u.type(screen.getByRole("textbox", { name: "رقم الهاتف" }), "01111112345");
+    expect(screen.getByRole("combobox", { name: "نوع العميل" })).toHaveProperty("value", "");
+    await u.click(screen.getByRole("button", { name: "إضافة العميل" }));
+    await waitFor(() => expect(requests.some(req => req.method === "post" && req.path === "/customers")).toBe(true));
+    const req = requests.find(req => req.method === "post" && req.path === "/customers");
+    expect(req?.body.customerTypeId).toBeNull();
+    expect(await screen.findByText("عميل بدون نوع")).toBeTruthy();
+    expect(screen.getAllByText("بدون تصنيف").length).toBeGreaterThan(0);
   });
 
   it("maps backend duplicate phone validation below its field", async () => {
