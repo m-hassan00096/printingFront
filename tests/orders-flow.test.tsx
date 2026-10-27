@@ -149,6 +149,40 @@ describe("Orders Laravel API workflow", () => {
     expect(within(cancelledRow!).getByText("متأخر")).toBeTruthy();
   });
 
+  it("renders order creation date in Cairo time and uses a colored production badge", async () => {
+    orders[0] = {...orders[0],createdAt:"2026-10-27T21:15:00Z",
+      productionStatus:1,productionStatusLabel:"في الإنتاج",status:1,statusLabel:"مؤكد"};
+    visit("/orders");
+    const table = await screen.findByRole("table");
+    expect(within(table).getByRole("columnheader", {name:"تاريخ الإنشاء"})).toBeTruthy();
+    expect(within(table).getByText("28/10/2026")).toBeTruthy();
+    const production = within(table).getByText("في الإنتاج");
+    expect(production.closest('[data-slot="badge"]')).toBeTruthy();
+  });
+
+  it("uses themed creation date pickers and persists a server-side inclusive date range in the URL", async () => {
+    visit("/orders?createdFrom=2026-10-28&createdTo=2026-10-30");
+    expect(await screen.findByRole("table")).toBeTruthy();
+    expect(calls.some(c => c.url === "/orders" &&
+      c.query.get("filter[createdFrom]") === "2026-10-28" &&
+      c.query.get("filter[createdTo]") === "2026-10-30")).toBe(true);
+    const from = screen.getByRole("button", {name:"من"});
+    expect(within(from).getByText("28/10/2026")).toBeTruthy();
+    const to = screen.getByRole("button", {name:"إلى"});
+    expect(within(to).getByText("30/10/2026")).toBeTruthy();
+    expect(screen.queryByRole("textbox", {name:"من"})).toBeNull();
+    const user = userEvent.setup();
+    await user.click(from);
+    const calendar = await screen.findByRole("dialog", {name:"اختيار من"});
+    await user.click(within(calendar).getByRole("gridcell", {name:"2026-10-27"}));
+    await waitFor(() => expect(calls.some(c => c.url === "/orders" &&
+      c.query.get("filter[createdFrom]") === "2026-10-27")).toBe(true));
+    await user.click(screen.getByRole("button", {name:"مسح التاريخ"}));
+    await waitFor(() => expect(calls.some(c => c.url === "/orders" &&
+      !c.query.has("filter[createdFrom]") && !c.query.has("filter[createdTo]"))).toBe(true));
+    expect(screen.queryByRole("button", {name:"مسح التاريخ"})).toBeNull();
+  });
+
   it("keeps desktop filters on one row and preserves their form controls", async () => {
     visit("/orders?lateOnly=1");
     expect(await screen.findByRole("table")).toBeTruthy();
