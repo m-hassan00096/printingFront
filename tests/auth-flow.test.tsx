@@ -250,7 +250,7 @@ describe("Auth browser workflows", () => {
     serverUser = { ...initialUser };
     openPage("/orders");
     expect(await screen.findByRole("heading", { name: "الأوردرات", level: 2 })).toBeTruthy();
-    await userEvent.setup().click(screen.getByRole("button", { name: "تسجيل الخروج" }));
+    await userEvent.setup().click(screen.getByRole("button", { name: "تسجيل خروج" }));
     expect(await screen.findByRole("heading", { name: "مرحبًا بعودتك" })).toBeTruthy();
     expect(logoutCalls).toBe(1);
     await act(async () => {

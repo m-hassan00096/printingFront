@@ -178,7 +178,7 @@ export function RoleFormPage() {
             <UsersRound className="size-4" aria-hidden="true" />
           </div>
           <span className="text-xs text-muted-foreground">{copy.usersCount}</span>
-          <strong className="text-sm tabular-nums">{role.data.usersCount.toLocaleString("ar-EG")}</strong>
+          <strong className="text-sm tabular-nums">{role.data.usersCount}</strong>
         </div>}
         {protectedAdmin && <p className="mt-4 flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
           <Info className="size-4" /> صلاحيات مدير النظام للعرض فقط ولا يمكن تغييرها من هنا.
