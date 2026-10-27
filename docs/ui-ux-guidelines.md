@@ -104,3 +104,12 @@ Avoid several primary buttons with equal visual weight. Keep summary metrics onl
 - Keep the real four production stages and real metrics; do not invent revenue trends or demo charts when data isn't available from the existing API.
 - Preserve Laravel API contracts, session authentication, permissions and all order/production/finance flows. Styling work should not change business rules.
 - Verify desktop/mobile with realistic Arabic labels, long order identifiers, menu overlays and clear keyboard/touch focus.
+
+## Printing services: UI/UX and tier-priority explanation (October 27, 2026)
+
+- **Do not alter backend pricing precedence.** The backend `/printing-services/price-preview` result is authoritative. Frontend does not calculate prices or choose a tier.
+- For tier rows where both quantity bounds are empty, the UI labels that tier `السعر الافتراضي` (default/catch-all for that customer type), not “all quantities”. Quantity-specific tier rows have visual priority guidance; the source returned by the API is displayed in the preview.
+- A light advisory warns about overlapping *quantity-bounded* rows of the same customer type. It is informational only (not new validation), excludes a catch-all tier, and does not change the API payload.
+- Distinguish blank `basePrice` (manual pricing fallback) from explicit numeric `0` (free fallback), without changing `null` or `0` values being saved.
+- Show a compact service-level base-price and tier-count summary, visually emphasize the previewed grand total, and keep legacy permissions/gates unchanged.
+- Quantity input labels and backend schema names (`minQuantity`, `maxQuantity`, `price`) remain unchanged.

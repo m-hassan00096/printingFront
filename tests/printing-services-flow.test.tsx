@@ -140,6 +140,39 @@ describe("Printing Services API integration", () => {
     }] });
   });
 
+  it("shows a catch-all tier as a default price and explains its quantity priority", async () => {
+    services[0].priceTiers = [
+      { priceTierId: 501, customerTypeId: 21, minQuantity: null, maxQuantity: null, price: "20.00" },
+      { priceTierId: 502, customerTypeId: 21, minQuantity: 50, maxQuantity: 200, price: "18.00" },
+    ];
+    visit("/printing-services/11");
+    const pricing = await screen.findByRole("region", { name: "أسعار الخدمة" });
+    expect(within(pricing).getByText("السعر الافتراضي")).toBeTruthy();
+    expect(within(pricing).getByText("من 50 – إلى 200")).toBeTruthy();
+    expect(screen.getByText("عدد شرائح الأسعار")).toBeTruthy();
+    expect(within(pricing).getByText(/شريحة الكمية المحددة لها الأولوية/)).toBeTruthy();
+  });
+
+  it("explains open quantity bounds and warns only about overlapping explicit quantity ranges", async () => {
+    visit("/printing-services/new");
+    expect(await screen.findByRole("heading", { name: "إضافة خدمة طباعة" })).toBeTruthy();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "إضافة شريحة" }));
+    await user.selectOptions(screen.getByRole("combobox", { name: "نوع عميل الشريحة 1" }), "21");
+    expect(screen.getByText("السعر الافتراضي")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "إضافة شريحة" }));
+    await user.selectOptions(screen.getByRole("combobox", { name: "نوع عميل الشريحة 2" }), "21");
+    await user.type(screen.getByRole("spinbutton", { name: "الكمية من للشريحة 2" }), "50");
+    await user.type(screen.getByRole("spinbutton", { name: "الكمية إلى للشريحة 2" }), "200");
+    expect(screen.queryByText(/نطاقات كمية متداخلة/)).toBeNull();
+    await user.click(screen.getByRole("button", { name: "إضافة شريحة" }));
+    await user.selectOptions(screen.getByRole("combobox", { name: "نوع عميل الشريحة 3" }), "21");
+    await user.type(screen.getByRole("spinbutton", { name: "الكمية من للشريحة 3" }), "100");
+    await user.type(screen.getByRole("spinbutton", { name: "الكمية إلى للشريحة 3" }), "300");
+    expect(screen.getByText(/نطاقات كمية متداخلة/)).toBeTruthy();
+    expect(calls.filter(call => call.method === "post" && call.url === "/printing-services")).toHaveLength(0);
+  });
+
   it("shows compact pricing and calculates the suggested price using Laravel", async () => {
     visit("/printing-services/11");
     expect(await screen.findByRole("heading", { name: "كروت شخصية" })).toBeTruthy();
@@ -148,6 +181,7 @@ describe("Printing Services API integration", () => {
     expect(within(section).getByText("سعر الوحدة")).toBeTruthy();
     expect(within(section).getByText("5.50 ج.م")).toBeTruthy();
     expect(within(section).getByText("10.00 ج.م")).toBeTruthy();
+    expect(screen.getByText("عدد شرائح الأسعار")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "حاسبة السعر المقترح" })).toBeTruthy();
     expect(calls.some((c) => c.url === "/printing-services/price-preview")).toBe(false);
 
@@ -161,6 +195,7 @@ describe("Printing Services API integration", () => {
     expect(calls.find((c) => c.url === "/printing-services/price-preview")?.body)
       .toEqual({ serviceId: 11, customerTypeId: 21, quantity: 200 });
     expect(await within(screen.getByLabelText("نتيجة معاينة السعر")).findByText(/1100.00/)).toBeTruthy();
+    expect(within(screen.getByLabelText("نتيجة معاينة السعر")).getAllByText("شريحة كمية لنوع العميل").length).toBeGreaterThan(0);
 
     await user.clear(quantity);
     await user.type(quantity, "201");
