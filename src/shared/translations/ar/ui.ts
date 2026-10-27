@@ -1,6 +1,32 @@
 /** Arabic-only UI copy. Future locales can provide the same keys without changing components. */
 export const uiMessages = {
 
+  printingServices: {
+    serviceSummary: "ملخص أسعار الخدمة",
+    basePrice: "السعر الأساسي",
+    tiersCount: "عدد شرائح الأسعار",
+    manualPricing: "تسعير يدوي",
+    defaultTier: "السعر الافتراضي",
+    tierPriorityHelp: "شريحة الكمية المحددة لها الأولوية على السعر الافتراضي لنفس نوع العميل.",
+    emptyBasePrice: "اتركه فارغًا للتسعير اليدوي",
+    zeroBasePrice: "قيمة 0 تعني خدمة مجانية عند عدم انطباق شريحة أسعار.",
+    rangeGroup: "نطاق الكمية",
+    openQuantityHelp: "اترك الحد فارغًا ليكون النطاق مفتوحًا.",
+    quantityPriorityHelp: "شريحة الكمية المحددة لها الأولوية على الشريحة الافتراضية لنفس نوع العميل. إذا لم توجد شريحة مناسبة، يُستخدم السعر الأساسي.",
+    ambiguousRangesWarning: "هناك نطاقات كمية متداخلة لنفس نوع العميل. يُفضّل فصل النطاقات المحددة لتجنّب الالتباس عند التسعير.",
+    unitPrice: "سعر الوحدة",
+    priceSource: "مصدر السعر",
+    previewTotal: "الإجمالي المقترح",
+    unspecified: "غير محدد",
+    manualPreviewHelp: "لا يوجد سعر مناسب لهذا النوع والكمية. حدّد الإجمالي يدويًا عند إنشاء الأوردر.",
+    previewSources: {
+      customerTypeQuantityTier: "شريحة كمية لنوع العميل",
+      customerTypeCatchAll: "السعر الافتراضي لنوع العميل",
+      genericQuantityTier: "شريحة كمية عامة",
+      genericCatchAll: "السعر الافتراضي العام",
+      basePrice: "السعر الأساسي للخدمة",
+    },
+  },
   roles: {
     selectedOnly: "المحددة فقط",
     showAll: "كل الصلاحيات",

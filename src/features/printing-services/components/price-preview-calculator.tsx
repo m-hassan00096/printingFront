@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { Calculator, LoaderCircle } from "lucide-react";
+import { Calculator, CircleAlert, LoaderCircle } from "lucide-react";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { Button } from "@/shared/components/ui/button";
 import { getApiErrorMessage } from "@/shared/api/http";
 import { useCustomerTypes } from "@/features/customers/hooks/use-customers";
@@ -7,13 +8,7 @@ import { fieldClass } from "@/features/identity/components/identity-ui";
 import { usePrintingServiceMutations } from "../hooks/use-printing-services";
 import type { PricePreview } from "../types/printing-service.types";
 
-const sourceLabels: Record<NonNullable<PricePreview["source"]>, string> = {
-  customerTypeQuantityTier: "شريحة كمية مخصصة لنوع العميل",
-  customerTypeCatchAll: "شريحة عامة مخصصة لنوع العميل",
-  genericQuantityTier: "شريحة كمية عامة",
-  genericCatchAll: "الشريحة العامة",
-  basePrice: "السعر الأساسي",
-};
+const sourceLabels: Record<NonNullable<PricePreview["source"]>, string> = uiMessages.printingServices.previewSources;
 
 export function PricePreviewCalculator({ serviceId, active }: { serviceId: number; active: boolean }) {
   const [customerTypeId, setCustomerTypeId] = useState("");
@@ -83,20 +78,36 @@ export function PricePreviewCalculator({ serviceId, active }: { serviceId: numbe
         </p>}
         {previewError && <p role="alert" className="text-sm text-destructive">{previewError}</p>}
         {result && <div aria-label="نتيجة معاينة السعر" role="status"
-          className="rounded-lg border bg-muted/40 px-4 py-3">
-          {result.requiresManualTotal ? <p className="text-sm font-medium">
-            لا يوجد سعر محدد لهذا النوع والكمية؛ أدخل إجمالي السعر يدويًا عند إنشاء الأوردر.
-          </p> : <div className="grid gap-3 sm:grid-cols-3">
-            <div><p className="text-xs text-muted-foreground">مصدر السعر</p>
-              <p className="mt-1 text-sm font-semibold">{result.source ? sourceLabels[result.source] : "غير محدد"}</p>
-            </div>
-            <div><p className="text-xs text-muted-foreground">سعر الوحدة</p>
-              <p className="mt-1 text-base font-bold tabular-nums" dir="ltr">{result.suggestedUnitPrice} ج.م</p>
-            </div>
-            <div><p className="text-xs text-muted-foreground">الإجمالي المقترح</p>
-              <p className="mt-1 text-xl font-extrabold tabular-nums" dir="ltr">{result.suggestedTotal} ج.م</p>
-            </div>
-          </div>}
+          className="overflow-hidden rounded-xl border border-primary/10 bg-[#f8f9ff]">
+          {result.requiresManualTotal
+            ? <div className="flex items-start gap-3 p-4">
+                <CircleAlert className="mt-0.5 size-5 shrink-0 text-[#ad7519]" aria-hidden="true" />
+                <div>
+                  <p className="font-bold">{uiMessages.printingServices.manualPricing}</p>
+                  <p className="mt-1 text-xs leading-6 text-muted-foreground">{uiMessages.printingServices.manualPreviewHelp}</p>
+                </div>
+              </div>
+            : <div className="space-y-3 p-4 sm:p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground">{uiMessages.printingServices.previewTotal}</p>
+                    <p className="mt-1 text-2xl font-extrabold text-[#253050]" dir="ltr">{result.suggestedTotal} ج.م</p>
+                  </div>
+                  {result.source && <span className="rounded-lg border border-primary/15 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary">
+                    {sourceLabels[result.source]}
+                  </span>}
+                </div>
+                <div className="grid gap-3 border-t pt-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">{uiMessages.printingServices.unitPrice}</p>
+                    <p className="mt-1 text-sm font-bold tabular-nums" dir="ltr">{result.suggestedUnitPrice} ج.م</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">{uiMessages.printingServices.priceSource}</p>
+                    <p className="mt-1 text-sm font-semibold">{result.source ? sourceLabels[result.source] : uiMessages.printingServices.unspecified}</p>
+                  </div>
+                </div>
+              </div>}
         </div>}
       </form>}
   </section>;
