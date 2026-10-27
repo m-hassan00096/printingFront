@@ -188,7 +188,7 @@ describe("Identity feature browser workflows", () => {
     expect(await screen.findByText("عرض المستخدمين")).toBeTruthy();
     const user = userEvent.setup();
     await user.type(screen.getByPlaceholderText("ابحث عن صلاحية..."), "إنشاء");
-    await user.click(screen.getByRole("button", { name: "تحديد الظاهر" }));
+    await user.click(screen.getByRole("button", { name: "تحديد مجموعة الأوردرات" }));
     await user.click(screen.getByRole("button", { name: "حفظ الدور" }));
     await waitFor(() => expect(requests.some((r) => r.path === "/roles/2" && r.method === "patch")).toBe(true));
     expect(requests.find((r) => r.path === "/roles/2" && r.method === "patch")!.data)

@@ -70,9 +70,9 @@ export function RolesPage() {
       list.data.roles.length === 0 ? <EmptyState detail="لم يتم العثور على أدوار بهذه المعايير." /> :
       <>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[650px] text-right text-sm">
+          <table className="w-full min-w-[740px] text-right text-sm">
             <thead className="bg-muted/50 text-xs text-muted-foreground"><tr>
-              {["اسم الدور", "المستخدمون", "الحالة", "الإجراءات"].map((h) => <th key={h} scope="col" className="px-5 py-4 font-bold">{h}</th>)}
+              {["اسم الدور", "المستخدمون", "الصلاحيات", "الحالة", "الإجراءات"].map((h) => <th key={h} scope="col" className="px-5 py-4 font-bold">{h}</th>)}
             </tr></thead>
             <tbody className="divide-y">
               {list.data.roles.map((role) => <tr key={role.id} className="hover:bg-muted/30">
@@ -81,6 +81,9 @@ export function RolesPage() {
                   <p className="font-bold">{role.name}</p>
                 </div></td>
                 <td className="px-5 py-4 text-muted-foreground">{role.usersCount.toLocaleString("ar-EG")}</td>
+                <td className="px-5 py-4 text-muted-foreground" title={role.permissionIds ? "عدد صلاحيات الدور" : "عدد الصلاحيات غير متاح في قائمة الأدوار"}>
+                  {role.permissionIds ? role.permissionIds.length.toLocaleString("ar-EG") : "—"}
+                </td>
                 <td className="px-5 py-4"><IdentityStatus status={role.status} label={role.statusLabel} /></td>
                 <td className="px-5 py-4"><div className="flex items-center gap-1">
                   {permissions.includes("identity.roles.update") && <Button asChild size="icon-sm" variant="ghost" title="تعديل الدور">

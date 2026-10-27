@@ -121,7 +121,7 @@ describe("Settings permissions and backend integration", () => {
     permissions = ["settings.bank_accounts.view"];
     visit("/settings");
     expect(await screen.findByText("البنك الأهلي")).toBeTruthy();
-    expect(screen.queryByRole("tab", { name: /أماكن الطباعة/ })).toBeNull();
+    expect(screen.queryByRole("tab", { name: /المطابع/ })).toBeNull();
     expect(screen.queryByRole("tab", { name: /المحافظ الإلكترونية/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "إضافة حساب بنكي" })).toBeNull();
     expect(screen.queryByRole("button", { name: /تعديل البنك الأهلي/ })).toBeNull();
