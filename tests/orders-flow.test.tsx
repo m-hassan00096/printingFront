@@ -231,7 +231,7 @@ describe("Orders Laravel API workflow", () => {
 
   it("creates a draft with registered customer, agreed total, source enum and idempotency key", async () => {
     visit("/orders/new");
-    expect(await screen.findByRole("heading",{name:"إضافة أوردر"})).toBeTruthy();
+    expect((await screen.findAllByRole("heading",{name:"إضافة أوردر"})).length).toBeGreaterThan(0);
     const user=userEvent.setup();
     await user.click(await screen.findByRole("combobox",{name:"اختيار العميل"}));
     await user.click(await screen.findByRole("option", { name: /أحمد - 01012345678/ }));
