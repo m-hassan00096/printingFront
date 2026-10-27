@@ -12,10 +12,10 @@ import type { ProductionAction, ProductionItem, SelectOption } from "../types/pr
 export function StagePill({ stage }: { stage: number }) {
   const config = ({
     0:["لم يبدأ","bg-muted text-muted-foreground"],
-    1:["قيد التصميم","bg-primary/10 text-[#A5ACFF]"],
-    2:["تم التصميم","bg-[#3DD68C]/10 text-[#3DD68C]"],
-    3:["في الطباعة","bg-primary/10 text-[#A5ACFF]"],
-    4:["جاهز للتسليم","bg-[#3DD68C]/15 text-[#3DD68C]"],
+    1:["قيد التصميم","bg-primary/10 text-[#4d5ac6]"],
+    2:["تم التصميم","bg-[#e5f7ee] text-[#147c58]"],
+    3:["في الطباعة","bg-primary/10 text-[#4d5ac6]"],
+    4:["جاهز للتسليم","bg-[#dff6eb] text-[#147c58]"],
   } as Record<number,[string,string]>)[stage] ?? ["غير معروف","bg-muted text-foreground"];
   return <span className={`inline-flex items-center rounded-sm border border-border px-2 py-0.5 text-[11px] font-semibold ${config[1]}`}>{config[0]}</span>;
 }
@@ -68,7 +68,7 @@ export function ProductionActionDialog({ intent, busy, onClose, onConfirm }: {
     try {await onConfirm(requiresLocation?Number(locationId):undefined);}
     catch(e:unknown){setError(getApiErrorMessage(e,"تعذّر تنفيذ العملية. حاول مرة أخرى."));}
   }
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-4">
     <section role="dialog" aria-modal="true" aria-label={modalTitles[intent.action]}
       className="w-full max-w-md space-y-4 rounded-lg bg-card p-5 shadow-xl sm:p-6"
       onKeyDown={(e)=>{if(e.key==="Escape"&&!busy)onClose();}}>
@@ -84,7 +84,7 @@ export function ProductionActionDialog({ intent, busy, onClose, onConfirm }: {
           <X className="size-4"/>
         </Button>
       </div>
-      {intent.action==="undo" && <p className="rounded-xl bg-[#F0C000]/10 p-3 text-sm text-[#F0C000]">
+      {intent.action==="undo" && <p className="rounded-xl bg-[#fff5df] p-3 text-sm text-[#a36a0d]">
         سيتم إرجاع العنصر خطوة حسب قواعد الإنتاج، مع الحفاظ على سجل الحركات.
         {intent.item?.productionStage===3 && " سيعود للتصميم من أجل إعادة العمل."}
       </p>}
@@ -122,7 +122,7 @@ export function ProductionDetailDialog({ item, onClose }: { item:ProductionItem;
   const canViewOrder=permissions.includes("orders.view");
   const history=useProductionHistory(item.id,page,tab==="history"&&canHistory);
   const itemDetails=useProductionItemDetails(item.id,tab==="details");
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-4">
     <section role="dialog" aria-modal="true" aria-label="تفاصيل عنصر الإنتاج"
       onKeyDown={(e)=>{if(e.key==="Escape")onClose();}}
       className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-lg bg-card shadow-xl">

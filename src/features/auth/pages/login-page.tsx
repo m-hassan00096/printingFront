@@ -48,11 +48,11 @@ export function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-screen bg-background lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)]">
+    <main className="grid min-h-screen bg-white lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)]">
       <div className="flex min-h-screen flex-col justify-center px-5 py-10 sm:px-12 lg:px-16 xl:px-24">
         <div className="mx-auto w-full max-w-[430px]">
           <div className="mb-10 flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/15 text-[#ADB3FF] ">
+            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-[#4d5ac6] ">
               <Printer className="size-6" aria-hidden="true" />
             </div>
             <div>
@@ -63,7 +63,7 @@ export function LoginPage() {
 
           <div className="mb-9 space-y-3">
             <span className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-semibold text-muted-foreground">
-              <ShieldCheck className="size-3.5 text-[#3DD68C]" aria-hidden="true" />
+              <ShieldCheck className="size-3.5 text-[#147c58]" aria-hidden="true" />
               دخول آمن لمساحة العمل
             </span>
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">مرحبًا بعودتك</h1>
@@ -74,7 +74,7 @@ export function LoginPage() {
 
           <form onSubmit={handleSubmit(submit)} noValidate className="space-y-6">
             {serverError && (
-              <div role="alert" className="rounded-xl border border-[#EB5757]/30 bg-[#EB5757]/10 p-3.5 text-sm leading-6 text-[#EB5757]">
+              <div role="alert" className="rounded-xl border border-[#efbec6] bg-[#fff0f2] p-3.5 text-sm leading-6 text-[#c8384a]">
                 {serverError}
               </div>
             )}
@@ -140,32 +140,32 @@ export function LoginPage() {
         </div>
       </div>
 
-      <aside className="relative hidden min-h-screen flex-col justify-between overflow-hidden bg-[#1B1B25] p-10 text-white lg:flex xl:p-16" aria-label="عن طَبعة">
-        <div className="pointer-events-none absolute -top-32 -left-20 size-96 rounded-full border border-border" aria-hidden="true" />
-        <div className="pointer-events-none absolute top-16 -left-28 size-[30rem] rounded-full border border-border" aria-hidden="true" />
-        <div className="relative z-10 flex items-center gap-2 text-xs font-semibold text-[#A5ACFF]">
+      <aside className="relative hidden min-h-screen flex-col justify-between overflow-hidden bg-gradient-to-bl from-[#eff1ff] via-[#f5f6ff] to-[#f8f9fe] p-10 text-foreground lg:flex xl:p-16" aria-label="عن طَبعة">
+        <div className="pointer-events-none absolute -top-32 -left-20 size-96 rounded-full border border-[#d6ddfa]" aria-hidden="true" />
+        <div className="pointer-events-none absolute top-16 -left-28 size-[30rem] rounded-full border border-[#d6ddfa]" aria-hidden="true" />
+        <div className="relative z-10 flex items-center gap-2 text-xs font-semibold text-[#4d5ac6]">
           <span className="size-2 rounded-full bg-[#A5ACFF]" aria-hidden="true" />
           مساحة العمل
         </div>
 
         <div className="relative z-10 max-w-lg space-y-10">
-          <div className="flex size-14 items-center justify-center rounded-lg border border-border bg-card/10">
-            <Printer className="size-7 text-[#A5ACFF]" aria-hidden="true" />
+          <div className="flex size-14 items-center justify-center rounded-lg border border-border bg-white/75">
+            <Printer className="size-7 text-[#4d5ac6]" aria-hidden="true" />
           </div>
           <div className="space-y-5">
             <h2 className="text-[clamp(2rem,3.2vw,3.5rem)] leading-[1.45] font-extrabold">
               من أول طلب،<br />
               لحد آخر تسليم.
             </h2>
-            <p className="max-w-md text-base leading-9 text-[#B8BBCB]">
+            <p className="max-w-md text-base leading-9 text-[#646e8d]">
               كل مرحلة واضحة، وكل عملية في مكانها. مساحة واحدة تخلّي فريقك مركز على الشغل المهم.
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 rounded-lg border border-white/15 bg-card/5 p-4 backdrop-blur-sm sm:gap-3 sm:p-5">
+          <div className="grid grid-cols-3 gap-2 rounded-lg border border-[#d9def8] bg-white/65 p-4 backdrop-blur-sm sm:gap-3 sm:p-5">
             {["الطلبات", "الإنتاج", "التسليم"].map((step, index) => (
               <div key={step} className="flex flex-col items-center gap-3 rounded-xl bg-card/5 py-4">
-                <span className="flex size-9 items-center justify-center rounded-full border border-[#A5ACFF]/25 bg-[#A5ACFF]/10 text-sm font-extrabold text-[#A5ACFF]">
+                <span className="flex size-9 items-center justify-center rounded-full border border-[#A5ACFF]/25 bg-[#A5ACFF]/10 text-sm font-extrabold text-[#4d5ac6]">
                   {index + 1}
                 </span>
                 <span className="text-sm font-bold">{step}</span>
@@ -174,7 +174,7 @@ export function LoginPage() {
           </div>
         </div>
 
-        <p className="relative z-10 text-xs text-[#9BA0AB]">نظام إدارة الطباعة · واجهة عربية سهلة الاستخدام</p>
+        <p className="relative z-10 text-xs text-[#8894ac]">نظام إدارة الطباعة · واجهة عربية سهلة الاستخدام</p>
       </aside>
     </main>
   );

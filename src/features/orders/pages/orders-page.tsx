@@ -58,8 +58,8 @@ export function OrdersPage() {
   return <div className="space-y-6">
     <SectionHeader title="الأوردرات" detail="متابعة الطلبات والعملاء ومراحل الإنتاج والتسليم."
       actions={perms.includes("orders.create") && <Button asChild><Link to="/orders/new"><Plus /> إضافة أوردر</Link></Button>} />
-    <section className="overflow-hidden rounded-lg border bg-card ">
-      <div className="flex flex-wrap items-center gap-3 border-b p-4">
+    <section className="overflow-hidden rounded-xl border border-[#e8eaf2] bg-white shadow-[0_6px_20px_#26396b08]">
+      <div className="flex flex-wrap items-center gap-3 border-b bg-white p-5">
         <SearchField value={draftSearch} onChange={setDraftSearch} placeholder="رقم الأوردر، العميل أو الهاتف" />
         <label className="text-xs font-bold">الحالة
           <select aria-label="حالة الأوردر" className={fieldClass + " mt-1 w-32"} value={filters.status} onChange={(e) => setFilter("status", e.target.value)}>
@@ -95,11 +95,11 @@ export function OrdersPage() {
           <div className="overflow-x-auto"><table className="w-full min-w-[950px] text-right text-sm">
             <thead className="bg-muted/50 text-xs text-muted-foreground"><tr>
               {["الأوردر", "العميل", "الهاتف", "الإجمالي", "الحالة", "الإنتاج", "التسليم", "الإجراءات"].map((label) =>
-                <th scope="col" key={label} className="px-4 py-3 font-bold">{label}</th>)}
+                <th scope="col" key={label} className="px-4 py-3 font-semibold">{label}</th>)}
             </tr></thead>
             <tbody className="divide-y">{orders.data.orders.map((order) => <tr key={order.id} className="hover:bg-muted/30">
               <td className="px-4 py-3">{perms.includes("orders.view") ?
-                <Link className="flex items-center gap-2 font-mono text-xs font-medium text-[#A5ACFF] hover:underline" to={`/orders/${order.id}`}>
+                <Link className="flex items-center gap-2 font-mono text-xs font-semibold text-primary hover:underline" to={`/orders/${order.id}`}>
                   <ClipboardList className="size-4 text-primary" /> {order.orderNumber ?? `مسودة #${order.id}`}
                 </Link> :
                 <span className="inline-flex items-center gap-2 font-mono text-xs font-medium"><ClipboardList className="size-4 text-primary" />

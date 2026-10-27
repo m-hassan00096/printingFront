@@ -31,7 +31,7 @@ function ReadyCard({ order, canViewOrder, onPreview }: {
         <p className="text-xs text-muted-foreground" dir="ltr">{order.customerPhone}</p>
       </div>
       <span className={"rounded-full px-2.5 py-1 text-xs font-bold " +
-        (order.isReadyForDelivery?"bg-[#3DD68C]/10 text-[#3DD68C]":"bg-[#F0C000]/10 text-[#F0C000]")}>
+        (order.isReadyForDelivery?"bg-[#e5f7ee] text-[#147c58]":"bg-[#fff5df] text-[#a36a0d]")}>
         {order.isReadyForDelivery?"جاهز بالكامل":"جاهز جزئيًا"}
       </span>
     </header>
@@ -51,7 +51,7 @@ function ReadyCard({ order, canViewOrder, onPreview }: {
       <div className="space-y-2 border-t pt-3">
         {order.items.map(item=><div key={item.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
           <span className="min-w-0 truncate font-semibold">{item.serviceName} · كمية {item.quantity.toLocaleString("en-US")}</span>
-          <span className={item.productionStage===4?"text-[#3DD68C]":"text-[#F0C000]"}>
+          <span className={item.productionStage===4?"text-[#147c58]":"text-[#a36a0d]"}>
             {item.productionStageLabel}
           </span>
         </div>)}
@@ -61,7 +61,7 @@ function ReadyCard({ order, canViewOrder, onPreview }: {
           <Button type="button" size="sm" onClick={()=>onPreview(order.orderId)}>
             <ClipboardCheck className="size-4"/> تسليم الأوردر
           </Button>}
-        {!order.isReadyForDelivery && <p className="text-xs font-semibold text-[#F0C000]">
+        {!order.isReadyForDelivery && <p className="text-xs font-semibold text-[#a36a0d]">
           التسليم متاح بعد جاهزية كل المنتجات.
         </p>}
         {canViewOrder && <Button asChild type="button" size="sm" variant="outline">
@@ -198,7 +198,7 @@ export function DeliveriesPage() {
                 <td className="px-3 py-3"><MoneyAmount amount={record.effectiveReceivedAmount}/></td>
                 <td className="whitespace-nowrap px-3 py-3">{dateTime(record.deliveredAt)}</td>
                 <td className="px-3 py-3"><span className={"rounded-full px-2 py-1 text-xs font-bold " +
-                  (record.status===1?"bg-[#3DD68C]/10 text-[#3DD68C]":"bg-[#EB5757]/10 text-rose-800")}>{record.statusLabel}</span></td>
+                  (record.status===1?"bg-[#e5f7ee] text-[#147c58]":"bg-[#fff0f2] text-rose-800")}>{record.statusLabel}</span></td>
                 <td className="px-3 py-3">{canViewDelivery &&
                   <Button type="button" variant="outline" size="sm" onClick={()=>setDetails(record.id)}>
                     <Eye className="size-4"/> التفاصيل

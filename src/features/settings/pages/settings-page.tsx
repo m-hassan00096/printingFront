@@ -89,7 +89,7 @@ function cleanedForm(kind: SettingsKind, form: SettingsPayload): SettingsPayload
 }
 function Status({ value }: { value: 0 | 1 }) {
   return <span className={value === 1
-    ? "inline-flex rounded-full bg-[#3DD68C]/10 px-3 py-1 text-xs font-bold text-[#3DD68C]"
+    ? "inline-flex rounded-full bg-[#e5f7ee] px-3 py-1 text-xs font-bold text-[#147c58]"
     : "inline-flex rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground"}>
     {value === 1 ? "نشط" : "غير نشط"}
   </span>;
@@ -97,11 +97,11 @@ function Status({ value }: { value: 0 | 1 }) {
 function ModalFrame({ title, onClose, busy, children }: {
   title: string; onClose: () => void; busy: boolean; children: React.ReactNode;
 }) {
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-4"
     onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}>
     <section role="dialog" aria-modal="true" aria-label={title}
       onKeyDown={(e) => { if (e.key === "Escape" && !busy) onClose(); }}
-      className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-card p-6 shadow-[0_24px_48px_#0006]">
+      className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-card p-6 shadow-[0_20px_48px_#27396b22]">
       <div className="mb-5 flex items-center justify-between">
         <h3 className="text-xl font-extrabold">{title}</h3>
         <Button type="button" size="icon-sm" variant="ghost" onClick={onClose} disabled={busy} aria-label="إغلاق"><X /></Button>
@@ -314,7 +314,7 @@ export function SettingsPage() {
           تعيين كوسيلة دفع افتراضية
           <FieldError field="isDefault" errors={fieldErrors} />
         </label>}
-        {savingError && <p role="alert" className="rounded-xl border border-[#EB5757]/30 bg-[#EB5757]/10 p-3 text-sm text-[#EB5757]">{savingError}</p>}
+        {savingError && <p role="alert" className="rounded-xl border border-[#efbec6] bg-[#fff0f2] p-3 text-sm text-[#c8384a]">{savingError}</p>}
         <div className="flex justify-end gap-2 border-t pt-4">
           <Button type="button" variant="outline" disabled={busy} onClick={() => setForm(null)}>إلغاء</Button>
           <Button type="submit" disabled={busy}>{busy && <LoaderCircle className="size-4 animate-spin" />}حفظ</Button>

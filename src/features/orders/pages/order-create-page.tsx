@@ -421,7 +421,7 @@ export function OrderCreatePage() {
               {message("paymentDestinationId")}
             </div>}
           </div>}
-          {allPriced && overpaymentCents > 0 && <label className="flex items-start gap-2 rounded-xl border border-[#F0C000]/40 bg-[#F0C000]/10 p-3 text-sm">
+          {allPriced && overpaymentCents > 0 && <label className="flex items-start gap-2 rounded-xl border border-[#f2d99b] bg-[#fff5df] p-3 text-sm">
             <input type="checkbox" checked={overpaymentAccepted} onChange={(e) => {setOverpaymentAccepted(e.target.checked);clear("overpayment");}}
               aria-label="تأكيد الزيادة عن قيمة الأوردر" />
             <span>المدفوع أعلى من إجمالي الأوردر بـ <MoneyAmount amount={overpaymentCents / 100} />.

@@ -235,7 +235,7 @@ export function OrderDetailPage() {
     {deleteItem && <ConfirmDialog title="حذف عنصر" description="سيُحذف العنصر من المسودة وستُؤرشف ملفاته. لا يمكن حذف آخر عنصر."
       confirmText="حذف العنصر" destructive busy={actions.removeItem.isPending}
       onClose={() => setDeleteItem(null)} onConfirm={() => void removeItem()} />}
-    {paymentDialog && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+    {paymentDialog && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-4">
       <section role="dialog" aria-modal="true" aria-label={paymentDialog === "plan" ? "تعديل بيانات العربون" : "تأكيد الأوردر"}
         className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-lg bg-card p-5 shadow-xl sm:p-6">
         <header className="flex items-start justify-between gap-3">
@@ -318,7 +318,7 @@ export function OrderDetailPage() {
               <strong><MoneyAmount amount={Math.max(0, Number(item.totalAmount) - Number(deposit))} /></strong>
             </div>
           </div>
-          {Number(deposit) > Number(item.totalAmount) && <label className="flex items-start gap-2 rounded-xl border border-[#F0C000]/40 p-3 text-xs">
+          {Number(deposit) > Number(item.totalAmount) && <label className="flex items-start gap-2 rounded-xl border border-[#f2d99b] p-3 text-xs">
             <input type="checkbox" checked={overpaymentAcknowledged}
               onChange={(e) => {setOverpaymentAcknowledged(e.target.checked);setError("");}}
               aria-label="تأكيد الزيادة عن قيمة الأوردر" />
@@ -348,7 +348,7 @@ export function OrderDetailPage() {
         </>}
       </section>
     </div>}
-    {cancelOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+    {cancelOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-4">
       <section role="dialog" aria-modal="true" aria-label="إلغاء الأوردر" className="w-full max-w-md space-y-4 rounded-lg bg-card p-6">
         <h2 className="font-bold">سبب الإلغاء</h2>
         <textarea aria-label="سبب إلغاء الأوردر" className={fieldClass + " min-h-24 py-2"} value={reason} onChange={(e) => setReason(e.target.value)} />

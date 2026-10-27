@@ -160,8 +160,8 @@ export function FinancePage() {
                 ? <p className="text-sm text-foreground/65">جاري تحميل الرصيد...</p>
                 : actualBalance && balanceReady
                   ? <div className={"text-base font-semibold tabular-nums " +
-                    (actualBalance.type === 1 ? "text-[#EB5757]" :
-                    actualBalance.type === 2 ? "text-[#3DD68C]" : "text-foreground")}>
+                    (actualBalance.type === 1 ? "text-[#c8384a]" :
+                    actualBalance.type === 2 ? "text-[#147c58]" : "text-foreground")}>
                       <span className="me-2 text-sm">{actualBalance.typeLabel}</span>
                       <MoneyAmount amount={actualBalance.amount}/>
                     </div>
@@ -234,7 +234,7 @@ export function FinancePage() {
                       <td className="px-3 py-3 font-semibold">{!credit ? <MoneyAmount amount={entry.amount}/> : "—"}</td>
                       <td className="px-3 py-3 font-semibold">{credit ? <MoneyAmount amount={entry.amount}/> : "—"}</td>
                       <td className={"whitespace-nowrap px-3 py-3 font-bold tabular-nums " +
-                        (entry.runningBalance.type === 1 ? "text-[#EB5757]" : entry.runningBalance.type === 2 ? "text-[#3DD68C]" : "text-foreground")}>
+                        (entry.runningBalance.type === 1 ? "text-[#c8384a]" : entry.runningBalance.type === 2 ? "text-[#147c58]" : "text-foreground")}>
                         {entry.runningBalance.typeLabel} · <MoneyAmount amount={entry.runningBalance.amount}/>
                       </td>
                       <td className="px-3 py-3">{entry.orderId && canViewOrders ?

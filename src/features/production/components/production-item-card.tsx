@@ -70,7 +70,7 @@ export function ProductionItemCard({item,permissions,selected,busy,onSelect,onAc
       window.removeEventListener("keydown",keydown);
     };
   },[expanded,canChangeLocation,canUndo]);
-  return <article aria-label={`عنصر ${item.serviceName}`} className="space-y-2.5 border-t border-border px-3 py-3 transition-colors duration-100 first:border-t-0 hover:bg-muted/35">
+  return <article aria-label={`عنصر ${item.serviceName}`} className="space-y-2.5 border-t border-border px-3 py-3 transition-colors duration-100 first:border-t-0 hover:bg-[#fafbff]">
     <div className="flex flex-wrap items-start justify-between gap-2">
       <div className="min-w-0 space-y-1">
         <p className="truncate text-[13px] font-semibold">{item.serviceName}</p>
@@ -79,7 +79,7 @@ export function ProductionItemCard({item,permissions,selected,busy,onSelect,onAc
       </div>
       <StagePill stage={stage}/>
     </div>
-    {(stage===1 || completed) && <div className="rounded-md border border-border bg-muted/60 px-2.5 py-2"
+    {(stage===1 || completed) && <div className="rounded-md border border-[#e8eaf4] bg-[#f7f8fd] px-2.5 py-2"
       aria-label="مسؤول التصميم">
       <div className="flex min-w-0 items-center gap-2">
         <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-card text-primary"

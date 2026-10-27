@@ -58,26 +58,26 @@ function ProductionColumn({ column, filters, page, onPage, count, countLoading,
     groups.set(item.orderId,group);
   }
   const label=PRODUCTION_COLUMNS.find(x=>x.id===column)?.label ?? "مرحلة";
-  return <section aria-label={`عمود ${label}`} className={`min-w-0 rounded-lg border bg-card/40 ${visible?"block":"hidden lg:block"}`}>
-    <header className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t-lg border-b bg-card px-3 py-3">
+  return <section aria-label={`عمود ${label}`} className={`min-w-0 rounded-xl border border-[#e6e9f3] bg-[#f8f9fd] shadow-[0_4px_20px_#27396b08] ${visible?"block":"hidden lg:block"}`}>
+    <header className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t-xl border-b border-[#e6e9f3] bg-white px-4 py-3">
       <h3 className="text-sm font-bold">{label}</h3>
-      <span className="min-w-7 rounded-full bg-card px-2 py-1 text-center text-xs font-bold tabular-nums"
+      <span className="min-w-7 rounded-md bg-[#edf0ff] px-2 py-1 text-primary text-center text-xs font-bold tabular-nums"
         aria-label={`عدد عناصر ${label}`}>{countLoading?"…":count??"—"}</span>
     </header>
     <div className="space-y-2 p-2.5">
       {result.isPending ? <LoadingState/> : result.isError ?
         <ErrorState error={result.error} retry={()=>void result.refetch()}/> :
         groups.size===0 ?
-          <div className="rounded-lg border border-dashed bg-card p-5 text-center text-xs text-muted-foreground">
+          <div className="rounded-lg border border-dashed border-[#dfe3ef] bg-white p-6 text-center text-xs text-muted-foreground">
             لا توجد عناصر في هذه المرحلة.
           </div> :
         [...groups.entries()].map(([orderId,items])=>
-          <div key={orderId} className="overflow-hidden rounded-lg border bg-card ">
+          <div key={orderId} className="overflow-hidden rounded-lg border border-[#e6e9f3] bg-white shadow-[0_2px_9px_#26396b07]">
             <header className="space-y-0.5 border-b bg-card px-3 py-2.5">
-              <p className="font-mono text-xs font-medium text-[#A5ACFF]" dir="auto">{items[0].orderNumber}</p>
+              <p className="font-mono text-xs font-medium text-primary" dir="auto">{items[0].orderNumber}</p>
               <p className="truncate text-xs font-semibold" title={items[0].customerName}>{items[0].customerName}</p>
               <p className="text-xs text-muted-foreground">{items[0].customerPhone}</p>
-              {items[0].isLate && <span className="inline-flex rounded-full bg-[#EB5757]/10 px-2 py-0.5 text-xs font-bold text-[#EB5757]">متأخر</span>}
+              {items[0].isLate && <span className="inline-flex rounded-full bg-[#fff0f2] px-2 py-0.5 text-xs font-bold text-[#c8384a]">متأخر</span>}
               {items[0].dueDate && <p className="text-xs text-muted-foreground">التسليم: {items[0].dueDate}</p>}
             </header>
             {items.map(item=><ProductionItemCard key={item.id} item={item} permissions={permissions}
@@ -176,7 +176,7 @@ export function ProductionPage() {
         onClick={()=>{
           void qc.invalidateQueries({queryKey:["production"]});
         }}><RotateCw className="size-4"/> تحديث</Button>}/>
-    <section aria-label="فلاتر الإنتاج" className="space-y-2 rounded-lg border bg-card p-3  sm:p-4">
+    <section aria-label="فلاتر الإنتاج" className="space-y-3 rounded-xl border bg-white p-4 shadow-[0_5px_18px_#26396b08] sm:p-5">
       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(240px,1.4fr)_repeat(3,minmax(155px,1fr))]">
         <label className="relative block">
           <span className="sr-only">البحث في الإنتاج</span>
@@ -218,7 +218,7 @@ export function ProductionPage() {
         <button className="mr-2 underline" type="button" onClick={()=>void selects.refetch()}>إعادة المحاولة</button>
       </div>}
     </section>
-    {can("production.summary.view") && summary.data && <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+    {can("production.summary.view") && summary.data && <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       {[
         ["لم يبدأ",summary.data.notStartedCount],
         ["تصميم جارٍ",summary.data.designInProgressCount],
@@ -226,7 +226,7 @@ export function ProductionPage() {
         ["في الطباعة",summary.data.printingCount],
         ["جاهز للتسليم",summary.data.readyCount],
         ["أوردرات متأخرة",summary.data.lateOrdersCount],
-      ].map(([label,n])=><div key={label} className="rounded-lg border bg-card p-3 ">
+      ].map(([label,n])=><div key={label} className="rounded-xl border border-[#e8eaf2] bg-white p-4 shadow-[0_3px_12px_#27396b07]">
         <p className="text-xs text-muted-foreground">{label}</p>
         <p className="mt-1 text-xl font-bold tabular-nums">{n}</p>
       </div>)}
@@ -249,7 +249,7 @@ export function ProductionPage() {
       </select>
     </div>
     <div className="overflow-x-auto">
-      <div className="grid min-w-0 gap-3 lg:min-w-[1120px] lg:grid-cols-4">
+      <div className="grid min-w-0 gap-4 lg:min-w-[1120px] lg:grid-cols-4">
         {PRODUCTION_COLUMNS.map(column=><ProductionColumn key={column.id} column={column.id}
           filters={filters} page={pages[column.id]} onPage={page=>setPages(previous=>({...previous,[column.id]:page}))}
           count={summaryCounts(summary.data,column.id)}
