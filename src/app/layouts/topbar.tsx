@@ -1,6 +1,7 @@
 import { LoaderCircle, LogOut, Menu, PanelRightClose, PanelRightOpen, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CommandPalette } from "@/app/layouts/command-palette";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
@@ -68,8 +69,8 @@ export function Topbar({ title }: TopbarProps) {
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-        <button type="button" onClick={() => setCommandOpen(true)} aria-label="بحث سريع أو انتقال" className="flex h-8 items-center gap-2 rounded-md border border-border bg-card px-2.5 text-xs text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground sm:min-w-44">
-          <Search className="size-4" aria-hidden="true" /><span className="hidden flex-1 text-start sm:inline">بحث أو انتقال...</span><kbd className="violet-shortcut hidden sm:inline">Ctrl K</kbd>
+        <button type="button" onClick={() => setCommandOpen(true)} aria-label={uiMessages.command.trigger} className="flex h-8 items-center gap-2 rounded-md border border-border bg-card px-2.5 text-xs text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground sm:min-w-44">
+          <Search className="size-4" aria-hidden="true" /><span className="hidden flex-1 text-start sm:inline">{uiMessages.command.triggerPlaceholder}</span><kbd className="violet-shortcut hidden sm:inline">Ctrl K</kbd>
         </button>
         <div className="hidden min-w-0 text-left sm:block" dir="rtl">
           <p className="max-w-40 truncate text-xs font-semibold">{user?.name}</p>

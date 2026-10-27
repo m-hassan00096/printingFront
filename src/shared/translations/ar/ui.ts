@@ -1,0 +1,16 @@
+/** Arabic-only UI copy. Future locales can provide the same keys without changing components. */
+export const uiMessages = {
+  command: {
+    trigger: "بحث سريع أو انتقال",
+    triggerPlaceholder: "بحث أو انتقال...",
+    dialogTitle: "بحث وتنقل سريع",
+    inputLabel: "ابحث في أقسام النظام",
+    inputPlaceholder: "اكتب اسم القسم للانتقال...",
+    close: "إغلاق البحث",
+    results: "نتائج التنقل",
+    empty: "لا توجد أقسام مطابقة.",
+    moveHint: "↑ ↓ للتنقل",
+    enterHint: "Enter للفتح",
+    escapeHint: "Esc للإغلاق",
+  },
+} as const;
