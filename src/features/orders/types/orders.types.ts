@@ -28,7 +28,7 @@ export type Order = {
   deliveredAt: string | null; cancelledAt: string | null;
   items?: OrderItem[];
 };
-export type OrderFilters = { search: string; status: string; productionStatus: string; lateOnly: boolean; sort: string; page: number };
+export type OrderFilters = { search: string; status: string; productionStatus: string; lateOnly: boolean; openOnly: boolean; sort: string; page: number };
 export type OrderItemPayload = { serviceId: number; quantity: number; specifications: string | null; agreedTotal: string };
 export type CreateOrderPayload = {
   customerId: number; source: 0 | 1; dueDate: string | null;
