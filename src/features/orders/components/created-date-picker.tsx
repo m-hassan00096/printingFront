@@ -17,8 +17,8 @@ function dateParts(value: string) {
 }
 
 /** A theme-matched Gregorian calendar; never launches the browser-native date picker. */
-export function CreatedDatePicker({ label, value, onChange, min, max }: {
-  label: string; value: string; onChange: (next: string) => void; min?: string; max?: string;
+export function CreatedDatePicker({ label, value, onChange, min, max, disabled = false }: {
+  label: string; value: string; onChange: (next: string) => void; min?: string; max?: string; disabled?: boolean;
 }) {
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -42,6 +42,7 @@ export function CreatedDatePicker({ label, value, onChange, min, max }: {
     return (!min || date >= min) && (!max || date <= max);
   };
   function toggle() {
+    if (disabled) return;
     if (open) { setOpen(false); return; }
     const rect = trigger.current?.getBoundingClientRect();
     if (rect) {
@@ -86,9 +87,9 @@ export function CreatedDatePicker({ label, value, onChange, min, max }: {
 
   return <div className="min-w-0">
     <span className="mb-1 block text-xs font-semibold">{label}</span>
-    <button type="button" ref={trigger} onClick={toggle}
+    <button type="button" ref={trigger} onClick={toggle} disabled={disabled}
       aria-label={label} aria-haspopup="dialog" aria-expanded={open}
-      className="flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-input bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25">
+      className="flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-input bg-card px-3 text-xs font-medium transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-50">
       <span dir="ltr" className={value ? "tabular-nums text-foreground" : "text-muted-foreground"}>
         {value ? formatCollectionDate(value) : "يوم/شهر/سنة"}
       </span>
