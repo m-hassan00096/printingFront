@@ -16,8 +16,8 @@ import { uiMessages } from "@/shared/translations/ar/ui";
 import { useDeliveryActions, useDeliveryDetails, useDeliveryPreview } from "../hooks/use-deliveries";
 import type { DeliverPayload, PaymentMethod } from "../types/deliveries.types";
 
-function DialogFrame({ title, children, busy, onClose }: {
-  title: string; children: React.ReactNode; busy: boolean; onClose: () => void;
+function DialogFrame({ title, children, footer, busy, onClose }: {
+  title: string; children: React.ReactNode; footer?: React.ReactNode; busy: boolean; onClose: () => void;
 }) {
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-3 sm:p-4"
     onMouseDown={event => { if (event.target===event.currentTarget && !busy) onClose(); }}>
@@ -30,6 +30,9 @@ function DialogFrame({ title, children, busy, onClose }: {
           aria-label="إغلاق" onClick={onClose}><X className="size-4"/></Button>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">{children}</div>
+      {footer && <footer className="shrink-0 border-t bg-card px-4 py-3 sm:px-5">
+        {footer}
+      </footer>}
     </section>
   </div>;
 }
@@ -71,7 +74,8 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
     setError("");
     setFocusField(null);
   }
-  const paid = parseCents(amount);
+  // An empty amount intentionally means delivery without collection.
+  const paid = amount.trim()==="" ? 0 : parseCents(amount);
   const needsPayment = paid !== null && paid > 0;
   const canCollect = preview.data?.canCollect === true;
   const needsDestination = needsPayment && method !== 0;
@@ -80,7 +84,8 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
     enabled: canCollect && needsDestination,
   });
   const destinations = method === 1 ? paymentOptions.data?.banks ?? [] : paymentOptions.data?.wallets ?? [];
-  const estimated = estimatedBalance(preview.data?.customerBalance ?? null, amount);
+  const estimated = paid===null ? null :
+    estimatedBalance(preview.data?.customerBalance ?? null, centsToMoney(paid));
   const willCreateCredit = needsPayment && estimated !== null && estimated < 0;
   const disabled = !preview.data?.canDeliver || paid === null ||
     (needsPayment && !canCollect) ||
@@ -122,24 +127,30 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
     }
   }
 
-  return <DialogFrame title="تسليم الأوردر" busy={busy} onClose={onClose}>
+  return <DialogFrame title="تسليم الأوردر" busy={busy} onClose={onClose}
+    footer={preview.data && <div className="flex items-center gap-2">
+      <Button type="button" disabled={disabled} onClick={()=>void submit()}>
+        {busy?"جاري التسليم...":"تأكيد التسليم"}
+      </Button>
+      <Button type="button" variant="outline" disabled={busy} onClick={onClose}>إلغاء</Button>
+    </div>}>
     {preview.isPending ? <LoadingState/> : preview.isError ?
       <ErrorState error={preview.error} retry={()=>void preview.refetch()}/> : preview.data &&
-      <div className="space-y-4">
-        <div className="grid gap-3 rounded-lg border border-[#e8ebf4] bg-[#f8f9fc] p-3.5 sm:grid-cols-2">
-          <DeliveryField label="رقم الأوردر">{preview.data.order.orderNumber}</DeliveryField>
-          <DeliveryField label="العميل">{preview.data.order.customerName}</DeliveryField>
-          <DeliveryField label="التليفون">{preview.data.order.customerPhone}</DeliveryField>
-          <DeliveryField label="قيمة الأوردر"><MoneyAmount amount={preview.data.order.orderTotal}/></DeliveryField>
-          <DeliveryField label="المنتجات الجاهزة">
-            {preview.data.order.readyItemsCount} من {preview.data.order.totalItemsCount}
-          </DeliveryField>
-          <DeliveryField label="رصيد حساب العميل">
-            {preview.data.customerBalance
-              ? <>{preview.data.customerBalance.typeLabel} · <MoneyAmount amount={preview.data.customerBalance.amount}/></>
-              : "غير متاح وفق الصلاحيات"}
-          </DeliveryField>
-          {preview.data.customerBalance && <p className="sm:col-span-2 border-t border-[#e5e8f1] pt-2 text-xs text-muted-foreground">{uiMessages.deliveries.balanceIsGlobal}</p>}
+      <div className="space-y-3">
+        <div className="space-y-3 rounded-lg border border-[#e8ebf4] bg-[#f8f9fc] p-3.5">
+          <div className="grid grid-cols-2 gap-3">
+            <DeliveryField label="رقم الأوردر"><span dir="ltr" className="inline-block tabular-nums">{preview.data.order.orderNumber}</span></DeliveryField>
+            <div className="min-w-0">
+              <DeliveryField label="العميل">{preview.data.order.customerName}</DeliveryField>
+              <p className="mt-0.5 text-xs text-muted-foreground" dir="ltr">{preview.data.order.customerPhone}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 border-t border-[#e5e8f1] pt-3">
+            <DeliveryField label="قيمة الأوردر"><MoneyAmount amount={preview.data.order.orderTotal}/></DeliveryField>
+            <DeliveryField label="المنتجات الجاهزة">
+              {preview.data.order.readyItemsCount} من {preview.data.order.totalItemsCount}
+            </DeliveryField>
+          </div>
         </div>
         {!preview.data.canDeliver && <p role="alert" className="rounded-lg bg-[#fff4df] p-3 text-sm text-[#a46b0b]">
           لا يمكن التسليم قبل جاهزية جميع منتجات الأوردر.
@@ -151,30 +162,18 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
             onChange={e=>{setReceiver(e.target.value);clearField("receiverName");}} placeholder="الشخص الذي استلم الأوردر"/>
           {fieldErrors.receiverName&&<span role="alert" className="block text-xs text-destructive">{fieldErrors.receiverName}</span>}
         </label>
-        <section className="space-y-3 rounded-lg border border-[#e8ebf4] p-3.5" aria-label={uiMessages.deliveries.collectOptional}>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-bold">{uiMessages.deliveries.collectOptional}</p>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <Button type="button" size="sm" variant={paid===0?"default":"outline"} disabled={busy}
-                onClick={()=>{setAmount("0.00");setCreditConfirmed(false);clearField("collectedAmount");}}>
-                {uiMessages.deliveries.noCollection}
-              </Button>
-              <Button type="button" size="sm" variant="outline" disabled={busy||!canCollect}
-                onClick={()=>{setAmount(preview.data!.order.orderTotal);setCreditConfirmed(false);clearField("collectedAmount");}}>
-                {uiMessages.deliveries.orderAmount}
-              </Button>
-            </div>
-          </div>
-          <label data-delivery-field="collectedAmount" className="block scroll-mt-24 space-y-1 text-sm font-semibold">
-            <span>{uiMessages.deliveries.collectOptional} (ج.م)</span>
-            <input className={fieldClass} inputMode="decimal" dir="ltr" value={amount} disabled={busy} aria-label={uiMessages.deliveries.collectOptional+" (ج.م)"}
+        <section className="space-y-2 rounded-lg border border-[#e8ebf4] p-3.5" aria-label={uiMessages.deliveries.collectOptional}>
+          <h3 className="text-sm font-bold">{uiMessages.deliveries.collectOptional}</h3>
+          <label data-delivery-field="collectedAmount" className="block scroll-mt-24 space-y-1 text-sm font-medium">
+            <span>{uiMessages.deliveries.amountInput}</span>
+            <input className={fieldClass} inputMode="decimal" dir="ltr" value={amount} disabled={busy} aria-label={uiMessages.deliveries.amountInput}
               onChange={e=>{setAmount(e.target.value);setCreditConfirmed(false);clearField("collectedAmount");}}
               aria-invalid={paid===null||!!fieldErrors.collectedAmount} placeholder="0.00"/>
             {(paid===null||fieldErrors.collectedAmount)&&<span role="alert" className="block text-xs text-destructive">
               {fieldErrors.collectedAmount??uiMessages.deliveries.amountError}
             </span>}
           </label>
-          {!needsPayment&&<p className="text-xs text-muted-foreground">{uiMessages.deliveries.deliveryNoPayment}</p>}
+          <p className="text-xs text-muted-foreground">{uiMessages.deliveries.zeroAmountHint}</p>
         </section>
         {needsPayment && !canCollect && <p role="alert" className="rounded-lg bg-[#fff4df] p-3 text-sm text-[#a46b0b]">
           {uiMessages.deliveries.collectionPermissionError}
@@ -208,25 +207,33 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
             </p>}
           </div>}
         </>}
-        {estimated !== null && paid !== null && <section className="rounded-lg border border-[#e2e6f3] bg-[#f8f9ff] p-3.5"
+        {estimated !== null && paid !== null && <section className="space-y-2 rounded-lg border border-[#e2e6f3] bg-[#f8f9ff] p-3.5"
           aria-label={uiMessages.deliveries.summary}>
-          <h3 className="mb-3 text-sm font-bold">{uiMessages.deliveries.summary}</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-muted-foreground">{uiMessages.deliveries.currentBalance}</span>
-              <strong>{preview.data.customerBalance?.typeLabel} · <MoneyAmount amount={preview.data.customerBalance?.amount??"0.00"}/></strong>
+          <h3 className="text-sm font-bold">{uiMessages.deliveries.summary}</h3>
+          <dl className="space-y-2 text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <dt className="text-muted-foreground">{uiMessages.deliveries.currentBalance}</dt>
+              <dd className="flex flex-wrap items-center justify-end gap-1.5 font-semibold">
+                <MoneyAmount amount={preview.data.customerBalance?.amount??"0.00"}/>
+                <span className="text-xs text-muted-foreground">{preview.data.customerBalance?.typeLabel}</span>
+              </dd>
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-muted-foreground">{uiMessages.deliveries.amountNow}</span>
-              <strong><MoneyAmount amount={centsToMoney(paid)}/></strong>
+            <div className="flex items-center justify-between gap-3">
+              <dt className="text-muted-foreground">{uiMessages.deliveries.amountNow}</dt>
+              <dd className="font-semibold"><MoneyAmount amount={centsToMoney(paid)}/></dd>
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-2">
-              <span className="font-semibold">{uiMessages.deliveries.afterBalance}</span>
-              <strong className="text-base">{estimated < 0 ? "دائن" : estimated > 0 ? "مدين" : "متوازن"} ·
-                {" "}<MoneyAmount amount={centsToMoney(Math.abs(estimated))}/></strong>
+            <div className="flex items-center justify-between gap-3 border-t border-[#e2e6f3] pt-2">
+              <dt className="font-bold">{uiMessages.deliveries.afterBalance}</dt>
+              <dd className="flex flex-wrap items-center justify-end gap-2">
+                <strong className="text-base"><MoneyAmount amount={centsToMoney(Math.abs(estimated))}/></strong>
+                <span className={"rounded-md px-2 py-0.5 text-xs font-semibold "+
+                  (estimated>0?"bg-amber-100 text-amber-800":estimated<0?"bg-emerald-100 text-emerald-800":"bg-slate-100 text-slate-700")}>
+                  {estimated>0?uiMessages.deliveries.debit:estimated<0?uiMessages.deliveries.credit:uiMessages.deliveries.settled}
+                </span>
+              </dd>
             </div>
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">{uiMessages.deliveries.estimateWarning}</p>
+          </dl>
+          <p className="text-xs text-muted-foreground">{uiMessages.deliveries.estimateWarning}</p>
         </section>}
         {willCreateCredit && <label data-delivery-field="confirmCreditBalance" className="flex flex-wrap scroll-mt-24 items-start gap-2 rounded-lg border border-amber-200 bg-[#fff4df] p-3 text-sm text-[#a46b0b]">
           <input type="checkbox" checked={creditConfirmed} onChange={e=>{setCreditConfirmed(e.target.checked);clearField("confirmCreditBalance");}}
@@ -241,16 +248,7 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
             أوافق على إنشاء رصيد دائن إذا تجاوز المبلغ المستحق (قد يطلب النظام هذا التأكيد).
             {fieldErrors.confirmCreditBalance&&<span role="alert" className="basis-full text-xs text-destructive">{fieldErrors.confirmCreditBalance}</span>}
           </label>}
-        <p className="text-xs text-muted-foreground">
-          تاريخ التسليم يسجله السيرفر تلقائيًا. لن يتم تسجيل أي تحصيل إذا كان المبلغ صفرًا.
-        </p>
         {error && <p role="alert" className="rounded-lg bg-destructive/10 p-2 text-sm text-destructive">{error}</p>}
-        <div className="flex flex-wrap gap-2 border-t pt-4">
-          <Button type="button" disabled={disabled} onClick={()=>void submit()}>
-            {busy?"جاري التسليم...":"تأكيد التسليم"}
-          </Button>
-          <Button type="button" variant="outline" disabled={busy} onClick={onClose}>إلغاء</Button>
-        </div>
       </div>}
   </DialogFrame>;
 }

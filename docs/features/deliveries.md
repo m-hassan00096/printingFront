@@ -36,3 +36,10 @@ Backend source: `printingApi` `develop` (Deliveries + Orders/Finance adapters).
 - The estimate panel exposes starting account balance, amount collected now, and expected after-collection balance (which the backend recalculates under lock).
 - Inline field validation from Laravel `422` errors focuses and scrolls to the affected control, while general workflow errors remain visible. Successful handover toast includes the order number.
 - All backend request/response contracts and finance settlement workflows remain unchanged. Browser QA should verify real payment destinations, permission configurations and small-screen dialog scrolling.
+
+## Compact delivery modal (2026-10-28)
+- Dialog header and confirmation footer stay visible; only the body scrolls. The separate delivery-history modal retains its existing footer placement.
+- The top preview is limited to order number, customer and phone, order value, and ready item count; old account balance and its repeated explanation are removed from this preview.
+- Removed **بدون تحصيل** and **قيمة الأوردر** quick-fill buttons. An editable collection amount starts at `0.00`; empty or zero means no collection, while a positive amount alone reveals the cash/bank/wallet method and required destination for non-cash payments.
+- The account balance summary remains visible when finance balance permission allows it: starting balance, collection now and resulting balance. The resulting amount is prominent with a small debit/credit/settled label. Estimates are recalculated by the server when saving.
+- Overpayment consent, delivery permission checks, safe integer-cent calculations, inline field errors and existing API payloads are unchanged.
