@@ -132,7 +132,8 @@ describe("Production board against Laravel API contracts",()=>{
     await waitFor(()=>expect(calls.filter(c=>c.url==="/production/items").length).toBeGreaterThanOrEqual(4));
     expect(new Set(calls.filter(c=>c.url==="/production/items").map(c=>c.query.get("filter[column]"))))
       .toEqual(new Set(["0","1","2","3"]));
-    expect(await screen.findByText("تصميم مكتمل")).toBeTruthy();
+    expect(await screen.findByRole("region",{name:"ملخص مراحل الإنتاج"})).toBeTruthy();
+    expect(screen.getByText("مكتمل")).toBeTruthy();
     expect(screen.getByRole("link",{name:"الإنتاج"})).toBeTruthy();
   });
 
