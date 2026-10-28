@@ -130,7 +130,7 @@ describe("Deliveries frontend against the existing Laravel contract",()=>{
     expect(within(dialog).getByText("2 من 2")).toBeTruthy();
     const phoneLabel=within(dialog).getByText("الهاتف");
     const phoneValue=within(dialog).getByText("01000000000");
-    expect(phoneLabel.parentElement?.textContent).toContain("01000000000");
+    expect(phoneLabel.parentElement?.parentElement?.textContent).toContain("01000000000");
     expect(phoneValue.getAttribute("dir")).toBe("ltr");
   });
   it("labels the customer name and phone explicitly inside a ready order card",async()=>{
