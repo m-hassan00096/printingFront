@@ -70,7 +70,7 @@ export function ProductionItemCard({item,permissions,selected,busy,onSelect,onAc
       window.removeEventListener("keydown",keydown);
     };
   },[expanded,canChangeLocation,canUndo]);
-  return <article aria-label={`عنصر ${item.serviceName}`} className="space-y-2.5 border-t border-border px-3 py-3 transition-colors duration-100 first:border-t-0 hover:bg-[#fafbff]">
+  return <article aria-label={`عنصر ${item.serviceName}`} className="space-y-2 border-t border-border px-3 py-2.5 transition-colors duration-100 first:border-t-0 hover:bg-[#fafbff]">
     <div className="flex flex-wrap items-start justify-between gap-2">
       <div className="min-w-0 space-y-1">
         <p className="truncate text-[13px] font-semibold">{item.serviceName}</p>
@@ -79,29 +79,25 @@ export function ProductionItemCard({item,permissions,selected,busy,onSelect,onAc
       </div>
       <StagePill stage={stage}/>
     </div>
-    {(stage===1 || completed) && <div className="rounded-md border border-[#e8eaf4] bg-[#f7f8fd] px-2.5 py-2"
+    {(stage===1 || completed) && <div className="rounded-md border border-[#e8eaf4] bg-[#f7f8fd] px-2 py-1.5"
       aria-label="مسؤول التصميم">
-      <div className="flex min-w-0 items-center gap-2">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-card text-primary"
-          aria-hidden="true"><UserRound className="size-4"/></span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] text-muted-foreground">المصمم المسؤول</p>
-          <p className="truncate text-sm font-semibold" dir="auto"
-            title={item.designerName ?? "غير محدد"}>{item.designerName || "غير محدد"}</p>
-        </div>
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-card text-primary"
+          aria-hidden="true"><UserRound className="size-3.5"/></span>
+        <span className="shrink-0 text-[11px] text-muted-foreground">المصمم المسؤول:</span>
+        <span className="min-w-0 truncate text-xs font-semibold" dir="auto"
+          title={item.designerName ?? "غير محدد"}>{item.designerName || "غير محدد"}</span>
       </div>
       {completed && item.designCompletedByName && item.designCompletedByName !== item.designerName &&
-        <p className="mt-1 text-xs text-muted-foreground">أنهى التصميم: <span dir="auto">{item.designCompletedByName}</span></p>}
+        <p className="mt-1 text-[11px] text-muted-foreground">أنهى التصميم: <span dir="auto">{item.designCompletedByName}</span></p>}
     </div>}
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-1.5">
       {completed && printSend && <label className="flex cursor-pointer items-center gap-1 text-xs" title="تحديد للإرسال الجماعي">
         <input type="checkbox" aria-label={`تحديد ${item.serviceName} للإرسال`} checked={selected}
           disabled={busy} onChange={e=>onSelect(item.id,e.target.checked)} /> تحديد
       </label>}
       <Button type="button" variant="outline" size="sm" disabled={busy}
         onClick={()=>onDetails(item)}><Eye className="size-4"/> التفاصيل</Button>
-    </div>
-    <div className="flex flex-wrap gap-2">
       {stage===0 && may("production.design.start") && <Button size="sm" disabled={busy}
         onClick={()=>onAction("start-design",item)}>بدء التصميم</Button>}
       {stage===1 && may("production.design.complete") && <Button size="sm" disabled={busy}
