@@ -126,7 +126,7 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
     {preview.isPending ? <LoadingState/> : preview.isError ?
       <ErrorState error={preview.error} retry={()=>void preview.refetch()}/> : preview.data &&
       <div className="space-y-4">
-        <div className="grid gap-3 rounded-lg bg-muted/40 p-4 sm:grid-cols-2">
+        <div className="grid gap-3 rounded-lg border border-[#e8ebf4] bg-[#f8f9fc] p-3.5 sm:grid-cols-2">
           <DeliveryField label="رقم الأوردر">{preview.data.order.orderNumber}</DeliveryField>
           <DeliveryField label="العميل">{preview.data.order.customerName}</DeliveryField>
           <DeliveryField label="التليفون">{preview.data.order.customerPhone}</DeliveryField>
@@ -139,41 +139,67 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
               ? <>{preview.data.customerBalance.typeLabel} · <MoneyAmount amount={preview.data.customerBalance.amount}/></>
               : "غير متاح وفق الصلاحيات"}
           </DeliveryField>
+          {preview.data.customerBalance && <p className="sm:col-span-2 border-t border-[#e5e8f1] pt-2 text-xs text-muted-foreground">{uiMessages.deliveries.balanceIsGlobal}</p>}
         </div>
         {!preview.data.canDeliver && <p role="alert" className="rounded-lg bg-[#fff4df] p-3 text-sm text-[#a46b0b]">
           لا يمكن التسليم قبل جاهزية جميع منتجات الأوردر.
         </p>}
-        <label className="block space-y-1 text-sm font-semibold">
+        <label data-delivery-field="receiverName" className="block scroll-mt-24 space-y-1 text-sm font-semibold">
           <span>اسم المستلم (اختياري)</span>
-          <input className={fieldClass} maxLength={150} value={receiver}
-            onChange={e=>setReceiver(e.target.value)} placeholder="الشخص الذي استلم الأوردر"/>
+          <input className={fieldClass} maxLength={150} value={receiver} disabled={busy}
+            aria-invalid={!!fieldErrors.receiverName}
+            onChange={e=>{setReceiver(e.target.value);clearField("receiverName");}} placeholder="الشخص الذي استلم الأوردر"/>
+          {fieldErrors.receiverName&&<span role="alert" className="block text-xs text-destructive">{fieldErrors.receiverName}</span>}
         </label>
-        <label className="block space-y-1 text-sm font-semibold">
-          <span>المبلغ المحصل عند التسليم (ج.م)</span>
-          <input className={fieldClass} inputMode="decimal" dir="ltr" value={amount}
-            onChange={e=>{setAmount(e.target.value);setCreditConfirmed(false);setError("");}}
-            aria-invalid={paid===null} placeholder="0.00"/>
-        </label>
-        {paid===null && <p role="alert" className="text-sm text-destructive">
-          أدخل مبلغًا صحيحًا موجبًا أو صفرًا، بحد أقصى خانتين عشريتين.
-        </p>}
+        <section className="space-y-3 rounded-lg border border-[#e8ebf4] p-3.5" aria-label={uiMessages.deliveries.collectOptional}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-bold">{uiMessages.deliveries.collectOptional}</p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button type="button" size="sm" variant={paid===0?"default":"outline"} disabled={busy}
+                onClick={()=>{setAmount("0.00");setCreditConfirmed(false);clearField("collectedAmount");}}>
+                {uiMessages.deliveries.noCollection}
+              </Button>
+              <Button type="button" size="sm" variant="outline" disabled={busy||!canCollect}
+                onClick={()=>{setAmount(preview.data!.order.orderTotal);setCreditConfirmed(false);clearField("collectedAmount");}}>
+                {uiMessages.deliveries.orderAmount}
+              </Button>
+            </div>
+          </div>
+          <label data-delivery-field="collectedAmount" className="block scroll-mt-24 space-y-1 text-sm font-semibold">
+            <span>{uiMessages.deliveries.collectOptional} (ج.م)</span>
+            <input className={fieldClass} inputMode="decimal" dir="ltr" value={amount} disabled={busy}
+              onChange={e=>{setAmount(e.target.value);setCreditConfirmed(false);clearField("collectedAmount");}}
+              aria-invalid={paid===null||!!fieldErrors.collectedAmount} placeholder="0.00"/>
+            {(paid===null||fieldErrors.collectedAmount)&&<span role="alert" className="block text-xs text-destructive">
+              {fieldErrors.collectedAmount??uiMessages.deliveries.amountError}
+            </span>}
+          </label>
+          {!needsPayment&&<p className="text-xs text-muted-foreground">{uiMessages.deliveries.deliveryNoPayment}</p>}
+        </section>}
         {needsPayment && !canCollect && <p role="alert" className="rounded-lg bg-[#fff4df] p-3 text-sm text-[#a46b0b]">
-          لا تملك صلاحية التحصيل المالي. يمكنك تسليم الأوردر بدون تحصيل.
+          {uiMessages.deliveries.collectionPermissionError}
         </p>}
         {needsPayment && canCollect && <>
-          <label className="block space-y-1 text-sm font-semibold"><span>طريقة التحصيل</span>
-            <select className={fieldClass} aria-label="طريقة التحصيل" value={method}
-              onChange={e=>{setMethod(Number(e.target.value) as PaymentMethod);setDestination("");setError("");}}>
-              <option value={0}>نقدي</option>
-              <option value={1}>تحويل بنكي</option>
-              <option value={2}>محفظة إلكترونية</option>
+          <label className="block scroll-mt-24 space-y-1 text-sm font-semibold" data-delivery-field="paymentMethod">
+            <span>{uiMessages.deliveries.method} *</span>
+            <select className={fieldClass} aria-label="طريقة التحصيل" value={method} disabled={busy}
+              aria-invalid={!!fieldErrors.paymentMethod}
+              onChange={e=>{setMethod(Number(e.target.value) as PaymentMethod);setDestination("");clearField("paymentMethod");}}>
+              <option value={0}>{uiMessages.deliveries.cash}</option>
+              <option value={1}>{uiMessages.deliveries.bank}</option>
+              <option value={2}>{uiMessages.deliveries.wallet}</option>
             </select>
+            {fieldErrors.paymentMethod&&<span role="alert" className="text-xs text-destructive">{fieldErrors.paymentMethod}</span>}
           </label>
-          {needsDestination && <div className="space-y-2">
+          {needsDestination && <div className="scroll-mt-24 space-y-2" data-delivery-field="paymentDestinationId">
             <label className="block text-sm font-semibold">حساب التحصيل *</label>
             <SearchableSelect label="حساب التحصيل" placeholder="ابحث عن حساب أو محفظة..."
-              value={destination} onChange={setDestination} options={destinations}
-              loading={paymentOptions.isPending} disabled={paymentOptions.isError}/>
+              value={destination} onChange={v=>{setDestination(v);clearField("paymentDestinationId");}}
+              invalid={!!fieldErrors.paymentDestinationId} options={destinations}
+              loading={paymentOptions.isPending} disabled={busy||paymentOptions.isError}/>
+            {!destination&&!paymentOptions.isPending&&!paymentOptions.isError&&
+              <p className="text-xs text-muted-foreground">{uiMessages.deliveries.destinationRequired}</p>}
+            {fieldErrors.paymentDestinationId&&<p role="alert" className="text-xs text-destructive">{fieldErrors.paymentDestinationId}</p>
             {paymentOptions.isError && <p role="alert" className="text-sm text-destructive">
               تعذّر تحميل حسابات التحصيل.
               <button type="button" className="mr-2 underline" onClick={()=>void paymentOptions.refetch()}>
