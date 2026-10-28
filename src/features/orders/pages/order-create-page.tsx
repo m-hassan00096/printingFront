@@ -17,6 +17,7 @@ import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { fieldClass } from "@/features/identity/components/identity-ui";
 import { getOrderCreateOptions, getOrderPaymentOptions } from "../api/order-options.api";
 import { SearchableSelect } from "../components/searchable-select";
+import { CreatedDatePicker } from "../components/created-date-picker";
 import { useOrderActions } from "../hooks/use-orders";
 import type { CreateOrderPayload } from "../types/orders.types";
 
@@ -34,6 +35,13 @@ function cents(value: string): number | null {
   if (!moneyPattern.test(value)) return null;
   const [whole, fraction = ""] = value.split(".");
   return Number(whole) * 100 + Number((fraction + "00").slice(0, 2));
+}
+function cairoToday(): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Africa/Cairo", day: "2-digit", month: "2-digit", year: "numeric",
+  }).formatToParts(new Date());
+  const part = (type: string) => parts.find(item => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
 }
 export function OrderCreatePage() {
   const navigate = useNavigate();
@@ -57,6 +65,7 @@ export function OrderCreatePage() {
   const [showNotes, setShowNotes] = useState(false);
   const [items, setItems] = useState<ItemDraft[]>([blank(0)]);
   const [errors, setErrors] = useState<Errors>({});
+  const [focusRequest, setFocusRequest] = useState<{key:string} | null>(null);
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<Record<number, string>>({});
   const [previewPending, setPreviewPending] = useState<number | null>(null);
@@ -103,9 +112,15 @@ export function OrderCreatePage() {
   const busy = actions.create.isPending;
 
   useEffect(() => {
-    if (!Object.keys(errors).length) return;
-    document.querySelector<HTMLElement>('[aria-invalid="true"]')?.scrollIntoView?.({ block: "center", behavior: "smooth" });
-  }, [errors]);
+    if (!focusRequest) return;
+    const target = Array.from(document.querySelectorAll<HTMLElement>("[data-order-field]"))
+      .find(node => node.dataset.orderField === focusRequest.key);
+    if (!target) return;
+    target.scrollIntoView?.({ block: "center", behavior: "smooth" });
+    target.querySelector<HTMLElement>(
+      'input:not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(:disabled)'
+    )?.focus({ preventScroll: true });
+  }, [focusRequest]);
 
   function clear(key: string) {
     setErrors((old) => { const updated = { ...old }; delete updated[key]; return updated; });
@@ -212,7 +227,10 @@ export function OrderCreatePage() {
     const mode: Mode = (event.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "confirm" ? "confirm" : "draft";
     const issues = validate(mode);
     setErrors(issues);
-    if (Object.keys(issues).length) return;
+    if (Object.keys(issues).length) {
+      setFocusRequest({key:Object.keys(issues)[0]});
+      return;
+    }
     const payload: CreateOrderPayload = {
       customerId: Number(customerId), source: Number(source) as 0 | 1, status: mode === "confirm" ? 1 : 0,
       dueDate: dueDate || null, notes: notes.trim() || null,
@@ -254,7 +272,11 @@ export function OrderCreatePage() {
           } else mapped[key === "plannedDepositAmount" ? "depositAmount" :
             key === "plannedPaymentDestinationId" ? "paymentDestinationId" : key] = messages[0];
         }
-        if (Object.keys(mapped).length) {setErrors(mapped); return;}
+        if (Object.keys(mapped).length) {
+          setErrors(mapped);
+          setFocusRequest({key:Object.keys(mapped)[0]});
+          return;
+        }
       }
       setGeneralError(getApiErrorMessage(error, mode === "confirm" ? "تعذّر تأكيد الأوردر." : "تعذّر حفظ المسودة."));
     }
@@ -276,10 +298,11 @@ export function OrderCreatePage() {
       <section className="rounded-lg border bg-card p-4  sm:p-5">
         <h2 className="mb-4 font-bold">بيانات الأوردر</h2>
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
+          <div className="scroll-mt-24 space-y-2" data-order-field="customerId">
             <label className="text-sm font-semibold">العميل المسجل *</label>
             <SearchableSelect label="اختيار العميل" placeholder="ابحث بالاسم أو رقم الهاتف..."
               options={mergedCustomers} value={customerId} onChange={setCustomer} loading={choices.isPending}
+              invalid={!!errors.customerId}
               disabled={busy || choices.isPending || choices.isError}
               onCreate={canAddCustomer ? () => setCustomerModal(true) : undefined} createLabel="إضافة عميل جديد" />
             {message("customerId")}
@@ -295,14 +318,11 @@ export function OrderCreatePage() {
               <option value="0">الفرع</option><option value="1">أونلاين</option>
             </select>
           </label>
-          <label className="text-sm font-semibold">تاريخ التسليم (اختياري)
-            <input type="date" aria-label="تاريخ التسليم" className={fieldClass + " mt-2"}
-              value={dueDate} disabled={busy} onChange={(e) => {setDueDate(e.target.value);clear("dueDate");}} />
-            {dueDate && <span className="mt-1 block text-xs text-muted-foreground" aria-label={uiMessages.orders.readableDeliveryDate}>
-              {dueDate.slice(8,10)}/{dueDate.slice(5,7)}/{dueDate.slice(0,4)}
-            </span>}
+          <div className="scroll-mt-24" data-order-field="dueDate">
+            <CreatedDatePicker label="تاريخ التسليم (اختياري)" value={dueDate} min={cairoToday()} disabled={busy}
+              onChange={(next) => {setDueDate(next);clear("dueDate");}} />
             {message("dueDate")}
-          </label>
+          </div>
           <div className="flex items-center"><Button type="button" variant="ghost" size="sm" onClick={() => setShowNotes(!showNotes)}>
             {showNotes ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />} ملاحظات الأوردر (اختياري)
           </Button></div>
@@ -329,20 +349,21 @@ export function OrderCreatePage() {
               </Button>}
             </div>
             <div className="grid items-start gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,.8fr)_minmax(0,1fr)]">
-              <div className="space-y-1">
+              <div className="scroll-mt-24 space-y-1" data-order-field={"items." + item.key + ".serviceId"}>
                 <label className="text-xs font-semibold">خدمة الطباعة *</label>
                 <SearchableSelect label={"خدمة العنصر " + (index + 1)} placeholder="ابحث عن خدمة..."
-                  options={services} value={item.serviceId} disabled={busy || choices.isPending || choices.isError}
+                  options={services} value={item.serviceId} invalid={!!errors["items." + item.key + ".serviceId"]}
+                  disabled={busy || choices.isPending || choices.isError}
                   onChange={(value) => changeItem(item.key, "serviceId", value)} />
                 {message("items." + item.key + ".serviceId")}
               </div>
-              <label className="text-xs font-semibold">الكمية *
+              <label className="scroll-mt-24 text-xs font-semibold" data-order-field={"items." + item.key + ".quantity"}>الكمية *
                 <input type="number" min="1" max="1000000" aria-label={"كمية العنصر " + (index + 1)}
                   aria-invalid={!!errors["items." + item.key + ".quantity"]} className={fieldClass + " mt-2"}
                   value={item.quantity} disabled={busy} onChange={(e) => changeItem(item.key, "quantity", e.target.value)} />
                 {message("items." + item.key + ".quantity")}
               </label>
-              <label className="text-xs font-semibold">الإجمالي المتفق عليه (ج.م) *
+              <label className="scroll-mt-24 text-xs font-semibold" data-order-field={"items." + item.key + ".agreedTotal"}>الإجمالي المتفق عليه (ج.م) *
                 <input dir="ltr" inputMode="decimal" aria-label={"إجمالي العنصر " + (index + 1)}
                   aria-invalid={!!errors["items." + item.key + ".agreedTotal"]} className={fieldClass + " mt-2"}
                   value={item.agreedTotal} disabled={busy} placeholder="أدخل المبلغ"
@@ -419,7 +440,7 @@ export function OrderCreatePage() {
           <p className="mt-1 text-[11px] text-muted-foreground">{uiMessages.orders.priorSeparateNote}</p>
         </div>}
         {canConfirm && <div className="mt-4 space-y-3 rounded-xl border border-[#e6e9f2] p-3 sm:p-4">
-          <label className="block max-w-xs text-sm font-semibold">المدفوع الآن (العربون)
+          <label className="scroll-mt-24 block max-w-xs text-sm font-semibold" data-order-field="depositAmount">المدفوع الآن (العربون)
             <input aria-label="المدفوع الآن" aria-invalid={!!errors.depositAmount}
               className={fieldClass + " mt-2"} dir="ltr" inputMode="decimal"
               value={depositAmount} disabled={busy}
@@ -436,7 +457,7 @@ export function OrderCreatePage() {
                   {label}
                 </button>)}
             </div>
-            {paymentMethod !== "0" && <div className="max-w-md space-y-2">
+            {paymentMethod !== "0" && <div className="scroll-mt-24 max-w-md space-y-2" data-order-field="paymentDestinationId">
               <label htmlFor="payment-destination" className="text-sm font-semibold">
                 {paymentMethod === "1" ? "الحساب البنكي" : "المحفظة الإلكترونية"} *
               </label>
@@ -457,7 +478,7 @@ export function OrderCreatePage() {
               {message("paymentDestinationId")}
             </div>}
           </div>}
-          {allPriced && overpaymentCents > 0 && <label className="flex items-start gap-2 rounded-xl border border-[#f2d99b] bg-[#fff5df] p-3 text-sm">
+          {allPriced && overpaymentCents > 0 && <label data-order-field="overpayment" className="scroll-mt-24 flex items-start gap-2 rounded-xl border border-[#f2d99b] bg-[#fff5df] p-3 text-sm">
             <input type="checkbox" checked={overpaymentAccepted} onChange={(e) => {setOverpaymentAccepted(e.target.checked);clear("overpayment");}}
               aria-label="تأكيد الزيادة عن قيمة الأوردر" />
             <span>المدفوع أعلى من إجمالي الأوردر بـ <MoneyAmount amount={overpaymentCents / 100} />.
