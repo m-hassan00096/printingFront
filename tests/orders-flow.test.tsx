@@ -186,6 +186,45 @@ describe("Orders Laravel API workflow", () => {
     expect(within(table).getByText("آخر مرحلة إنتاج مسجلة")).toBeTruthy();
   });
 
+  it("clears every order filter together and restores the default sort and first page", async () => {
+    visit("/orders?search=Ahmed&status=1&productionStatus=3&sort=due_date&lateOnly=1&createdFrom=2026-10-26&createdTo=2026-10-28&page=2&openOnly=1");
+    expect(await screen.findByRole("table")).toBeTruthy();
+    const clear = screen.getByRole("button", {name:"مسح الفلاتر"}) as HTMLButtonElement;
+    expect(clear.disabled).toBe(false);
+    const user = userEvent.setup();
+    await user.click(clear);
+    expect(window.location.pathname).toBe("/orders");
+    expect(window.location.search).toBe("");
+    await waitFor(() => expect(screen.getByRole("button", {name:"مسح الفلاتر"})).toHaveProperty("disabled", true));
+    expect((screen.getByRole("combobox", {name:"حالة الأوردر"}) as HTMLSelectElement).value).toBe("");
+    expect((screen.getByRole("combobox", {name:"حالة الإنتاج"}) as HTMLSelectElement).value).toBe("");
+    expect((screen.getByRole("combobox", {name:"ترتيب الأوردرات"}) as HTMLSelectElement).value).toBe("-id");
+    expect((screen.getByRole("checkbox", {name:"المتأخرة فقط"}) as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByRole("checkbox", {name:"جاهزة للتسليم اليوم"}) as HTMLInputElement).checked).toBe(false);
+    expect(screen.getByRole("button", {name:"من"}).textContent).toContain("يوم/شهر/سنة");
+    expect(screen.getByRole("button", {name:"إلى"}).textContent).toContain("يوم/شهر/سنة");
+    await waitFor(() => {
+      const lastList = calls.filter(call => call.method === "get" && call.url === "/orders").at(-1);
+      expect(lastList?.query.get("sort")).toBe("-id");
+      expect(lastList?.query.has("filter[createdFrom]")).toBe(false);
+      expect(lastList?.query.has("filter[lateOnly]")).toBe(false);
+      expect(lastList?.query.has("filter[productionStatus]")).toBe(false);
+      expect(lastList?.query.has("filter[search]")).toBe(false);
+    });
+  });
+
+  it("enables clear filters for today's ready queue, then disables when reset", async () => {
+    visit("/orders?readyDueToday=1");
+    expect(await screen.findByRole("table")).toBeTruthy();
+    const user = userEvent.setup();
+    const clear = screen.getByRole("button", {name:"مسح الفلاتر"}) as HTMLButtonElement;
+    expect(clear.disabled).toBe(false);
+    await user.click(clear);
+    expect(window.location.search).toBe("");
+    expect((screen.getByRole("checkbox", {name:"جاهزة للتسليم اليوم"}) as HTMLInputElement).checked).toBe(false);
+    expect(clear.disabled).toBe(true);
+  });
+
   it("uses themed creation date pickers and persists a server-side inclusive date range in the URL", async () => {
     visit("/orders?createdFrom=2026-10-28&createdTo=2026-10-30");
     expect(await screen.findByRole("table")).toBeTruthy();
