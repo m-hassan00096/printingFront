@@ -158,13 +158,14 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
   const session=useCurrentUser();
   const canReverse=session.data?.permissions.includes("finance.collections.reverse")??false;
   const canViewOrders=session.data?.permissions.includes("orders.view")??false;
+  const canRefund=session.data?.permissions.includes("finance.refunds.create")??false;
   const actions=useCollectionActions();
   const [reversing,setReversing]=useState(false);
   const [reason,setReason]=useState("");
   const [acknowledged,setAcknowledged]=useState(false);
   const [error,setError]=useState("");
   const c=query.data;
-  const reversable=c?.source===0&&c.status===1&&canReverse;
+  const reversable=c?.status===1&&canReverse;
   async function confirm(){
     if(!reversable||reason.trim().length<3||!acknowledged||actions.reverse.isPending)return;
     setError("");
@@ -194,19 +195,26 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
         {c.note&&<p className="whitespace-pre-wrap rounded-lg border p-3 text-sm">ملاحظات: {c.note}</p>}
         {c.orderId&&canViewOrders&&<Link to={`/orders/${c.orderId}`} className="text-sm font-semibold text-primary underline">فتح الأوردر المرتبط</Link>}
         {c.status===1&&<p className="flex items-center gap-2 text-sm font-semibold text-[#14815b]"><CheckCircle2 className="size-4"/> إيصال معتمد ومسجل في حساب العميل.</p>}
-        {c.status===2&&<div className="rounded-lg border border-amber-200 p-3 text-sm">
-          <p className="font-bold">تحصيل معكوس</p>
+        {c.status===2&&<div className="rounded-lg border border-amber-200 bg-amber-50/40 p-3 text-sm">
+          <p className="font-bold text-amber-800">تحصيل معكوس — تم إلغاء أثره المالي مع الاحتفاظ بالإيصال.</p>
           <p className="mt-1">سبب العكس: {c.reversalReason??"—"}</p>
+          {c.reversedAt&&<p className="mt-1 text-xs text-muted-foreground">
+            تاريخ العكس: {new Intl.DateTimeFormat("ar-EG",{dateStyle:"medium",timeStyle:"short",timeZone:"Africa/Cairo"}).format(new Date(c.reversedAt))}
+          </p>}
         </div>}
-        {c.source!==0&&<p className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
-          التحصيلات المرتبطة بتأكيد الأوردر أو التسليم تُعالج من العملية الأصلية، وليس من هذه الشاشة.
+        {c.status===1&&<p className="text-xs leading-6 text-muted-foreground">
+          عكس التحصيل لتصحيح إيصال مسجل بالخطأ، ولا يلغي الأوردر أو التسليم المرتبط به.
+          إذا استُلمت الأموال فعلًا وتريد ردها للعميل، استخدم «رد رصيد» من حسابات العملاء.
         </p>}
+        {c.status===1&&canRefund&&<Link to={`/finance?customerId=${c.customerId}`}
+          className="inline-flex text-xs font-semibold text-primary underline">الانتقال لحساب العميل لرد رصيد</Link>}
         {reversable&&!reversing&&<Button variant="destructive" onClick={()=>setReversing(true)}>عكس التحصيل</Button>}
         {reversable&&reversing&&<div className="space-y-3 rounded-lg border border-destructive/30 p-4">
           <p className="flex items-center gap-2 text-sm font-bold text-destructive"><AlertTriangle className="size-4"/> عكس التحصيل</p>
           <p className="rounded-lg bg-[#fff4df] p-3 text-sm leading-6 text-[#a46b0b]">
-            سيعود تأثير هذا المبلغ على رصيد العميل من خلال حركة عكسية، مع الاحتفاظ بالإيصال الأصلي.
-            لا تعيد هذه العملية أموالًا نقدية أو بنكية تلقائيًا.
+            سيتم إلغاء أثر هذا التحصيل على رصيد العميل بحركة عكسية مع الاحتفاظ بالإيصال وسجل العملية.
+            {c.source!==0&&" لن يتم إلغاء الأوردر أو التسليم نفسه."}
+            {" "}هذه العملية لا ترد أموالًا للعميل تلقائيًا؛ لرد أموال مدفوعة فعلًا استخدم «رد رصيد» من حساب العميل.
           </p>
           <label className="block space-y-1 text-sm font-semibold">
             <span>سبب العكس *</span>
