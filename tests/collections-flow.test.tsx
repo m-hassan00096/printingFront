@@ -66,8 +66,9 @@ const adapter:AxiosAdapter=async config=>{
     if(!c)throw Error("Unknown collection");
     return ok(config,c);
   }
-  if(url==="/finance/collections/51/reverse"&&method==="post"){
-    records=records.map(c=>c.id===51?{...c,status:2,statusLabel:"معكوس",reversalReason:String(body.reason)}:c);
+  if(/^\/finance\/collections\/(51|52)\/reverse$/.test(url)&&method==="post"){
+    const id=Number(url.split("/")[3]);
+    records=records.map(c=>c.id===id?{...c,status:2,statusLabel:"معكوس",reversalReason:String(body.reason)}:c);
     return ok(config,null);
   }
   throw Error("Unexpected call: "+method+" "+url);
@@ -165,7 +166,7 @@ describe("Collections frontend against Laravel Finance API",()=>{
     expect(within(dialog).getByRole("button",{name:"تأكيد تسجيل التحصيل"}).hasAttribute("disabled")).toBe(true);
     expect(calls.filter(c=>c.url==="/finance/collections"&&c.method==="post")).toHaveLength(0);
   });
-  it("reverses only general collections with a reason and Idempotency-Key",async()=>{
+  it("reverses posted collections with a reason and Idempotency-Key",async()=>{
     visit();const user=userEvent.setup();
     expect(await screen.findByText("COL-2026-00051")).toBeTruthy();
     await user.click(screen.getAllByRole("button",{name:"التفاصيل"})[0]);
@@ -190,13 +191,18 @@ describe("Collections frontend against Laravel Finance API",()=>{
     expect(within(dialog).getByRole("button",{name:"تأكيد تسجيل التحصيل"}).hasAttribute("disabled")).toBe(true);
     expect(calls.filter(c=>c.url==="/finance/collections"&&c.method==="post")).toHaveLength(0);
   });
-  it("hides reversing a delivery-linked receipt to preserve its composite workflow",async()=>{
+  it("allows reversing delivery-linked receipts without cancelling delivery",async()=>{
     visit();const user=userEvent.setup();
     expect(await screen.findByText("COL-2026-00052")).toBeTruthy();
     await user.click(screen.getAllByRole("button",{name:"التفاصيل"})[1]);
     const dialog=await screen.findByRole("dialog",{name:"تفاصيل إيصال التحصيل"});
-    expect(within(dialog).queryByRole("button",{name:"عكس التحصيل"})).toBeNull();
-    expect(within(dialog).getByText(/تُعالج من العملية الأصلية/)).toBeTruthy();
+    expect(within(dialog).getByRole("table")).toBeTruthy();
+    await user.click(within(dialog).getByRole("button",{name:"عكس التحصيل"}));
+    await user.type(within(dialog).getByRole("textbox",{name:/سبب العكس/}),"تسجيل مكرر عند التسليم");
+    await user.click(within(dialog).getByRole("checkbox",{name:"تأكيد أثر عكس التحصيل"}));
+    await user.click(within(dialog).getByRole("button",{name:"تأكيد عكس التحصيل"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/finance/collections/52/reverse")).toBe(true));
+    expect(calls.filter(c=>c.url.startsWith("/deliveries/")&&c.method==="post")).toHaveLength(0);
   });
   it("allows create-only collectors without fetching protected financial history",async()=>{
     permissions=["finance.collections.create"];
