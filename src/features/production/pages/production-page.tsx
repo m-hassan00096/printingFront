@@ -84,26 +84,42 @@ function ProductionColumn({ column, filters, page, onPage, count, countLoading,
             لا توجد عناصر في هذه المرحلة.
           </div> :
         [...groups.entries()].map(([orderId,items])=>
-          <div key={orderId} className="overflow-hidden rounded-lg border border-[#e6e9f3] bg-white shadow-[0_2px_9px_#26396b07]">
-            <header className="space-y-0.5 border-b bg-card px-3 py-2.5">
-              <p className="font-mono text-xs font-medium text-primary" dir="auto">{items[0].orderNumber}</p>
-              <p className="truncate text-xs font-semibold" title={items[0].customerName}>{items[0].customerName}</p>
-              <p className="text-xs text-muted-foreground">{items[0].customerPhone}</p>
-              {(items[0].isLate || items[0].dueDate===cairoToday()) &&
-                <span className={items[0].isLate
-                  ? "inline-flex w-fit rounded-md bg-[#fff0f2] px-2 py-0.5 text-[11px] font-bold text-[#c8384a]"
-                  : "inline-flex w-fit rounded-md bg-[#fff4dc] px-2 py-0.5 text-[11px] font-bold text-[#9c6107]"}>
-                  {items[0].isLate ? uiMessages.production.overdueLabel : uiMessages.production.dueTodayLabel}
+          <section key={orderId} aria-label={`الأوردر ${items[0].orderNumber}`}
+            className="overflow-hidden rounded-xl border border-[#dfe4f2] bg-[#f6f7fc] shadow-[0_3px_12px_#2536620b]">
+            <header className="border-b border-[#e0e5f2] bg-[#f2f4ff] px-3 py-2.5">
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <p className="min-w-0 truncate text-[13px] font-bold text-[#26334f]"
+                  title={items[0].customerName}>{items[0].customerName}</p>
+                <span className="shrink-0 font-mono text-[11px] font-semibold text-primary"
+                  dir="ltr">{items[0].orderNumber}</span>
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+                <span dir="ltr" className="tabular-nums">{items[0].customerPhone}</span>
+                {items.length>1 && <span aria-label={`${items.length} عناصر في هذه المرحلة`}>
+                  {items.length} عناصر في المرحلة
                 </span>}
-              {items[0].dueDate && <p className="text-xs text-muted-foreground">
-                {uiMessages.production.deliveryDueLabel}: <span dir="ltr" className="inline-block tabular-nums">{displayDueDate(items[0].dueDate)}</span>
-              </p>}
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[11px] text-muted-foreground">
+                  {uiMessages.production.deliveryDueLabel}: {items[0].dueDate
+                    ? <span dir="ltr" className="inline-block tabular-nums">{displayDueDate(items[0].dueDate)}</span>
+                    : "بدون موعد"}
+                </span>
+                {(items[0].isLate || items[0].dueDate===cairoToday()) &&
+                  <span className={items[0].isLate
+                    ? "rounded-md bg-[#fff0f2] px-2 py-0.5 text-[11px] font-bold text-[#c8384a]"
+                    : "rounded-md bg-[#fff4dc] px-2 py-0.5 text-[11px] font-bold text-[#9c6107]"}>
+                    {items[0].isLate ? uiMessages.production.overdueLabel : uiMessages.production.dueTodayLabel}
+                  </span>}
+              </div>
             </header>
-            {items.map(item=><ProductionItemCard key={item.id} item={item} permissions={permissions}
-              selected={selected.has(item.id)} busy={busy}
-              onSelect={onSelect} onDetails={onDetails}
-              onAction={(action,i)=>onAction(i,action)}/>)}
-          </div>)}
+            <div className="space-y-2 p-2" aria-label={`عناصر الأوردر ${items[0].orderNumber} في مرحلة ${label}`}>
+              {items.map(item=><ProductionItemCard key={item.id} item={item} permissions={permissions}
+                selected={selected.has(item.id)} busy={busy}
+                onSelect={onSelect} onDetails={onDetails}
+                onAction={(action,i)=>onAction(i,action)}/>)}
+            </div>
+          </section>)
     </div>
     {result.data && result.data.pagination.lastPage>1 &&
       <PaginationBar pagination={result.data.pagination} onPage={onPage}/>}

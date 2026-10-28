@@ -70,45 +70,54 @@ export function ProductionItemCard({item,permissions,selected,busy,onSelect,onAc
       window.removeEventListener("keydown",keydown);
     };
   },[expanded,canChangeLocation,canUndo]);
-  return <article aria-label={`عنصر ${item.serviceName}`} className="space-y-2 border-t border-border px-3 py-2.5 transition-colors duration-100 first:border-t-0 hover:bg-[#fafbff]">
-    <div className="flex flex-wrap items-start justify-between gap-2">
-      <div className="min-w-0 space-y-1">
-        <p className="truncate text-[13px] font-semibold">{item.serviceName}</p>
-        <p className="text-xs text-muted-foreground">الكمية: {item.quantity.toLocaleString("en-US")}</p>
-        {stage===3 && <p className="text-xs text-muted-foreground">المطبعة: {item.printingLocationName??"—"}</p>}
-      </div>
+  return <article aria-label={`عنصر ${item.serviceName}`}
+    className="min-w-0 space-y-2 rounded-lg border border-[#e3e7f0] bg-white px-2.5 py-2.5 shadow-[0_2px_6px_#27396b06]">
+    <div className="flex min-w-0 items-start justify-between gap-2">
+      <p className="min-w-0 truncate text-[13px] font-bold leading-5"
+        title={item.serviceName}>{item.serviceName}</p>
       <StagePill stage={stage}/>
     </div>
-    {(stage===1 || completed) && <div className="rounded-md border border-[#e8eaf4] bg-[#f7f8fd] px-2 py-1.5"
-      aria-label="مسؤول التصميم">
-      <div className="flex min-w-0 items-center gap-1.5">
-        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-card text-primary"
-          aria-hidden="true"><UserRound className="size-3.5"/></span>
-        <span className="shrink-0 text-[11px] text-muted-foreground">المصمم المسؤول</span>
-        <span className="min-w-0 truncate text-xs font-semibold" dir="auto"
-          title={item.designerName ?? "غير محدد"}>{item.designerName || "غير محدد"}</span>
-      </div>
-      {completed && item.designCompletedByName && item.designCompletedByName !== item.designerName &&
-        <p className="mt-1 text-[11px] text-muted-foreground">أنهى التصميم: <span dir="auto">{item.designCompletedByName}</span></p>}
-    </div>}
-    <div className="flex flex-wrap items-center gap-1.5">
-      {completed && printSend && <label className="flex cursor-pointer items-center gap-1 text-xs" title="تحديد للإرسال الجماعي">
+    <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[11px]">
+      <span className="shrink-0 text-muted-foreground">الكمية: <strong className="font-semibold text-foreground tabular-nums">{item.quantity.toLocaleString("en-US")}</strong></span>
+      {(stage===1 || completed) && <span className="inline-flex min-w-0 items-center gap-1 text-muted-foreground"
+        aria-label="مسؤول التصميم" title={item.designerName??"غير محدد"}>
+        <UserRound className="size-3.5 shrink-0 text-primary" aria-hidden="true"/>
+        <span className="shrink-0">المصمم المسؤول</span>
+        <span className="min-w-0 truncate font-semibold text-foreground" dir="auto">{item.designerName||"غير محدد"}</span>
+      </span>}
+    </div>
+    {completed && item.designCompletedByName && item.designCompletedByName !== item.designerName &&
+      <p className="text-[11px] text-muted-foreground">أنهى التصميم: <span dir="auto">{item.designCompletedByName}</span></p>}
+    {stage===3 && <p className="text-[11px] text-muted-foreground">المطبعة: {item.printingLocationName??"—"}</p>}
+    <div className="flex min-w-0 items-center gap-1 border-t border-[#edf0f7] pt-2">
+      {completed && printSend && <label className="inline-flex shrink-0 cursor-pointer items-center gap-1 text-[11px]"
+        title="تحديد للإرسال الجماعي">
         <input type="checkbox" aria-label={`تحديد ${item.serviceName} للإرسال`} checked={selected}
           disabled={busy} onChange={e=>onSelect(item.id,e.target.checked)} /> تحديد
       </label>}
-      <Button type="button" variant="outline" size="sm" disabled={busy}
-        onClick={()=>onDetails(item)}><Eye className="size-4"/> التفاصيل</Button>
-      {stage===0 && may("production.design.start") && <Button size="sm" disabled={busy}
-        onClick={()=>onAction("start-design",item)}>بدء التصميم</Button>}
-      {stage===1 && may("production.design.complete") && <Button size="sm" disabled={busy}
-        onClick={()=>onAction("complete-design",item)}>إنهاء التصميم</Button>}
-      {stage===1 && may("production.design.complete") && printSend && <Button size="sm" variant="outline" disabled={busy}
-        onClick={()=>onAction("complete-and-send-to-printing",item)}>إنهاء وإرسال للطباعة</Button>}
-      {completed && printSend && <Button size="sm" disabled={busy}
-        onClick={()=>onAction("send-to-printing",item)}>إرسال للطباعة</Button>}
-      {stage===3 && may("production.printing.complete") && <Button size="sm" disabled={busy}
-        onClick={()=>onAction("mark-ready",item)}>جاهز للتسليم</Button>}
-      {(canChangeLocation || canUndo) && <div>
+      {stage===1 && may("production.design.complete") && printSend &&
+        <Button type="button" size="sm" className="min-w-0 px-1.5 text-[11px]"
+          aria-label="إنهاء وإرسال للطباعة" title="إنهاء التصميم وإرسال العنصر للطباعة"
+          disabled={busy} onClick={()=>onAction("complete-and-send-to-printing",item)}>إنهاء وإرسال</Button>}
+      {stage===1 && may("production.design.complete") &&
+        <Button type="button" variant={printSend?"outline":"default"} size="sm"
+          className="min-w-0 px-1.5 text-[11px]" aria-label="إنهاء التصميم"
+          title="إنهاء التصميم فقط دون نقله للطباعة" disabled={busy}
+          onClick={()=>onAction("complete-design",item)}>{printSend?"إنهاء فقط":"إنهاء التصميم"}</Button>}
+      {stage===0 && may("production.design.start") &&
+        <Button type="button" size="sm" className="min-w-0 px-2 text-[11px]"
+          disabled={busy} onClick={()=>onAction("start-design",item)}>بدء التصميم</Button>}
+      {completed && printSend &&
+        <Button type="button" size="sm" className="min-w-0 px-2 text-[11px]"
+          disabled={busy} onClick={()=>onAction("send-to-printing",item)}>إرسال للطباعة</Button>}
+      {stage===3 && may("production.printing.complete") &&
+        <Button type="button" size="sm" className="min-w-0 px-2 text-[11px]"
+          disabled={busy} onClick={()=>onAction("mark-ready",item)}>جاهز للتسليم</Button>}
+      <span className="min-w-0 flex-1" aria-hidden="true"/>
+      <Button type="button" variant="outline" size="icon-sm" className="shrink-0"
+        title="التفاصيل" aria-label="التفاصيل" disabled={busy}
+        onClick={()=>onDetails(item)}><Eye className="size-4"/></Button>
+      {(canChangeLocation || canUndo) && <div className="shrink-0">
         <Button ref={triggerRef} type="button" variant="outline" size="icon-sm" disabled={busy}
           aria-label={`المزيد للعنصر ${item.id}`} aria-haspopup="menu" aria-controls={expanded?menuId:undefined}
           aria-expanded={expanded} onClick={()=>setExpanded(current=>!current)}>
