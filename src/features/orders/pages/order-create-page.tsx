@@ -17,7 +17,7 @@ import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { fieldClass } from "@/features/identity/components/identity-ui";
 import { getOrderCreateOptions, getOrderPaymentOptions } from "../api/order-options.api";
 import { SearchableSelect } from "../components/searchable-select";
-import { CreatedDatePicker } from "../components/created-date-picker";
+import { CreatedDatePicker, cairoTodayISO } from "../components/created-date-picker";
 import { useOrderActions } from "../hooks/use-orders";
 import type { CreateOrderPayload } from "../types/orders.types";
 
@@ -35,13 +35,6 @@ function cents(value: string): number | null {
   if (!moneyPattern.test(value)) return null;
   const [whole, fraction = ""] = value.split(".");
   return Number(whole) * 100 + Number((fraction + "00").slice(0, 2));
-}
-function cairoToday(): string {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Africa/Cairo", day: "2-digit", month: "2-digit", year: "numeric",
-  }).formatToParts(new Date());
-  const part = (type: string) => parts.find(item => item.type === type)?.value ?? "";
-  return `${part("year")}-${part("month")}-${part("day")}`;
 }
 export function OrderCreatePage() {
   const navigate = useNavigate();
@@ -319,7 +312,7 @@ export function OrderCreatePage() {
             </select>
           </label>
           <div className="scroll-mt-24" data-order-field="dueDate">
-            <CreatedDatePicker label="تاريخ التسليم (اختياري)" value={dueDate} min={cairoToday()} disabled={busy}
+            <CreatedDatePicker label="تاريخ التسليم (اختياري)" value={dueDate} min={cairoTodayISO()} disabled={busy}
               onChange={(next) => {setDueDate(next);clear("dueDate");}} />
             {message("dueDate")}
           </div>

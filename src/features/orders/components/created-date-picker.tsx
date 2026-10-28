@@ -16,6 +16,14 @@ function dateParts(value: string) {
   return { year, month, day };
 }
 
+export function cairoTodayISO(): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Africa/Cairo", day: "2-digit", month: "2-digit", year: "numeric",
+  }).formatToParts(new Date());
+  const part = (type: string) => parts.find(item => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
 /** A theme-matched Gregorian calendar; never launches the browser-native date picker. */
 export function CreatedDatePicker({ label, value, onChange, min, max, disabled = false }: {
   label: string; value: string; onChange: (next: string) => void; min?: string; max?: string; disabled?: boolean;

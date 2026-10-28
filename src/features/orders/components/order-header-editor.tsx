@@ -8,7 +8,7 @@ import { getApiErrorMessage } from "@/shared/api/http";
 import { fieldClass } from "@/features/identity/components/identity-ui";
 import { getActiveOrderCustomers } from "../api/order-options.api";
 import { SearchableSelect } from "./searchable-select";
-import { CreatedDatePicker } from "./created-date-picker";
+import { CreatedDatePicker, cairoTodayISO } from "./created-date-picker";
 import { useOrderActions, orderKeys } from "../hooks/use-orders";
 import type { Order } from "../types/orders.types";
 
@@ -75,7 +75,7 @@ export function OrderHeaderEditor({ order, canCreateCustomer, onClose }: {
               <option value="0">الفرع</option><option value="1">أونلاين</option>
             </select>
           </label>
-          <CreatedDatePicker label="موعد تسليم المسودة" value={dueDate}
+          <CreatedDatePicker label="موعد تسليم المسودة" value={dueDate} min={cairoTodayISO()}
             disabled={actions.update.isPending} onChange={setDueDate} />
         </div>
         <label className="block text-sm font-semibold">الملاحظات
