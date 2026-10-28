@@ -21,10 +21,10 @@ export function UserDetailPage() {
     <SectionHeader title="تفاصيل المستخدم" detail="بيانات الحساب والدور الحالي." actions={
       session?.permissions.includes("identity.users.update") && <Button asChild><Link to={`/users/${id}/edit`}><Pencil className="size-4" /> تعديل المستخدم</Link></Button>
     } />
-    <section className="max-w-3xl rounded-2xl border bg-card p-5 shadow-sm sm:p-7">
+    <section className="max-w-3xl rounded-lg border bg-card p-5  sm:p-7">
       <div className="flex items-center gap-4 border-b pb-6">
-        {value.avatar ? <img className="size-16 rounded-2xl object-cover" src={value.avatar} alt="" /> :
-          <span className="flex size-16 items-center justify-center rounded-2xl bg-secondary"><UserRound className="size-8 text-primary" /></span>}
+        {value.avatar ? <img className="size-16 rounded-lg object-cover" src={value.avatar} alt="" /> :
+          <span className="flex size-16 items-center justify-center rounded-lg bg-secondary"><UserRound className="size-8 text-primary" /></span>}
         <div className="space-y-1"><h3 className="text-xl font-extrabold">{value.name}</h3><span dir="ltr" className="block text-xs text-muted-foreground">{value.username}</span></div>
       </div>
       <dl className="grid gap-x-6 gap-y-6 pt-6 sm:grid-cols-2">

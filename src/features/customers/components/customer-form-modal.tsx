@@ -3,6 +3,7 @@ import axios from "axios";
 import { LoaderCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { getApiErrorMessage } from "@/shared/api/http";
 import type { ApiErrorResponse } from "@/shared/api/api-types";
 import { fieldClass, fieldLabel } from "@/features/identity/components/identity-ui";
@@ -20,7 +21,6 @@ function validate(form: Draft): Errors {
   if (!form.phone.trim()) errors.phone = "رقم الهاتف مطلوب.";
   else if (form.phone.trim().length > 100) errors.phone = "رقم الهاتف يجب ألا يتجاوز 100 حرف.";
   if (form.address.length > 1000) errors.address = "العنوان يجب ألا يتجاوز 1000 حرف.";
-  if (!form.customerTypeId) errors.customerTypeId = "اختر نوع العميل.";
   return errors;
 }
 
@@ -31,7 +31,7 @@ export function CustomerFormModal({ customer, onClose, onSaved }: {
 }) {
   const [draft, setDraft] = useState<Draft>({
     name: customer?.name ?? "", phone: customer?.phone ?? "",
-    address: customer?.address ?? "", customerTypeId: customer ? String(customer.customerTypeId) : "",
+    address: customer?.address ?? "", customerTypeId: customer?.customerTypeId == null ? "" : String(customer.customerTypeId),
     status: customer?.status === 0 ? "0" : "1",
   });
   const [errors, setErrors] = useState<Errors>({});
@@ -55,7 +55,7 @@ export function CustomerFormModal({ customer, onClose, onSaved }: {
     const payload: CustomerPayload = {
       name: draft.name.trim(), phone: draft.phone.trim(),
       address: draft.address.trim() || null,
-      customerTypeId: Number(draft.customerTypeId), status: Number(draft.status) as 0 | 1,
+      customerTypeId: draft.customerTypeId ? Number(draft.customerTypeId) : null, status: Number(draft.status) as 0 | 1,
     };
     setGeneralError(null);
     try {
@@ -104,11 +104,11 @@ export function CustomerFormModal({ customer, onClose, onSaved }: {
     return errors[key] ? <span role="alert" className="mt-1 block text-xs text-destructive">{errors[key]}</span> : null;
   }
 
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-4"
     onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) onClose(); }}>
     <section role="dialog" aria-modal="true" aria-label={customer ? "تعديل عميل" : "إضافة عميل"}
       onKeyDown={(event) => { if (event.key === "Escape" && !busy) onClose(); }}
-      className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-card p-5 shadow-2xl sm:p-7">
+      className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-lg bg-card p-5 shadow-2xl sm:p-7">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div><h3 className="text-xl font-extrabold">{customer ? "تعديل عميل" : "إضافة عميل"}</h3>
           <p className="mt-1 text-xs text-muted-foreground">الحقول المميزة بالنجمة مطلوبة.</p></div>
@@ -127,13 +127,13 @@ export function CustomerFormModal({ customer, onClose, onSaved }: {
               onChange={(e) => change("phone", e.target.value)} />
             {fieldError("phone")}
           </label>
-          <label className="block space-y-2"><span className={fieldLabel}>نوع العميل *</span>
+          <label className="block space-y-2"><span className={fieldLabel}>{uiMessages.customers.typeOptional}</span>
             <select aria-label="نوع العميل" aria-invalid={!!errors.customerTypeId}
-              className={fieldClass} value={draft.customerTypeId} disabled={busy || types.isPending || types.isError}
+              className={fieldClass} value={draft.customerTypeId} disabled={busy}
               onChange={(e) => change("customerTypeId", e.target.value)}>
-              <option value="">اختر نوع العميل</option>
+              <option value="">{uiMessages.customers.unclassifiedHint}</option>
               {customer?.customerType && !types.data?.some((item) => item.value === customer.customerTypeId) &&
-                <option value={customer.customerTypeId}>{customer.customerType.name} (النوع الحالي)</option>}
+                <option value={customer.customerTypeId ?? ""}>{customer.customerType.name} (النوع الحالي)</option>}
               {types.data?.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
             </select>
             {fieldError("customerTypeId")}
@@ -154,10 +154,10 @@ export function CustomerFormModal({ customer, onClose, onSaved }: {
             {fieldError("address")}
           </label>
         </div>
-        {generalError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{generalError}</p>}
+        {generalError && <p role="alert" className="rounded-lg border border-[#efbec6] bg-[#ffecf0] p-3 text-sm text-[#c73a4c]">{generalError}</p>}
         <div className="flex justify-end gap-3 border-t pt-5">
           <Button type="button" variant="outline" disabled={busy} onClick={onClose}>إلغاء</Button>
-          <Button type="submit" disabled={busy || types.isError || types.isPending || (!types.data?.length && !customer?.customerType)}>
+          <Button type="submit" disabled={busy}>
             {busy && <LoaderCircle className="size-4 animate-spin" />}{customer ? "حفظ التعديلات" : "إضافة العميل"}
           </Button>
         </div>

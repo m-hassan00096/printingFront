@@ -24,13 +24,13 @@ function Frame({title,busy,onClose,children}:{title:string;busy:boolean;onClose:
     document.body.style.overflow="hidden";
     return ()=>{document.body.style.overflow=previousOverflow;};
   },[]);
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3 sm:p-4"
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-3 sm:p-4"
     onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)onClose();}}>
     <section role="dialog" aria-modal="true" aria-labelledby={titleId} dir="rtl"
-      className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-card shadow-2xl"
+      className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-lg bg-card shadow-2xl"
       onKeyDown={e=>{if(e.key==="Escape"&&!busy)onClose();}}>
       <header className="flex shrink-0 items-center justify-between gap-3 border-b p-4">
-        <h2 id={titleId} className="text-lg font-extrabold">{title}</h2>
+        <h2 id={titleId} className="text-base font-semibold">{title}</h2>
         <Button ref={closeRef} type="button" variant="ghost" size="icon-sm" disabled={busy} aria-label="إغلاق" onClick={onClose}><X className="size-4"/></Button>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">{children}</div>
@@ -86,7 +86,7 @@ export function CreateCollectionDialog({onClose,onSuccess}:{onClose:()=>void;onS
   }
   return <Frame title="تسجيل تحصيل جديد" busy={actions.create.isPending} onClose={onClose}>
     <div className="space-y-4">
-      <p className="flex items-start gap-2 rounded-xl border border-primary/10 bg-muted/40 p-3 text-sm leading-6 text-foreground/80">
+      <p className="flex items-start gap-2 rounded-lg border border-primary/10 bg-muted/40 p-3 text-sm leading-6 text-foreground/80">
         <Info className="mt-0.5 size-4 shrink-0 text-primary"/>
         التحصيل العام يُسجل على حساب العميل ويقلل مديونيته، وأي مبلغ زائد يصبح رصيدًا دائنًا.
         لا يلزم ربط التحصيل بأوردر.
@@ -129,7 +129,7 @@ export function CreateCollectionDialog({onClose,onSuccess}:{onClose:()=>void;onS
           <button type="button" className="mr-2 underline" onClick={()=>void paymentOptions.refetch()}>إعادة المحاولة</button>
         </p>}
         {!paymentOptions.isPending&&!paymentOptions.isError&&destinations.length===0&&
-          <p className="text-sm text-amber-700">لا توجد حسابات نشطة لطريقة الدفع المختارة. يمكن مراجعتها من الإعدادات.</p>}
+          <p className="text-sm text-[#a46b0b]">لا توجد حسابات نشطة لطريقة الدفع المختارة. يمكن مراجعتها من الإعدادات.</p>}
         {fieldErrors.paymentDestinationId&&<p role="alert" className="text-xs text-destructive">{fieldErrors.paymentDestinationId}</p>}
       </div>}
       <div className="space-y-1">
@@ -158,13 +158,14 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
   const session=useCurrentUser();
   const canReverse=session.data?.permissions.includes("finance.collections.reverse")??false;
   const canViewOrders=session.data?.permissions.includes("orders.view")??false;
+  const canRefund=session.data?.permissions.includes("finance.refunds.create")??false;
   const actions=useCollectionActions();
   const [reversing,setReversing]=useState(false);
   const [reason,setReason]=useState("");
   const [acknowledged,setAcknowledged]=useState(false);
   const [error,setError]=useState("");
   const c=query.data;
-  const reversable=c?.source===0&&c.status===1&&canReverse;
+  const reversable=c?.status===1&&canReverse;
   async function confirm(){
     if(!reversable||reason.trim().length<3||!acknowledged||actions.reverse.isPending)return;
     setError("");
@@ -178,7 +179,7 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
     {query.isPending?<LoadingState/>:query.isError?
       <ErrorState error={query.error} retry={()=>void query.refetch()}/>:c&&
       <div className="space-y-4">
-        <div className="grid gap-4 rounded-xl bg-muted/40 p-4 text-sm sm:grid-cols-2">
+        <div className="grid gap-4 rounded-lg bg-muted/40 p-4 text-sm sm:grid-cols-2">
           {[
             ["رقم الإيصال",c.receiptNumber],["العميل",c.customerName],
             ["رقم الهاتف",c.customerPhone],["تاريخ التحصيل",formatCollectionDate(c.collectedOn)],
@@ -191,22 +192,29 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
           <div><p className="text-xs text-muted-foreground">المبلغ</p>
             <p className="mt-1 font-extrabold"><MoneyAmount amount={c.amount}/></p></div>
         </div>
-        {c.note&&<p className="whitespace-pre-wrap rounded-xl border p-3 text-sm">ملاحظات: {c.note}</p>}
+        {c.note&&<p className="whitespace-pre-wrap rounded-lg border p-3 text-sm">ملاحظات: {c.note}</p>}
         {c.orderId&&canViewOrders&&<Link to={`/orders/${c.orderId}`} className="text-sm font-semibold text-primary underline">فتح الأوردر المرتبط</Link>}
-        {c.status===1&&<p className="flex items-center gap-2 text-sm font-semibold text-emerald-700"><CheckCircle2 className="size-4"/> إيصال معتمد ومسجل في حساب العميل.</p>}
-        {c.status===2&&<div className="rounded-xl border border-amber-200 p-3 text-sm">
-          <p className="font-bold">تحصيل معكوس</p>
+        {c.status===1&&<p className="flex items-center gap-2 text-sm font-semibold text-[#14815b]"><CheckCircle2 className="size-4"/> إيصال معتمد ومسجل في حساب العميل.</p>}
+        {c.status===2&&<div className="rounded-lg border border-amber-200 bg-amber-50/40 p-3 text-sm">
+          <p className="font-bold text-amber-800">تحصيل معكوس — تم إلغاء أثره المالي مع الاحتفاظ بالإيصال.</p>
           <p className="mt-1">سبب العكس: {c.reversalReason??"—"}</p>
+          {c.reversedAt&&<p className="mt-1 text-xs text-muted-foreground">
+            تاريخ العكس: {new Intl.DateTimeFormat("ar-EG",{dateStyle:"medium",timeStyle:"short",timeZone:"Africa/Cairo"}).format(new Date(c.reversedAt))}
+          </p>}
         </div>}
-        {c.source!==0&&<p className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
-          التحصيلات المرتبطة بتأكيد الأوردر أو التسليم تُعالج من العملية الأصلية، وليس من هذه الشاشة.
+        {c.status===1&&<p className="text-xs leading-6 text-muted-foreground">
+          عكس التحصيل لتصحيح إيصال مسجل بالخطأ، ولا يلغي الأوردر أو التسليم المرتبط به.
+          إذا استُلمت الأموال فعلًا وتريد ردها للعميل، استخدم «رد رصيد» من حسابات العملاء.
         </p>}
+        {c.status===1&&canRefund&&<Link to={`/finance?customerId=${c.customerId}`}
+          className="inline-flex text-xs font-semibold text-primary underline">الانتقال لحساب العميل لرد رصيد</Link>}
         {reversable&&!reversing&&<Button variant="destructive" onClick={()=>setReversing(true)}>عكس التحصيل</Button>}
-        {reversable&&reversing&&<div className="space-y-3 rounded-xl border border-destructive/30 p-4">
+        {reversable&&reversing&&<div className="space-y-3 rounded-lg border border-destructive/30 p-4">
           <p className="flex items-center gap-2 text-sm font-bold text-destructive"><AlertTriangle className="size-4"/> عكس التحصيل</p>
-          <p className="rounded-lg bg-amber-50 p-3 text-sm leading-6 text-amber-900">
-            سيعود تأثير هذا المبلغ على رصيد العميل من خلال حركة عكسية، مع الاحتفاظ بالإيصال الأصلي.
-            لا تعيد هذه العملية أموالًا نقدية أو بنكية تلقائيًا.
+          <p className="rounded-lg bg-[#fff4df] p-3 text-sm leading-6 text-[#a46b0b]">
+            سيتم إلغاء أثر هذا التحصيل على رصيد العميل بحركة عكسية مع الاحتفاظ بالإيصال وسجل العملية.
+            {c.source!==0&&" لن يتم إلغاء الأوردر أو التسليم نفسه."}
+            {" "}هذه العملية لا ترد أموالًا للعميل تلقائيًا؛ لرد أموال مدفوعة فعلًا استخدم «رد رصيد» من حساب العميل.
           </p>
           <label className="block space-y-1 text-sm font-semibold">
             <span>سبب العكس *</span>

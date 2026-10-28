@@ -59,7 +59,7 @@ export type ProductionFilters = {
   serviceId: number | null;
   myDesignWork: "" | "1" | "2";
   lateOnly: boolean;
-  sort: "dueDate" | "-dueDate" | "id" | "-id";
+  sort: "priority" | "dueDate" | "-dueDate" | "id" | "-id";
 };
 export type ProductionList = { items: ProductionItem[]; pagination: Pagination };
 export type ProductionHistory = { events: ProductionEvent[]; pagination: Pagination };

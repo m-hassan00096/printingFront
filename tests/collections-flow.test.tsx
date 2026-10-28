@@ -21,6 +21,8 @@ const general:Collection={
 };
 const fromDelivery:Collection={...general,id:52,receiptNumber:"COL-2026-00052",source:2,
   sourceLabel:"عند التسليم",orderId:10,paymentMethod:1,paymentMethodLabel:"تحويل بنكي"};
+const deposit:Collection={...general,id:53,receiptNumber:"COL-2026-00053",source:1,
+  sourceLabel:"عربون أوردر",orderId:12};
 function ok(config:InternalAxiosRequestConfig,data:unknown,status=200):AxiosResponse{
   return {config,status,statusText:String(status),headers:{},data:{success:true,message:"",data}};
 }
@@ -66,8 +68,12 @@ const adapter:AxiosAdapter=async config=>{
     if(!c)throw Error("Unknown collection");
     return ok(config,c);
   }
-  if(url==="/finance/collections/51/reverse"&&method==="post"){
-    records=records.map(c=>c.id===51?{...c,status:2,statusLabel:"معكوس",reversalReason:String(body.reason)}:c);
+  const reversed=url.match(/^\/finance\/collections\/(\d+)\/reverse$/);
+  if(reversed&&method==="post"){
+    const id=Number(reversed[1]);
+    if(!records.some(c=>c.id===id&&c.status===1))throw Error("Receipt already reversed or absent");
+    records=records.map(c=>c.id===id?{...c,status:2,statusLabel:"معكوس",
+      reversalReason:String(body.reason),reversedAt:"2026-10-28T12:00:00Z"}:c);
     return ok(config,null);
   }
   throw Error("Unexpected call: "+method+" "+url);
@@ -165,7 +171,7 @@ describe("Collections frontend against Laravel Finance API",()=>{
     expect(within(dialog).getByRole("button",{name:"تأكيد تسجيل التحصيل"}).hasAttribute("disabled")).toBe(true);
     expect(calls.filter(c=>c.url==="/finance/collections"&&c.method==="post")).toHaveLength(0);
   });
-  it("reverses only general collections with a reason and Idempotency-Key",async()=>{
+  it("reverses a general collection with a reason and Idempotency-Key",async()=>{
     visit();const user=userEvent.setup();
     expect(await screen.findByText("COL-2026-00051")).toBeTruthy();
     await user.click(screen.getAllByRole("button",{name:"التفاصيل"})[0]);
@@ -190,13 +196,51 @@ describe("Collections frontend against Laravel Finance API",()=>{
     expect(within(dialog).getByRole("button",{name:"تأكيد تسجيل التحصيل"}).hasAttribute("disabled")).toBe(true);
     expect(calls.filter(c=>c.url==="/finance/collections"&&c.method==="post")).toHaveLength(0);
   });
-  it("hides reversing a delivery-linked receipt to preserve its composite workflow",async()=>{
-    visit();const user=userEvent.setup();
-    expect(await screen.findByText("COL-2026-00052")).toBeTruthy();
-    await user.click(screen.getAllByRole("button",{name:"التفاصيل"})[1]);
+  it.each([
+    {source:"عربون أوردر",id:53,orderId:12},
+    {source:"عند التسليم",id:52,orderId:10},
+  ])("can reverse $source independently without cancelling its order or delivery",async({id,orderId})=>{
+    records=[...records,deposit];visit();const user=userEvent.setup();
+    expect(await screen.findByText(`COL-2026-${String(id).padStart(5,"0")}`)).toBeTruthy();
+    const row=screen.getByText(`COL-2026-${String(id).padStart(5,"0")}`).closest("tr");
+    expect(row).toBeTruthy();
+    await user.click(within(row!).getByRole("button",{name:"التفاصيل"}));
     const dialog=await screen.findByRole("dialog",{name:"تفاصيل إيصال التحصيل"});
+    expect(within(dialog).getByText("رقم الإيصال")).toBeTruthy();
+    expect(within(dialog).getByText("مصدر التحصيل")).toBeTruthy();
+    expect(within(dialog).getByText(/عكس التحصيل لتصحيح إيصال مسجل بالخطأ/)).toBeTruthy();
+    await user.click(within(dialog).getByRole("button",{name:"عكس التحصيل"}));
+    expect(within(dialog).getByText(/لن يتم إلغاء الأوردر أو التسليم نفسه/)).toBeTruthy();
+    await user.type(within(dialog).getByRole("textbox",{name:/سبب العكس/}),"تسجيل إيصال عن طريق الخطأ");
+    await user.click(within(dialog).getByRole("checkbox",{name:"تأكيد أثر عكس التحصيل"}));
+    await user.click(within(dialog).getByRole("button",{name:"تأكيد عكس التحصيل"}));
+    await waitFor(()=>expect(calls.some(c=>c.url===`/finance/collections/${id}/reverse`)).toBe(true));
+    expect(calls.find(c=>c.url===`/finance/collections/${id}/reverse`)?.body)
+      .toEqual({reason:"تسجيل إيصال عن طريق الخطأ"});
+    expect(records.find(c=>c.id===id)?.status).toBe(2);
+    expect(records.find(c=>c.id===id)?.orderId).toBe(orderId);
+    expect(calls.some(c=>c.method==="post"&&
+      (c.url.includes("/deliveries/")||c.url.includes("/orders/")||c.url.includes("/refunds")))).toBe(false);
+  });
+  it("preserves the receipt detail grid and reversal audit after correcting a deposit",async()=>{
+    records=[...records,deposit];visit();const user=userEvent.setup();
+    await screen.findByText("COL-2026-00053");
+    const row=screen.getByText("COL-2026-00053").closest("tr");
+    await user.click(within(row!).getByRole("button",{name:"التفاصيل"}));
+    let dialog=await screen.findByRole("dialog",{name:"تفاصيل إيصال التحصيل"});
+    const details=within(dialog).getByText("رقم الإيصال").parentElement?.parentElement;
+    expect(details?.className).toContain("sm:grid-cols-2");
+    await user.click(within(dialog).getByRole("button",{name:"عكس التحصيل"}));
+    await user.type(within(dialog).getByRole("textbox",{name:/سبب العكس/}),"عربون تم تسجيله بالخطأ");
+    await user.click(within(dialog).getByRole("checkbox",{name:"تأكيد أثر عكس التحصيل"}));
+    await user.click(within(dialog).getByRole("button",{name:"تأكيد عكس التحصيل"}));
+    await waitFor(()=>expect(screen.queryByRole("dialog",{name:"تفاصيل إيصال التحصيل"})).toBeNull());
+    await user.click(within(screen.getByText("COL-2026-00053").closest("tr")!).getByRole("button",{name:"التفاصيل"}));
+    dialog=await screen.findByRole("dialog",{name:"تفاصيل إيصال التحصيل"});
+    expect(within(dialog).getByText(/تحصيل معكوس/)).toBeTruthy();
+    expect(within(dialog).getByText("سبب العكس: عربون تم تسجيله بالخطأ")).toBeTruthy();
+    expect(within(dialog).getByText(/تاريخ العكس/)).toBeTruthy();
     expect(within(dialog).queryByRole("button",{name:"عكس التحصيل"})).toBeNull();
-    expect(within(dialog).getByText(/تُعالج من العملية الأصلية/)).toBeTruthy();
   });
   it("allows create-only collectors without fetching protected financial history",async()=>{
     permissions=["finance.collections.create"];

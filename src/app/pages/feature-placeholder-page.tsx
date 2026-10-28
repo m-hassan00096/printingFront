@@ -103,11 +103,11 @@ export function FeaturePlaceholderPage({ featureKey }: FeaturePlaceholderPagePro
           <CircleDot className="size-3.5" />
           قيد التصميم
         </Badge>
-        <h2 className="text-3xl font-extrabold tracking-tight">{feature.title}</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">{feature.title}</h2>
         <p className="text-sm leading-7 text-muted-foreground sm:text-base">{feature.description}</p>
       </div>
 
-      <Card className="max-w-3xl rounded-2xl">
+      <Card className="max-w-3xl rounded-lg">
         <CardHeader>
           <CardTitle className="text-base">مبادئ تصميم هذه الشاشة</CardTitle>
           <CardDescription>هذه نقاط توجيهية للتنفيذ وليست بيانات تشغيل أو وظائف مكتملة.</CardDescription>
@@ -116,7 +116,7 @@ export function FeaturePlaceholderPage({ featureKey }: FeaturePlaceholderPagePro
           <ul className="space-y-4">
             {feature.principles.map((principle) => (
               <li key={principle} className="flex items-start gap-3 text-sm leading-6">
-                <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-700" />
+                <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-[#14815b]" />
                 <span>{principle}</span>
               </li>
             ))}

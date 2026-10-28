@@ -4,7 +4,7 @@ import { Check, ChevronDown, Plus, Search } from "lucide-react";
 export type SearchOption = { value: number; label: string };
 
 export function SearchableSelect({
-  options, value, onChange, placeholder, label, disabled = false,
+  options, value, onChange, placeholder, label, disabled = false, invalid = false,
   loading = false, onCreate, createLabel = "إضافة جديد",
 }: {
   options: SearchOption[];
@@ -13,6 +13,7 @@ export function SearchableSelect({
   placeholder: string;
   label: string;
   disabled?: boolean;
+  invalid?: boolean;
   loading?: boolean;
   onCreate?: () => void;
   createLabel?: string;
@@ -62,18 +63,18 @@ export function SearchableSelect({
   return <div ref={wrapper} className="relative">
     <div className="relative">
       <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      <input role="combobox" aria-label={label} aria-autocomplete="list" aria-expanded={open}
+      <input role="combobox" aria-label={label} aria-invalid={invalid} aria-autocomplete="list" aria-expanded={open}
         aria-controls={listId} aria-activedescendant={open && visible[highlight] ? `${listId}-${visible[highlight].value}` : undefined}
         autoComplete="off" disabled={disabled} value={open ? query : (selected?.label ?? "")}
         placeholder={placeholder}
-        className="h-11 w-full rounded-xl border bg-background pr-10 pl-10 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+        className={`h-10 w-full rounded-lg border bg-white pr-10 pl-10 text-sm outline-none transition-colors focus-visible:ring-2 disabled:opacity-50 ${invalid ? "border-destructive/70 hover:border-destructive focus-visible:ring-destructive/20" : "border-input hover:border-[#bfc7e9] focus-visible:ring-ring/20"}`}
         onFocus={() => {setOpen(true);setHighlight(0);setQuery("");}}
         onClick={() => {setOpen(true);setHighlight(0);}}
         onChange={(event) => {setQuery(event.target.value);setHighlight(0);setOpen(true);}}
         onKeyDown={keyboard} />
       <ChevronDown className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
     </div>
-    {open && !disabled && <div className="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-xl border bg-popover shadow-xl">
+    {open && !disabled && <div className="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-xl border border-border bg-white shadow-[0_16px_35px_#29366a1a]">
       <div role="listbox" id={listId} aria-label={label} className="max-h-56 overflow-y-auto p-1">
         {visible.map((item, index) => <button key={item.value} type="button" role="option"
           id={`${listId}-${item.value}`} aria-selected={value === String(item.value)}

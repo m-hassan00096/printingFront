@@ -6,7 +6,7 @@ export type Customer = {
   name: string;
   phone: string;
   address: string | null;
-  customerTypeId: number;
+  customerTypeId: number | null;
   customerType: CustomerType | null;
   status: CustomerStatus;
   statusLabel: string;
@@ -15,7 +15,7 @@ export type CustomerPayload = {
   name: string;
   phone: string;
   address: string | null;
-  customerTypeId: number;
+  customerTypeId: number | null;
   status: CustomerStatus;
 };
 export type CustomerFilters = {

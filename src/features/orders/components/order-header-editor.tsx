@@ -8,6 +8,7 @@ import { getApiErrorMessage } from "@/shared/api/http";
 import { fieldClass } from "@/features/identity/components/identity-ui";
 import { getActiveOrderCustomers } from "../api/order-options.api";
 import { SearchableSelect } from "./searchable-select";
+import { CreatedDatePicker, cairoTodayISO } from "./created-date-picker";
 import { useOrderActions, orderKeys } from "../hooks/use-orders";
 import type { Order } from "../types/orders.types";
 
@@ -44,9 +45,9 @@ export function OrderHeaderEditor({ order, canCreateCustomer, onClose }: {
       onClose();
     } catch (e:unknown) {setError(getApiErrorMessage(e,"تعذّر تحديث المسودة."));}
   }
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-4">
     <section role="dialog" aria-modal="true" aria-label="تعديل بيانات المسودة"
-      className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-card p-5 shadow-xl sm:p-6">
+      className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-card p-5 shadow-xl sm:p-6">
       <div className="mb-5 flex items-center justify-between">
         <h2 className="text-lg font-bold">تعديل بيانات المسودة</h2>
         <Button size="icon-sm" variant="ghost" type="button" aria-label="إغلاق"
@@ -74,10 +75,8 @@ export function OrderHeaderEditor({ order, canCreateCustomer, onClose }: {
               <option value="0">الفرع</option><option value="1">أونلاين</option>
             </select>
           </label>
-          <label className="block text-sm font-semibold">موعد التسليم
-            <input aria-label="موعد تسليم المسودة" type="date" className={fieldClass + " mt-2"}
-              value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-          </label>
+          <CreatedDatePicker label="موعد تسليم المسودة" value={dueDate} min={cairoTodayISO()}
+            disabled={actions.update.isPending} onChange={setDueDate} />
         </div>
         <label className="block text-sm font-semibold">الملاحظات
           <textarea aria-label="ملاحظات المسودة" className={fieldClass + " mt-2 min-h-20 py-3"}

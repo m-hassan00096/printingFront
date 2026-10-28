@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from "react";
 import axios from "axios";
-import { ArrowRight, LoaderCircle, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, LoaderCircle, Plus, Trash2, TriangleAlert } from "lucide-react";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
@@ -56,6 +57,24 @@ function validMoney(value: string, zeroAllowed: boolean): boolean {
   return Number.isFinite(number) && (zeroAllowed ? number >= 0 : number > 0);
 }
 
+/** UI-only advisory; the backend remains the source of truth for tier precedence. */
+function hasAmbiguousQuantityRanges(rows: TierInput[]): boolean {
+  const ranges = rows.filter(row =>
+    row.minQuantity !== "" || row.maxQuantity !== ""
+  ).filter(row =>
+    (!row.minQuantity || /^\d+$/.test(row.minQuantity)) &&
+    (!row.maxQuantity || /^\d+$/.test(row.maxQuantity))
+  );
+  return ranges.some((row, index) => ranges.slice(index + 1).some(next => {
+    if (row.customerTypeId !== next.customerTypeId) return false;
+    const startA = row.minQuantity ? Number(row.minQuantity) : 1;
+    const endA = row.maxQuantity ? Number(row.maxQuantity) : Infinity;
+    const startB = next.minQuantity ? Number(next.minQuantity) : 1;
+    const endB = next.maxQuantity ? Number(next.maxQuantity) : Infinity;
+    return startA <= endA && startB <= endB && startA <= endB && startB <= endA;
+  }));
+}
+
 function PrintingServiceForm({ service }: { service?: PrintingService }) {
   const navigate = useNavigate();
   const mutations = usePrintingServiceMutations();
@@ -66,9 +85,11 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
   const [status, setStatus] = useState<"0" | "1">(service?.status === 0 ? "0" : "1");
   const [rows, setRows] = useState<TierInput[]>(service?.priceTiers?.map(fromTier) ?? []);
   const [removedIds, setRemovedIds] = useState<number[]>([]);
+  const [pendingRemovalKey, setPendingRemovalKey] = useState<number | null>(null);
   const [errors, setErrors] = useState<Errors>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
   const busy = mutations.create.isPending || mutations.update.isPending;
+  const copy = uiMessages.printingServices;
   const existing = new Map(service?.priceTiers?.map((tier) => [tier.priceTierId, tier]) ?? []);
 
   function clear(key: string) {
@@ -85,9 +106,25 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
   }
   function removeRow(key: number) {
     const row = rows.find((item) => item.key === key);
+    setPendingRemovalKey(null);
     if (row?.priceTierId) setRemovedIds((old) => [...old, row.priceTierId!]);
     setRows((old) => old.filter((item) => item.key !== key));
     setErrors((old) => Object.fromEntries(Object.entries(old).filter(([name]) => !name.startsWith(`row.${key}.`))));
+  }
+  function requestRowRemoval(key: number) {
+    const row = rows.find((item) => item.key === key);
+    if (!row) return;
+    if (row.priceTierId) {
+      setPendingRemovalKey(key);
+    } else {
+      removeRow(key);
+    }
+  }
+  function tierQuantityLabel(row: TierInput): string {
+    if (!row.minQuantity && !row.maxQuantity) return copy.defaultTier;
+    if (row.minQuantity && row.maxQuantity) return `${row.minQuantity} – ${row.maxQuantity} ${copy.unitPieces}`;
+    if (row.minQuantity) return `${copy.quantityFromShort} ${row.minQuantity} ${copy.unitPieces}`;
+    return `${copy.quantityToShort} ${row.maxQuantity} ${copy.unitPieces}`;
   }
   function validate(): Errors {
     const issues: Errors = {};
@@ -192,12 +229,12 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
       </Link>
     </Button>
     <header>
-      <h1 className="text-2xl font-extrabold">{service ? "تعديل خدمة طباعة" : "إضافة خدمة طباعة"}</h1>
+      <h1 className="text-xl font-semibold">{service ? "تعديل خدمة طباعة" : "إضافة خدمة طباعة"}</h1>
       <p className="mt-1 text-sm text-muted-foreground">حدد بيانات الخدمة وأسعارها بالجنيه المصري.</p>
     </header>
 
     <form onSubmit={(event) => void save(event)} noValidate className="space-y-4">
-      <section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+      <section className="rounded-lg border bg-card p-4  sm:p-5">
         <h2 className="mb-4 font-bold">بيانات الخدمة</h2>
         <div className="grid gap-4 md:grid-cols-3">
           <label className="block"><span className={fieldLabel}>اسم الخدمة *</span>
@@ -212,6 +249,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
               placeholder="0.00" value={basePrice} disabled={busy}
               onChange={(e) => { setBasePrice(e.target.value); clear("basePrice"); }} />
             {err("basePrice")}
+            <span className="mt-1.5 block text-[11px] leading-5 text-muted-foreground">{copy.basePriceFallbackHelp}</span>
           </label>
           <label className="block"><span className={fieldLabel}>الحالة</span>
             <select aria-label="حالة الخدمة" className={fieldClass + " mt-2"} value={status}
@@ -222,85 +260,112 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
             {err("status")}
           </label>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">
-          السعر الأساسي يُستخدم إذا لم تنطبق أي شريحة. اتركه فارغًا للسعر اليدوي، أو أدخل 0 للخدمة المجانية.
-        </p>
       </section>
 
-      <section className="rounded-2xl border bg-card shadow-sm" aria-labelledby="tiers-form-title">
+      <section className="rounded-lg border bg-card " aria-labelledby="tiers-form-title">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-4 sm:px-5">
           <div>
             <h2 id="tiers-form-title" className="font-bold">شرائح الأسعار</h2>
-            <p className="mt-1 text-xs text-muted-foreground">حدد نوع العميل ونطاق الكمية وسعر الوحدة لكل شريحة.</p>
+            <p className="mt-1 text-xs text-muted-foreground">{copy.tierPriorityShort}</p>
           </div>
           <Button type="button" variant="outline" size="sm" disabled={busy}
             onClick={() => setRows((old) => [...old, blankTier(nextKey.current--)])}>
             <Plus className="size-4" /> إضافة شريحة
           </Button>
         </header>
-        <div className="space-y-3 p-4 sm:p-5">
+        <div className="space-y-2.5 p-3 sm:p-4">
           {types.isError && <p role="alert" className="text-sm text-destructive">
             تعذّر تحميل أنواع العملاء.{" "}
             <button type="button" className="underline" onClick={() => void types.refetch()}>إعادة المحاولة</button>
           </p>}
-          {rows.length === 0 && <p className="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+          {rows.length === 0 && <p className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
             لا توجد شرائح مضافة. اضغط «إضافة شريحة» لتخصيص الأسعار حسب العميل أو الكمية.
           </p>}
-          {rows.map((row, index) => <fieldset key={row.key} disabled={busy}
-            className="min-w-0 rounded-xl border bg-muted/20 p-3 sm:p-4">
-            <legend className="px-1 text-xs font-bold text-muted-foreground">شريحة {index + 1}</legend>
-            <div className="grid items-start gap-3 md:grid-cols-[minmax(0,2fr)_repeat(2,minmax(0,1fr))_minmax(0,1.1fr)_auto]">
-              <label className="block text-xs font-semibold">نوع العميل
-                <select aria-label={`نوع عميل الشريحة ${index + 1}`} className={fieldClass + " mt-2"}
-                  value={row.customerTypeId}
-                  onChange={(e) => editRow(row.key, "customerTypeId", e.target.value)}>
-                  <option value="">كل أنواع العملاء</option>
-                  {currentType(row.customerTypeId)}
-                  {types.data?.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
-                </select>{err(`row.${row.key}.customerTypeId`)}
-              </label>
-              <label className="block text-xs font-semibold">الكمية من
-                <input aria-label={`الكمية من للشريحة ${index + 1}`} className={fieldClass + " mt-2"}
-                  type="number" min="1" value={row.minQuantity} placeholder="بدون حد"
-                  onChange={(e) => editRow(row.key, "minQuantity", e.target.value)} />
-                {err(`row.${row.key}.minQuantity`)}
-              </label>
-              <label className="block text-xs font-semibold">الكمية إلى
-                <input aria-label={`الكمية إلى للشريحة ${index + 1}`} className={fieldClass + " mt-2"}
-                  type="number" min="1" value={row.maxQuantity} placeholder="بدون حد"
-                  onChange={(e) => editRow(row.key, "maxQuantity", e.target.value)} />
-                {err(`row.${row.key}.maxQuantity`)}
-              </label>
-              <label className="block text-xs font-semibold">سعر الوحدة *
-                <input aria-label={`سعر الشريحة ${index + 1}`} className={fieldClass + " mt-2"}
-                  dir="ltr" inputMode="decimal" value={row.price} placeholder="0.00"
-                  onChange={(e) => editRow(row.key, "price", e.target.value)} />
-                {err(`row.${row.key}.price`)}
-              </label>
-              <div className="flex justify-end md:pt-6">
-                <Button type="button" size="icon-sm" variant="ghost"
-                  aria-label={`حذف الشريحة ${index + 1}`} title="حذف الشريحة"
-                  onClick={() => removeRow(row.key)}>
-                  <Trash2 className="size-4 text-destructive" />
-                </Button>
+          {rows.map((row, index) => {
+            const isDefault = row.minQuantity === "" && row.maxQuantity === "";
+            return <fieldset key={row.key} disabled={busy}
+              className="min-w-0 rounded-lg border border-[#e6e9f2] bg-[#fafbff] px-3 py-3 sm:px-4">
+              <legend className="sr-only">{copy.tierNumber.replace("{number}", String(index + 1))}</legend>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-[#53617c]">{copy.tierNumber.replace("{number}", String(index + 1))}</span>
+                <span className={isDefault
+                  ? "rounded-md border border-primary/15 bg-primary/5 px-2 py-0.5 text-[11px] font-semibold text-primary"
+                  : "rounded-md border border-border bg-white px-2 py-0.5 text-[11px] font-medium text-muted-foreground"}>
+                  {tierQuantityLabel(row)}
+                </span>
+                <div className="ms-auto">
+                  <Button type="button" size="icon-sm" variant="ghost"
+                    className="text-destructive hover:bg-[#fff0f2] hover:text-destructive"
+                    aria-label={`حذف الشريحة ${index + 1}`} title={copy.deleteTier}
+                    onClick={() => requestRowRemoval(row.key)}>
+                    <Trash2 className="size-4" aria-hidden="true" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          </fieldset>)}
+              {pendingRemovalKey === row.key && <div role="alert"
+                className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#f2d9de] bg-[#fff3f5] px-3 py-2">
+                <p className="text-xs font-semibold text-[#a33b4c]">{copy.confirmDeleteTier}</p>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="destructive" size="sm"
+                    aria-label={`تأكيد حذف الشريحة ${index + 1}`}
+                    onClick={() => removeRow(row.key)}>{copy.confirmDeleteAction}</Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setPendingRemovalKey(null)}>
+                    {copy.cancelDeleteAction}
+                  </Button>
+                </div>
+              </div>}
+              <div className="grid items-start gap-3 md:grid-cols-[minmax(0,1.5fr)_minmax(0,2fr)_minmax(0,1.1fr)]">
+                <label className="block text-xs font-semibold">نوع العميل
+                  <select aria-label={`نوع عميل الشريحة ${index + 1}`} className={fieldClass + " mt-2"}
+                    value={row.customerTypeId}
+                    onChange={event => editRow(row.key, "customerTypeId", event.target.value)}>
+                    <option value="">{copy.genericTiers}</option>
+                    {currentType(row.customerTypeId)}
+                    {types.data?.map(type => <option key={type.value} value={type.value}>{type.label}</option>)}
+                  </select>{err(`row.${row.key}.customerTypeId`)}
+                </label>
+                <div role="group" aria-label={`${copy.rangeGroup} للشريحة ${index + 1}`} className="min-w-0">
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block min-w-0 text-xs font-semibold">{copy.quantityFrom}
+                      <input aria-label={`الكمية من للشريحة ${index + 1}`} className={fieldClass + " mt-2"}
+                        type="number" min="1" value={row.minQuantity} placeholder="بدون حد"
+                        onChange={event => editRow(row.key, "minQuantity", event.target.value)} />
+                      {err(`row.${row.key}.minQuantity`)}
+                    </label>
+                    <label className="block min-w-0 text-xs font-semibold">{copy.quantityTo}
+                      <input aria-label={`الكمية إلى للشريحة ${index + 1}`} className={fieldClass + " mt-2"}
+                        type="number" min="1" value={row.maxQuantity} placeholder="بدون حد"
+                        onChange={event => editRow(row.key, "maxQuantity", event.target.value)} />
+                      {err(`row.${row.key}.maxQuantity`)}
+                    </label>
+                  </div>
+                </div>
+                <label className="block text-xs font-semibold">سعر الوحدة *
+                  <input aria-label={`سعر الشريحة ${index + 1}`} className={fieldClass + " mt-2"}
+                    dir="ltr" inputMode="decimal" value={row.price} placeholder="0.00"
+                    onChange={event => editRow(row.key, "price", event.target.value)} />
+                  {err(`row.${row.key}.price`)}
+                </label>
+              </div>
+            </fieldset>;
+          })}
+          {hasAmbiguousQuantityRanges(rows) && <p role="status" className="flex items-start gap-2 rounded-lg border border-[#f3dda6] bg-[#fff8e8] px-3 py-2.5 text-xs leading-6 text-[#996610]">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            {copy.ambiguousRangesWarning}
+          </p>}
           {err("priceTiers")}
-          <p className="text-xs text-muted-foreground">
-            ترك الكمية فارغة يعني بدون حد. لا يمكن تداخل نطاقات الكميات لنفس نوع العميل.
-          </p>
+          <p className="text-xs leading-6 text-muted-foreground">{copy.openQuantityHelp}</p>
         </div>
       </section>
 
-      {generalError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{generalError}</p>}
-      <footer className="flex flex-wrap justify-end gap-3 py-2">
-        <Button asChild variant="outline">
-          <Link to={service ? `/printing-services/${service.id}` : "/printing-services"}>إلغاء</Link>
-        </Button>
+      {generalError && <p role="alert" className="rounded-lg border border-[#efbec6] bg-[#ffecf0] p-3 text-sm text-[#c73a4c]">{generalError}</p>}
+      <footer className="sticky bottom-3 z-10 flex flex-wrap items-center justify-start gap-3 rounded-xl border border-border bg-white/95 px-4 py-3 shadow-[0_8px_24px_#27396b14] backdrop-blur-sm">
         <Button type="submit" disabled={busy || types.isError}>
           {busy && <LoaderCircle className="size-4 animate-spin" />}
           {service ? "حفظ التعديلات" : "حفظ الخدمة"}
+        </Button>
+        <Button asChild variant="outline">
+          <Link to={service ? `/printing-services/${service.id}` : "/printing-services"}>إلغاء</Link>
         </Button>
       </footer>
     </form>

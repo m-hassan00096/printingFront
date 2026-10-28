@@ -26,3 +26,20 @@ Backend source: `printingApi` `develop` (Deliveries + Orders/Finance adapters).
 ## QA
 - `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`.
 - Manual Laravel/MySQL browser tests still necessary before merge: physical handover vs ready state, bank/e-wallet categories, permission variants, 409 on concurrent delivery, cancellation after a reversed collection, balance confirmation race, and empty states/mobile RTL.
+
+## Delivery handover UX polish (2026-10-28)
+
+- Ready-order cards show customer/order details once; use a semantic readiness badge, overdue/today due-date chips, DD/MM/YYYY delivery date, and a compact item list. Full-ready items omit repeating individual ready badges. No partial handover action is exposed.
+- Ready filters use one desktop row: search, sort, and a disabled-when-empty reset button. History filters use the same theme-matched Gregorian date picker as Orders, preserving `YYYY-MM-DD` API parameters.
+- Delivery preview explicitly distinguishes **order total** from **customer's overall account balance**, including all prior orders. An old balance does **not** block handing over the current ready order.
+- Collection is optional and defaults to **0.00**. Buttons preset **بدون تحصيل** or **قيمة الأوردر** without posting anything. Positive amounts reveal cash/bank/e-wallet and destination selection; permission rules, credit consent, precise integer-cent balance math and idempotent single-operation handover remain unchanged.
+- The estimate panel exposes starting account balance, amount collected now, and expected after-collection balance (which the backend recalculates under lock).
+- Inline field validation from Laravel `422` errors focuses and scrolls to the affected control, while general workflow errors remain visible. Successful handover toast includes the order number.
+- All backend request/response contracts and finance settlement workflows remain unchanged. Browser QA should verify real payment destinations, permission configurations and small-screen dialog scrolling.
+
+## Compact delivery modal (2026-10-28)
+- Dialog header and confirmation footer stay visible; only the body scrolls. The separate delivery-history modal retains its existing footer placement.
+- The top preview is limited to order number, customer and phone, order value, and ready item count; old account balance and its repeated explanation are removed from this preview.
+- Removed **بدون تحصيل** and **قيمة الأوردر** quick-fill buttons. An editable collection amount starts at `0.00`; empty or zero means no collection, while a positive amount alone reveals the cash/bank/wallet method and required destination for non-cash payments.
+- The account balance summary remains visible when finance balance permission allows it: starting balance, collection now and resulting balance. The resulting amount is prominent with a small debit/credit/settled label. Estimates are recalculated by the server when saving.
+- Overpayment consent, delivery permission checks, safe integer-cent calculations, inline field errors and existing API payloads are unchanged.

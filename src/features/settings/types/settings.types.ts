@@ -27,7 +27,7 @@ export const settingsSections: {
   update: string;
   delete: string;
 }[] = [
-  { key: "printing-locations", label: "أماكن الطباعة", view: "settings.view_parameter_values", create: "settings.create_parameter_value", update: "settings.update_parameter_value", delete: "settings.delete_parameter_value" },
+  { key: "printing-locations", label: "المطابع", view: "settings.view_parameter_values", create: "settings.create_parameter_value", update: "settings.update_parameter_value", delete: "settings.delete_parameter_value" },
   { key: "customer-types", label: "أنواع العملاء", view: "settings.view_parameter_values", create: "settings.create_parameter_value", update: "settings.update_parameter_value", delete: "settings.delete_parameter_value" },
   { key: "bank-accounts", label: "الحسابات البنكية", view: "settings.bank_accounts.view", create: "settings.bank_accounts.create", update: "settings.bank_accounts.update", delete: "settings.bank_accounts.delete" },
   { key: "e-wallets", label: "المحافظ الإلكترونية", view: "settings.e_wallets.view", create: "settings.e_wallets.create", update: "settings.e_wallets.update", delete: "settings.e_wallets.delete" },

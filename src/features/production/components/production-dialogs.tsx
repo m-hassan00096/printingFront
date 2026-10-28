@@ -11,13 +11,13 @@ import type { ProductionAction, ProductionItem, SelectOption } from "../types/pr
 
 export function StagePill({ stage }: { stage: number }) {
   const config = ({
-    0:["لم يبدأ","bg-slate-100 text-slate-700"],
-    1:["قيد التصميم","bg-blue-50 text-blue-800"],
-    2:["تم التصميم","bg-emerald-50 text-emerald-800"],
-    3:["في الطباعة","bg-indigo-50 text-indigo-800"],
-    4:["جاهز للتسليم","bg-emerald-100 text-emerald-900"],
+    0:["لم يبدأ","bg-muted text-muted-foreground"],
+    1:["قيد التصميم","bg-primary/10 text-[#4d5ac6]"],
+    2:["تم التصميم","bg-[#e5f7ee] text-[#147c58]"],
+    3:["في الطباعة","bg-primary/10 text-[#4d5ac6]"],
+    4:["جاهز للتسليم","bg-[#dff6eb] text-[#147c58]"],
   } as Record<number,[string,string]>)[stage] ?? ["غير معروف","bg-muted text-foreground"];
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${config[1]}`}>{config[0]}</span>;
+  return <span className={`inline-flex items-center rounded-sm border border-border px-2 py-0.5 text-[11px] font-semibold ${config[1]}`}>{config[0]}</span>;
 }
 const stageNames: Record<number,string> = {
   0: "لم يبدأ", 1: "قيد التصميم", 2: "تم التصميم",
@@ -45,7 +45,7 @@ const modalTitles:Record<ProductionPendingAction["action"],string> = {
   "complete-design":"إنهاء التصميم",
   "complete-and-send-to-printing":"إنهاء التصميم والإرسال للطباعة",
   "send-to-printing":"إرسال للطباعة",
-  "change-location":"تغيير مكان الطباعة",
+  "change-location":"تغيير المطبعة",
   "mark-ready":"إنهاء الطباعة وتجهيز العنصر",
   undo:"التراجع عن آخر مرحلة",
   batch:"إرسال العناصر المحددة للطباعة",
@@ -62,15 +62,15 @@ export function ProductionActionDialog({ intent, busy, onClose, onConfirm }: {
     intent.action!=="change-location" || option.value!==intent.item?.printingLocationId);
   async function submit() {
     if (requiresLocation && !choices.some(option=>String(option.value)===locationId)) {
-      setError("اختر مكان طباعة نشطًا.");return;
+      setError("اختر مطبعة نشطة.");return;
     }
     setError("");
     try {await onConfirm(requiresLocation?Number(locationId):undefined);}
     catch(e:unknown){setError(getApiErrorMessage(e,"تعذّر تنفيذ العملية. حاول مرة أخرى."));}
   }
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-4">
     <section role="dialog" aria-modal="true" aria-label={modalTitles[intent.action]}
-      className="w-full max-w-md space-y-4 rounded-2xl bg-card p-5 shadow-xl sm:p-6"
+      className="w-full max-w-md space-y-4 rounded-lg bg-card p-5 shadow-xl sm:p-6"
       onKeyDown={(e)=>{if(e.key==="Escape"&&!busy)onClose();}}>
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -84,7 +84,7 @@ export function ProductionActionDialog({ intent, busy, onClose, onConfirm }: {
           <X className="size-4"/>
         </Button>
       </div>
-      {intent.action==="undo" && <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+      {intent.action==="undo" && <p className="rounded-xl bg-[#fff5df] p-3 text-sm text-[#a36a0d]">
         سيتم إرجاع العنصر خطوة حسب قواعد الإنتاج، مع الحفاظ على سجل الحركات.
         {intent.item?.productionStage===3 && " سيعود للتصميم من أجل إعادة العمل."}
       </p>}
@@ -92,12 +92,12 @@ export function ProductionActionDialog({ intent, busy, onClose, onConfirm }: {
         سيتم نقل العنصر إلى «جاهز للتسليم». لن يتم تسليم الأوردر للعميل من هذه الشاشة.
       </p>}
       {requiresLocation && <div className="space-y-2">
-        <label className="block text-sm font-bold">مكان الطباعة *</label>
-        <SearchableSelect label="اختيار مكان الطباعة" placeholder="ابحث عن مكان طباعة..."
+        <label className="block text-sm font-bold">المطبعة *</label>
+        <SearchableSelect label="اختيار المطبعة" placeholder="ابحث عن مطبعة..."
           options={choices} loading={selects.isPending} value={locationId} onChange={(v)=>{setLocationId(v);setError("");}}
           disabled={busy || selects.isError}/>
         {selects.isError && <div role="alert" className="text-sm text-destructive">
-          تعذّر تحميل أماكن الطباعة.
+          تعذّر تحميل المطابع.
           <button type="button" className="mr-2 underline" onClick={()=>void selects.refetch()}>إعادة المحاولة</button>
         </div>}
         {!selects.isPending && !selects.isError && choices.length===0 && <p className="text-sm text-muted-foreground">
@@ -122,10 +122,10 @@ export function ProductionDetailDialog({ item, onClose }: { item:ProductionItem;
   const canViewOrder=permissions.includes("orders.view");
   const history=useProductionHistory(item.id,page,tab==="history"&&canHistory);
   const itemDetails=useProductionItemDetails(item.id,tab==="details");
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-4">
     <section role="dialog" aria-modal="true" aria-label="تفاصيل عنصر الإنتاج"
       onKeyDown={(e)=>{if(e.key==="Escape")onClose();}}
-      className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl bg-card shadow-xl">
+      className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-lg bg-card shadow-xl">
       <header className="flex items-start justify-between gap-3 border-b px-5 py-4">
         <div className="min-w-0">
           <h2 className="truncate text-lg font-bold">{item.serviceName}</h2>
@@ -147,7 +147,7 @@ export function ProductionDetailDialog({ item, onClose }: { item:ProductionItem;
             <div><dt className="text-muted-foreground">موعد التسليم</dt><dd className="font-bold">{item.dueDate??"غير محدد"}{item.isLate?" · متأخر":""}</dd></div>
             <div><dt className="text-muted-foreground">المصمم</dt><dd className="font-bold">{item.designerName??"لم يُحدد"}</dd></div>
             <div><dt className="text-muted-foreground">أنهى التصميم</dt><dd className="font-bold">{item.designCompletedByName??"—"}</dd></div>
-            <div><dt className="text-muted-foreground">مكان الطباعة</dt><dd className="font-bold">{item.printingLocationName??"لم يُحدد"}</dd></div>
+            <div><dt className="text-muted-foreground">المطبعة</dt><dd className="font-bold">{item.printingLocationName??"لم يُحدد"}</dd></div>
           </dl>
           {canViewOrder && <Link to={`/orders/${item.orderId}`} className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
             <ArrowRight className="size-4"/> فتح الأوردر
@@ -189,7 +189,7 @@ export function ProductionDetailDialog({ item, onClose }: { item:ProductionItem;
                   <p className="text-xs text-muted-foreground">{event.actorName??"موظف"} · {dateTime(event.createdAt)}</p>
                   {event.oldPrintingLocationId !== event.newPrintingLocationId &&
                     <p className="text-xs text-muted-foreground">
-                      مكان الطباعة: من <span dir="auto">{event.oldPrintingLocationName??"غير محدد"}</span> إلى{" "}
+                      المطبعة: من <span dir="auto">{event.oldPrintingLocationName??"غير محدد"}</span> إلى{" "}
                       <span dir="auto">{event.newPrintingLocationName??"غير محدد"}</span>
                     </p>}
                   {event.fromStage !== event.toStage &&

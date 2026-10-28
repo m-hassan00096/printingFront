@@ -7,11 +7,11 @@ Tabaa is a daily operations tool. Optimize for quick recognition, low error rate
 ## Visual identity
 
 - Arabic-first, right-to-left layout from the document root.
-- Cairo is the primary typeface.
-- Use a calm ink/navy foundation, warm neutral surfaces, and a restrained teal accent.
-- Reserve strong colors for meaningful states and important actions.
-- Prefer subtle borders and spacing over nested cards, heavy shadows, and decorative gradients.
-- Use a consistent 8-point spacing rhythm and predictable corner radii.
+- Cairo remains the primary Arabic typeface, with Inter for Latin text and JetBrains Mono for order identifiers and shortcut hints.
+- **Approved direction: Light analytics dashboard**, matching the user-provided Lucid Analytics screenshots on October 27, 2026. #F7F8FC canvas, #FFFFFF white panels, #F6F8FC sidebar, #535FD1 violet accent and dark #222633 text.
+- Reserve violet for focus, selection and primary actions; accessible dark-green (#14815B), amber (#A46B0B) and coral (#C73A4C) status text on pale colored chips.
+- Prefer white cards, understated soft shadows, thin dividers, clear grouping and generous whitespace rather than dark panels.
+- Use 4/8px spacing increments, rounded 10–14px cards, and 7–10px buttons/inputs.
 - Use Lucide icons consistently. Icon-only controls need an accessible label.
 
 ## Information hierarchy
@@ -29,7 +29,8 @@ Avoid several primary buttons with equal visual weight. Keep summary metrics onl
 - Keep top-level navigation stable and limited to the main work areas.
 - Use clear Arabic labels rather than internal technical terminology.
 - Preserve a visible active state in the sidebar.
-- Support a collapsible desktop sidebar and a dismissible mobile drawer.
+- Support a 238px RTL sidebar collapsing to 66px on desktop, and a dismissible mobile drawer.
+- Add Ctrl/Cmd+K command navigation and keyboard-operable controls; show only destinations allowed by the current user's permissions.
 - Do not use dead links or controls that look functional but do nothing.
 
 ## Tables and lists
@@ -92,3 +93,39 @@ Avoid several primary buttons with equal visual weight. Keep summary metrics onl
 4. Are errors and irreversible actions handled safely?
 5. Are loading, empty, and failure states designed?
 6. Does the layout remain clear with realistic data and long Arabic text?
+
+## Reference hierarchy and implementation (October 2026)
+
+- **Primary visual source:** the three light Lucid Analytics screenshots provided by the user on October 27, 2026. These **override the dark mode aesthetic** of the upstream `DESIGN.md` specification.
+- `DESIGN.md` remains a copy of https://designmd.ai/chef/violet-issue for design-system provenance, UI component discipline, and visual accent identity; do not interpret its dark-background instruction as the approved Tabaa theme.
+- Use a **light theme only**, until another theme is explicitly requested.
+- Match the references with white app header and content cards, off-white page, pale gray RTL sidebar, gentle indigo/violet accent, soft elevation, polished table rows, and clear spaced sections.
+- Keep Arabic RTL and Cairo; mirror the English screenshot's left navigation to the right.
+- Keep the real four production stages and real metrics; do not invent revenue trends or demo charts when data isn't available from the existing API.
+- Preserve Laravel API contracts, session authentication, permissions and all order/production/finance flows. Styling work should not change business rules.
+- Verify desktop/mobile with realistic Arabic labels, long order identifiers, menu overlays and clear keyboard/touch focus.
+
+## Printing services: UI/UX and tier-priority explanation (October 27, 2026)
+
+- **Do not alter backend pricing precedence.** The backend `/printing-services/price-preview` result is authoritative. Frontend does not calculate prices or choose a tier.
+- For tier rows where both quantity bounds are empty, the UI labels that tier `السعر الافتراضي` (default/catch-all for that customer type), not “all quantities”. Quantity-specific tier rows have visual priority guidance; the source returned by the API is displayed in the preview.
+- A light advisory warns about overlapping *quantity-bounded* rows of the same customer type. It is informational only (not new validation), excludes a catch-all tier, and does not change the API payload.
+- Distinguish blank `basePrice` (manual pricing fallback) from explicit numeric `0` (free fallback), without changing `null` or `0` values being saved.
+- Show a compact service-level base-price and tier-count summary, visually emphasize the previewed grand total, and keep legacy permissions/gates unchanged.
+- Quantity input labels and backend schema names (`minQuantity`, `maxQuantity`, `price`) remain unchanged.
+
+## Optional customer type / base-price fallback (2026-10-27)
+- Customer type selection is optional; save `customerTypeId: null` for unclassified customers (and permit clearing a type on update).
+- Backend pricing preview with `customerTypeId: null` **uses the service base price**, bypassing generic quantity tiers. Classified clients retain current specific/generic tier priority.
+- A service with `basePrice: null` suggests **0.00 EGP** when no tier applies; don't display a manual-pricing message or imply that a separate price entry is mandatory.
+- Hide the summary cards for base price and number of tiers; display the base price once in the pricing-table footer. Remove repeated pricing hints and source badges in the preview while keeping the highlighted total.
+- Requires corresponding backend PR in `printingApi` and migrations for nullable customer/order snapshots. Deploy backend before frontend.
+
+## Pricing tier layout refinement (October 27, 2026)
+- Keep the existing native `select` components and their shared field styling unchanged; the user specifically approved them.
+- Align tier title, quantity-range chip and compact delete icon on one line. Avoid repeating the same range label above input fields.
+- Tier card padding and vertical gaps are reduced; customer type, quantity range and unit price align horizontally on desktop and reflow on smaller screens.
+- Confirm removal of **persisted tiers** inline before adding the delete command to the update payload. Unsaved tiers can be removed immediately. No backend changes.
+- In service details, explain the base-price fallback in the pricing table footer (also applicable to customers without a type) instead of repeating pricing-priority prose.
+- Display preview's source once and a compact formula `quantity × unit price` under the prominent suggested total, without making the preview compute pricing client-side.
+- Keep a visible sticky form action bar with save on the right in RTL and cancel beside it.

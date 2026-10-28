@@ -15,6 +15,7 @@ function readyParams(filters: ReadyFilters, page: number): URLSearchParams {
 function historyParams(filters: HistoryFilters, page: number): URLSearchParams {
   const params = new URLSearchParams({ page: String(page), perPage: "20", sort: filters.sort });
   if (filters.search.trim()) params.set("filter[search]", filters.search.trim());
+  if (filters.customerId) params.set("filter[customerId]", String(filters.customerId));
   if (filters.dateFrom) params.set("filter[dateFrom]", filters.dateFrom);
   if (filters.dateTo) params.set("filter[dateTo]", filters.dateTo);
   if (filters.status) params.set("filter[status]", filters.status);
@@ -45,4 +46,16 @@ export async function deliverOrder(orderId: number, body: DeliverPayload, key: s
 export async function cancelDelivery(id: number, body: CancelPayload, key: string): Promise<void> {
   await apiClient.post<ApiResponse<null>>(`${root}/${id}/cancel`, body,
     { headers: { "Idempotency-Key": key } });
+}
+
+/** Scoped to delivery activity; available to delivery staff without customer-management permissions. */
+export async function getDeliveryCustomerOptions(scope:"ready"|"history"): Promise<Array<{value:number;label:string}>> {
+  const { data } = await apiClient.get<ApiResponse<Array<{label:string;options:Array<{value:number;label:string}>}>>>(
+    "/selects", { params: { selects: "deliveryCustomers", "params[deliveryCustomers]": scope } },
+  );
+  const options=data.data?.find(group=>group.label==="deliveryCustomers")?.options;
+  if(!Array.isArray(options)||!options.every(x=>Number.isSafeInteger(x.value)&&x.value>0&&typeof x.label==="string")) {
+    throw new Error("تعذّر تحميل قائمة عملاء التسليمات.");
+  }
+  return options;
 }

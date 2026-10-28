@@ -11,8 +11,20 @@ import { ProductionItemCard } from "../components/production-item-card";
 import { ProductionActionDialog, ProductionDetailDialog, type ProductionPendingAction } from "../components/production-dialogs";
 import { PRODUCTION_COLUMNS, type ProductionColumnId, type ProductionFilters, type ProductionItem } from "../types/production.types";
 import { getApiErrorMessage } from "@/shared/api/http";
+import { uiMessages } from "@/shared/translations/ar/ui";
 
 const initialPages: Record<ProductionColumnId,number> = {0:1,1:1,2:1,3:1};
+function cairoToday(): string {
+  const parts = new Intl.DateTimeFormat("en-GB",{
+    timeZone:"Africa/Cairo",year:"numeric",month:"2-digit",day:"2-digit",
+  }).formatToParts(new Date());
+  const part = (type:string) => parts.find(x=>x.type===type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+function displayDueDate(value:string):string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  return match ? `${match[3]} / ${match[2]} / ${match[1]}` : value;
+}
 const summaryCounts = (summary:ReturnType<typeof useProductionSummary>["data"],id:ProductionColumnId):number|null => {
   if (!summary) return null;
   if (id===0) return summary.notStartedCount;
@@ -25,7 +37,7 @@ const successMessages: Record<Exclude<ProductionPendingAction["action"],"batch">
   "complete-design":"تم إنهاء التصميم.",
   "complete-and-send-to-printing":"تم إنهاء التصميم وإرساله للطباعة.",
   "send-to-printing":"تم إرسال العنصر للطباعة.",
-  "change-location":"تم تغيير مكان الطباعة.",
+  "change-location":"تم تغيير المطبعة.",
   "mark-ready":"أصبح العنصر جاهزًا للتسليم.",
   undo:"تم التراجع عن المرحلة السابقة.",
 };
@@ -58,33 +70,56 @@ function ProductionColumn({ column, filters, page, onPage, count, countLoading,
     groups.set(item.orderId,group);
   }
   const label=PRODUCTION_COLUMNS.find(x=>x.id===column)?.label ?? "مرحلة";
-  return <section aria-label={`عمود ${label}`} className={`min-w-0 rounded-2xl border bg-muted/30 ${visible?"block":"hidden lg:block"}`}>
-    <header className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t-2xl border-b bg-muted px-3 py-3">
+  return <section aria-label={`عمود ${label}`} className={`min-w-0 rounded-xl border border-[#e6e9f3] bg-[#f8f9fd] shadow-[0_4px_20px_#27396b08] ${visible?"block":"hidden lg:block"}`}>
+    <header className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t-xl border-b border-[#e6e9f3] bg-white px-4 py-3">
       <h3 className="text-sm font-bold">{label}</h3>
-      <span className="min-w-7 rounded-full bg-card px-2 py-1 text-center text-xs font-bold tabular-nums"
+      <span className="min-w-7 rounded-md bg-[#edf0ff] px-2 py-1 text-primary text-center text-xs font-bold tabular-nums"
         aria-label={`عدد عناصر ${label}`}>{countLoading?"…":count??"—"}</span>
     </header>
     <div className="space-y-2 p-2.5">
       {result.isPending ? <LoadingState/> : result.isError ?
         <ErrorState error={result.error} retry={()=>void result.refetch()}/> :
         groups.size===0 ?
-          <div className="rounded-xl border border-dashed bg-card p-5 text-center text-xs text-muted-foreground">
+          <div className="rounded-lg border border-dashed border-[#dfe3ef] bg-white p-6 text-center text-xs text-muted-foreground">
             لا توجد عناصر في هذه المرحلة.
           </div> :
         [...groups.entries()].map(([orderId,items])=>
-          <div key={orderId} className="overflow-hidden rounded-xl border bg-card shadow-sm">
-            <header className="space-y-0.5 border-b bg-card px-3 py-2.5">
-              <p className="text-sm font-bold">{items[0].orderNumber}</p>
-              <p className="truncate text-xs font-semibold" title={items[0].customerName}>{items[0].customerName}</p>
-              <p className="text-xs text-muted-foreground">{items[0].customerPhone}</p>
-              {items[0].isLate && <span className="inline-flex rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-700">متأخر</span>}
-              {items[0].dueDate && <p className="text-xs text-muted-foreground">التسليم: {items[0].dueDate}</p>}
+          <section key={orderId} aria-label={`الأوردر ${items[0].orderNumber}`}
+            className="overflow-hidden rounded-xl border border-[#dfe4f2] bg-[#f6f7fc] shadow-[0_3px_12px_#2536620b]">
+            <header className="border-b border-[#e0e5f2] bg-[#f2f4ff] px-3 py-2.5">
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <p className="min-w-0 truncate text-[13px] font-bold text-[#26334f]"
+                  title={items[0].customerName}>{items[0].customerName}</p>
+                <span className="shrink-0 font-mono text-[11px] font-semibold text-primary"
+                  dir="ltr">{items[0].orderNumber}</span>
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+                <span dir="ltr" className="tabular-nums">{items[0].customerPhone}</span>
+                {items.length>1 && <span aria-label={`${items.length} عناصر في هذه المرحلة`}>
+                  {items.length} عناصر في المرحلة
+                </span>}
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[11px] text-muted-foreground">
+                  {uiMessages.production.deliveryDueLabel}: {items[0].dueDate
+                    ? <span dir="ltr" className="inline-block tabular-nums">{displayDueDate(items[0].dueDate)}</span>
+                    : "بدون موعد"}
+                </span>
+                {(items[0].isLate || items[0].dueDate===cairoToday()) &&
+                  <span className={items[0].isLate
+                    ? "rounded-md bg-[#fff0f2] px-2 py-0.5 text-[11px] font-bold text-[#c8384a]"
+                    : "rounded-md bg-[#fff4dc] px-2 py-0.5 text-[11px] font-bold text-[#9c6107]"}>
+                    {items[0].isLate ? uiMessages.production.overdueLabel : uiMessages.production.dueTodayLabel}
+                  </span>}
+              </div>
             </header>
-            {items.map(item=><ProductionItemCard key={item.id} item={item} permissions={permissions}
-              selected={selected.has(item.id)} busy={busy}
-              onSelect={onSelect} onDetails={onDetails}
-              onAction={(action,i)=>onAction(i,action)}/>)}
-          </div>)}
+            <div className="space-y-2 p-2" aria-label={`عناصر الأوردر ${items[0].orderNumber} في مرحلة ${label}`}>
+              {items.map(item=><ProductionItemCard key={item.id} item={item} permissions={permissions}
+                selected={selected.has(item.id)} busy={busy}
+                onSelect={onSelect} onDetails={onDetails}
+                onAction={(action,i)=>onAction(i,action)}/>)}
+            </div>
+          </section>)}
     </div>
     {result.data && result.data.pagination.lastPage>1 &&
       <PaginationBar pagination={result.data.pagination} onPage={onPage}/>}
@@ -106,7 +141,7 @@ export function ProductionPage() {
   const [serviceId,setServiceId]=useState("");
   const [myDesignWork,setMyDesignWork]=useState<ProductionFilters["myDesignWork"]>("");
   const [lateOnly,setLateOnly]=useState(false);
-  const [sort,setSort]=useState<ProductionFilters["sort"]>("dueDate");
+  const [sort,setSort]=useState<ProductionFilters["sort"]>("priority");
   const [activeColumn,setActiveColumn]=useState<ProductionColumnId>(0);
   const [pages,setPages]=useState(initialPages);
   const [selected,setSelected]=useState<ReadonlySet<number>>(new Set());
@@ -168,7 +203,7 @@ export function ProductionPage() {
     setPending(null);
   }
   function reset() {
-    setSearchInput("");setSearch("");setCustomerId("");setServiceId("");setMyDesignWork("");setLateOnly(false);setSort("dueDate");
+    setSearchInput("");setSearch("");setCustomerId("");setServiceId("");setMyDesignWork("");setLateOnly(false);setSort("priority");
   }
   return <div className="space-y-5">
     <SectionHeader title="لوحة الإنتاج" detail="متابعة عناصر الأوردرات المؤكدة من بدء التصميم حتى الجاهزية للتسليم."
@@ -176,11 +211,11 @@ export function ProductionPage() {
         onClick={()=>{
           void qc.invalidateQueries({queryKey:["production"]});
         }}><RotateCw className="size-4"/> تحديث</Button>}/>
-    <section aria-label="فلاتر الإنتاج" className="space-y-2 rounded-2xl border bg-card p-3 shadow-sm sm:p-4">
+    <section aria-label="فلاتر الإنتاج" className="space-y-3 rounded-xl border bg-white p-4 shadow-[0_5px_18px_#26396b08] sm:p-5">
       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(240px,1.4fr)_repeat(3,minmax(155px,1fr))]">
         <label className="relative block">
           <span className="sr-only">البحث في الإنتاج</span>
-          <Search className="pointer-events-none absolute right-3 top-3.5 size-4 text-muted-foreground"/>
+          <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/>
           <input className={fieldClass+" pr-10"} value={searchInput} onChange={e=>setSearchInput(e.target.value)}
             placeholder="رقم الأوردر، العميل، الهاتف، الخدمة..."/>
         </label>
@@ -190,11 +225,11 @@ export function ProductionPage() {
         <SearchableSelect label="تصفية حسب الخدمة" placeholder="كل الخدمات — ابحث..."
           options={selects.data?.services??[]} value={serviceId} onChange={setServiceId}
           loading={selects.isPending} disabled={selects.isError}/>
-        <select className={fieldClass} aria-label="فلتر أعمال التصميم" value={myDesignWork}
+        <select className={fieldClass} aria-label={uiMessages.production.designFilterLabel} value={myDesignWork}
           onChange={e=>setMyDesignWork(e.target.value as ProductionFilters["myDesignWork"])}>
-          <option value="">كل أعمال التصميم</option>
-          <option value="1">بدأتها أنا</option>
-          <option value="2">أنهيتها أنا</option>
+          <option value="">{uiMessages.production.allMyDesignWork}</option>
+          <option value="1">{uiMessages.production.designStartedByMe}</option>
+          <option value="2">{uiMessages.production.designCompletedByMe}</option>
         </select>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -205,36 +240,56 @@ export function ProductionPage() {
         <label className="flex items-center gap-2 text-sm">الترتيب
           <select className={fieldClass+" !h-9 min-w-36"} aria-label="ترتيب عناصر الإنتاج" value={sort}
             onChange={e=>setSort(e.target.value as ProductionFilters["sort"])}>
-            <option value="dueDate">الأقرب تسليمًا</option>
-            <option value="-dueDate">الأبعد تسليمًا</option>
-            <option value="-id">الأحدث</option>
-            <option value="id">الأقدم</option>
+            <option value="priority">{uiMessages.production.sortPriority}</option>
+            <option value="dueDate">{uiMessages.production.sortNearest}</option>
+            <option value="-dueDate">{uiMessages.production.sortFarthest}</option>
+            <option value="-id">{uiMessages.production.sortNewest}</option>
+            <option value="id">{uiMessages.production.sortOldest}</option>
           </select>
         </label>
         <Button variant="ghost" size="sm" onClick={reset}>مسح الفلاتر</Button>
       </div>
       {selects.isError && <div role="alert" className="text-xs text-destructive">
-        تعذّر تحميل قوائم العملاء والخدمات وأماكن الطباعة.
+        تعذّر تحميل قوائم العملاء والخدمات والمطابع.
         <button className="mr-2 underline" type="button" onClick={()=>void selects.refetch()}>إعادة المحاولة</button>
       </div>}
     </section>
-    {can("production.summary.view") && summary.data && <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+    {can("production.summary.view") && summary.data && <section aria-label={uiMessages.production.summaryLabel}
+      className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+      <div className="rounded-xl border border-[#e8eaf2] bg-white p-3.5 shadow-[0_3px_12px_#27396b07]">
+        <p className="text-xs text-muted-foreground">{uiMessages.production.stageNotStarted}</p>
+        <p className="mt-1 text-xl font-bold tabular-nums">{summary.data.notStartedCount}</p>
+      </div>
+      <div className="rounded-xl border border-[#e8eaf2] bg-white p-3.5 shadow-[0_3px_12px_#27396b07]">
+        <p className="text-xs text-muted-foreground">{uiMessages.production.stageDesign}</p>
+        <p className="mt-1 text-xl font-bold tabular-nums">{summary.data.designInProgressCount+summary.data.designCompletedCount}</p>
+        <p className="mt-1.5 text-[11px] text-muted-foreground">
+          <span>{uiMessages.production.designInProgress}</span>: <strong className="text-foreground">{summary.data.designInProgressCount}</strong>
+          <span className="mx-1">·</span>
+          <span>{uiMessages.production.designCompleted}</span>: <strong className="text-foreground">{summary.data.designCompletedCount}</strong>
+        </p>
+      </div>
       {[
-        ["لم يبدأ",summary.data.notStartedCount],
-        ["تصميم جارٍ",summary.data.designInProgressCount],
-        ["تصميم مكتمل",summary.data.designCompletedCount],
-        ["في الطباعة",summary.data.printingCount],
-        ["جاهز للتسليم",summary.data.readyCount],
-        ["أوردرات متأخرة",summary.data.lateOrdersCount],
-      ].map(([label,n])=><div key={label} className="rounded-xl border bg-card p-3 shadow-sm">
+        [uiMessages.production.stagePrinting,summary.data.printingCount],
+        [uiMessages.production.stageReady,summary.data.readyCount],
+      ].map(([label,n])=><div key={label} className="rounded-xl border border-[#e8eaf2] bg-white p-3.5 shadow-[0_3px_12px_#27396b07]">
         <p className="text-xs text-muted-foreground">{label}</p>
         <p className="mt-1 text-xl font-bold tabular-nums">{n}</p>
       </div>)}
-    </div>}
-    {can("production.summary.view") && summary.isError && <div className="rounded-xl border p-2">
+      <button type="button" aria-pressed={lateOnly} aria-label={uiMessages.production.filterOverdueAction}
+        onClick={()=>setLateOnly(current=>!current)}
+        className={`rounded-xl border p-3.5 text-right shadow-[0_3px_12px_#27396b07] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${lateOnly
+          ? "border-[#f0a6ad] bg-[#fff0f2]"
+          : "border-[#e8eaf2] bg-white hover:border-[#f0a6ad] hover:bg-[#fff8f9]"}`}>
+        <p className="text-xs text-muted-foreground">{uiMessages.production.overdueOrders}</p>
+        <p className="mt-1 text-xl font-bold tabular-nums">{summary.data.lateOrdersCount}</p>
+        <p className="mt-1 text-[11px] text-primary">{lateOnly ? uiMessages.production.filterApplied : uiMessages.production.viewOverdue}</p>
+      </button>
+    </section>}
+    {can("production.summary.view") && summary.isError && <div className="rounded-lg border p-2">
       <ErrorState error={summary.error} retry={()=>void summary.refetch()}/>
     </div>}
-    {can("production.printing.send") && selected.size>0 && <aside className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/25 bg-card p-3">
+    {can("production.printing.send") && selected.size>0 && <aside className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/25 bg-card p-3">
       <p className="text-sm font-semibold"><CheckCheck className="ml-2 inline size-4"/>تم تحديد {selected.size} عنصر مكتمل التصميم</p>
       <div className="flex gap-2">
         <Button disabled={busy} size="sm" onClick={()=>setPending({action:"batch",ids:[...selected]})}>إرسال المحدد للطباعة</Button>
@@ -249,7 +304,7 @@ export function ProductionPage() {
       </select>
     </div>
     <div className="overflow-x-auto">
-      <div className="grid min-w-0 gap-3 lg:min-w-[1120px] lg:grid-cols-4">
+      <div className="grid min-w-0 gap-4 lg:min-w-[1120px] lg:grid-cols-4">
         {PRODUCTION_COLUMNS.map(column=><ProductionColumn key={column.id} column={column.id}
           filters={filters} page={pages[column.id]} onPage={page=>setPages(previous=>({...previous,[column.id]:page}))}
           count={summaryCounts(summary.data,column.id)}

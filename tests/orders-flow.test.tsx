@@ -121,6 +121,146 @@ beforeEach(() => {
 afterEach(() => {apiClient.defaults.adapter=originalAdapter;});
 
 describe("Orders Laravel API workflow", () => {
+  it("shows distinct status badges and a readable delivery date without changing the API data", async () => {
+    orders = [
+      orders[0],
+      {...orders[0], id:102, orderNumber:"ORD-26102702", status:1, statusLabel:"مؤكد",
+        productionStatus:1, productionStatusLabel:"في الإنتاج", dueDate:"2026-10-30",
+        delayStatus:2, delayStatusLabel:"في الموعد"},
+      {...orders[0], id:103, orderNumber:"ORD-26102703", status:2, statusLabel:"ملغي",
+        dueDate:"2026-10-25", delayStatus:1, delayStatusLabel:"متأخر"},
+    ];
+    visit("/orders");
+    const table = await screen.findByRole("table");
+    expect(within(table).getByRole("columnheader",{name:"موعد التسليم"})).toBeTruthy();
+    const rows = within(table).getAllByRole("row");
+    const draftRow = rows.find(row => within(row).queryByText("مسودة #101"));
+    const confirmedRow = rows.find(row => within(row).queryByText("ORD-26102702"));
+    const cancelledRow = rows.find(row => within(row).queryByText("ORD-26102703"));
+    expect(draftRow).toBeTruthy();
+    expect(confirmedRow).toBeTruthy();
+    expect(cancelledRow).toBeTruthy();
+    expect(within(draftRow!).getByText("مسودة").closest('[data-slot="badge"]')).toBeTruthy();
+    expect(within(draftRow!).getByText("بدون موعد")).toBeTruthy();
+    expect(within(confirmedRow!).getByText("مؤكد").closest('[data-slot="badge"]')).toBeTruthy();
+    expect(within(confirmedRow!).getByText("30/10/2026")).toBeTruthy();
+    expect(within(cancelledRow!).getByText("ملغي").closest('[data-slot="badge"]')).toBeTruthy();
+    expect(within(cancelledRow!).getByText("25/10/2026")).toBeTruthy();
+    expect(within(cancelledRow!).getByText("متأخر")).toBeTruthy();
+  });
+
+  it("renders order creation date in Cairo time and uses a colored production badge", async () => {
+    orders[0] = {...orders[0],createdAt:"2026-10-27T21:15:00Z",
+      productionStatus:1,productionStatusLabel:"في الإنتاج",status:1,statusLabel:"مؤكد"};
+    visit("/orders");
+    const table = await screen.findByRole("table");
+    expect(within(table).getByRole("columnheader", {name:"تاريخ الإنشاء"})).toBeTruthy();
+    expect(within(table).getByText("28 / 10 / 2026")).toBeTruthy();
+    expect(within(table).getByText("12:15 ص")).toBeTruthy();
+    const production = within(table).getByText("في الإنتاج");
+    expect(production.closest('[data-slot="badge"]')).toBeTruthy();
+  });
+
+  it("formats Cairo creation time in 12 hours with Arabic AM/PM suffix", async () => {
+    orders[0] = {...orders[0], createdAt:"2026-10-27T15:18:00Z"};
+    visit("/orders");
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("27 / 10 / 2026")).toBeTruthy();
+    expect(within(table).getByText("06:18 م")).toBeTruthy();
+  });
+
+  it("visually distinguishes not-started from ready-for-delivery, including canceled orders", async () => {
+    orders = [
+      {...orders[0],id:201,orderNumber:"ORD-201",status:1,statusLabel:"مؤكد",
+        productionStatus:0,productionStatusLabel:"لم يبدأ"},
+      {...orders[0],id:202,orderNumber:"ORD-202",status:2,statusLabel:"ملغي",
+        productionStatus:3,productionStatusLabel:"جاهز للتسليم"},
+    ];
+    visit("/orders");
+    const table = await screen.findByRole("table");
+    const notStarted = within(table).getByText("لم يبدأ").closest('[data-slot="badge"]');
+    const ready = within(table).getByText("جاهز للتسليم").closest('[data-slot="badge"]');
+    expect(notStarted?.className).toContain("bg-slate-100");
+    expect(ready?.className).toContain("bg-emerald-100");
+    expect(ready?.className).not.toContain("bg-slate-100");
+    expect(within(table).getByText("آخر مرحلة إنتاج مسجلة")).toBeTruthy();
+  });
+
+  it("clears every order filter together and restores the default sort and first page", async () => {
+    visit("/orders?search=Ahmed&status=1&productionStatus=3&sort=due_date&lateOnly=1&createdFrom=2026-10-26&createdTo=2026-10-28&page=2&openOnly=1");
+    expect(await screen.findByRole("table")).toBeTruthy();
+    const clear = screen.getByRole("button", {name:"مسح الفلاتر"}) as HTMLButtonElement;
+    expect(clear.disabled).toBe(false);
+    const user = userEvent.setup();
+    await user.click(clear);
+    expect(window.location.pathname).toBe("/orders");
+    expect(window.location.search).toBe("");
+    await waitFor(() => expect(screen.getByRole("button", {name:"مسح الفلاتر"})).toHaveProperty("disabled", true));
+    expect((screen.getByRole("combobox", {name:"حالة الأوردر"}) as HTMLSelectElement).value).toBe("");
+    expect((screen.getByRole("combobox", {name:"حالة الإنتاج"}) as HTMLSelectElement).value).toBe("");
+    expect((screen.getByRole("combobox", {name:"ترتيب الأوردرات"}) as HTMLSelectElement).value).toBe("-id");
+    expect((screen.getByRole("checkbox", {name:"المتأخرة فقط"}) as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByRole("checkbox", {name:"جاهزة للتسليم اليوم"}) as HTMLInputElement).checked).toBe(false);
+    expect(screen.getByRole("button", {name:"من"}).textContent).toContain("يوم/شهر/سنة");
+    expect(screen.getByRole("button", {name:"إلى"}).textContent).toContain("يوم/شهر/سنة");
+    await waitFor(() => {
+      const lastList = calls.filter(call => call.method === "get" && call.url === "/orders").at(-1);
+      expect(lastList?.query.get("sort")).toBe("-id");
+      expect(lastList?.query.has("filter[createdFrom]")).toBe(false);
+      expect(lastList?.query.has("filter[lateOnly]")).toBe(false);
+      expect(lastList?.query.has("filter[productionStatus]")).toBe(false);
+      expect(lastList?.query.has("filter[search]")).toBe(false);
+    });
+  });
+
+  it("enables clear filters for today's ready queue, then disables when reset", async () => {
+    visit("/orders?readyDueToday=1");
+    expect(await screen.findByRole("table")).toBeTruthy();
+    const user = userEvent.setup();
+    const clear = screen.getByRole("button", {name:"مسح الفلاتر"}) as HTMLButtonElement;
+    expect(clear.disabled).toBe(false);
+    await user.click(clear);
+    expect(window.location.search).toBe("");
+    expect((screen.getByRole("checkbox", {name:"جاهزة للتسليم اليوم"}) as HTMLInputElement).checked).toBe(false);
+    expect(clear.disabled).toBe(true);
+  });
+
+  it("uses themed creation date pickers and persists a server-side inclusive date range in the URL", async () => {
+    visit("/orders?createdFrom=2026-10-28&createdTo=2026-10-30");
+    expect(await screen.findByRole("table")).toBeTruthy();
+    expect(calls.some(c => c.url === "/orders" &&
+      c.query.get("filter[createdFrom]") === "2026-10-28" &&
+      c.query.get("filter[createdTo]") === "2026-10-30")).toBe(true);
+    const from = screen.getByRole("button", {name:"من"});
+    expect(within(from).getByText("28/10/2026")).toBeTruthy();
+    const to = screen.getByRole("button", {name:"إلى"});
+    expect(within(to).getByText("30/10/2026")).toBeTruthy();
+    expect(screen.queryByRole("textbox", {name:"من"})).toBeNull();
+    const user = userEvent.setup();
+    await user.click(from);
+    const calendar = await screen.findByRole("dialog", {name:"اختيار من"});
+    await user.click(within(calendar).getByRole("gridcell", {name:"2026-10-27"}));
+    await waitFor(() => expect(calls.some(c => c.url === "/orders" &&
+      c.query.get("filter[createdFrom]") === "2026-10-27")).toBe(true));
+    await user.click(screen.getByRole("button", {name:"مسح الفلاتر"}));
+    await waitFor(() => expect(calls.some(c => c.url === "/orders" &&
+      !c.query.has("filter[createdFrom]") && !c.query.has("filter[createdTo]"))).toBe(true));
+    expect(screen.getByRole("button", {name:"مسح الفلاتر"})).toHaveProperty("disabled", true);
+  });
+
+  it("keeps desktop filters on one row and preserves their form controls", async () => {
+    visit("/orders?lateOnly=1");
+    expect(await screen.findByRole("table")).toBeTruthy();
+    const bar = screen.getByRole("group", {name:"فلاتر الأوردرات"});
+    expect(bar.className).toContain("xl:flex-nowrap");
+    expect(within(bar).getByRole("combobox",{name:"حالة الأوردر"})).toBeTruthy();
+    expect(within(bar).getByRole("combobox",{name:"حالة الإنتاج"})).toBeTruthy();
+    expect(within(bar).getByRole("combobox",{name:"ترتيب الأوردرات"})).toBeTruthy();
+    expect(within(bar).getByRole("checkbox",{name:"المتأخرة فقط"})).toBeTruthy();
+    expect(within(bar).getByRole("checkbox",{name:"جاهزة للتسليم اليوم"})).toBeTruthy();
+    expect(within(bar).queryByRole("checkbox",{name:"لم يتم تسليمها"})).toBeNull();
+  });
+
   it("lists orders using the exact lateOnly and production filters", async () => {
     visit("/orders");
     expect(await screen.findByText("مسودة #101")).toBeTruthy();
@@ -131,21 +271,138 @@ describe("Orders Laravel API workflow", () => {
     await waitFor(() => expect(calls.some(c=>c.url==="/orders" && c.query.get("filter[productionStatus]")==="3")).toBe(true));
   });
 
-  it("keeps historic lateness distinct from current overdue orders", async () => {
+  it("uses a single operational overdue filter and sends no historical delivery flag", async () => {
     visit("/orders?lateOnly=1&openOnly=1");
     expect(await screen.findByText("مسودة #101")).toBeTruthy();
-    const query=calls.find(c=>c.url==="/orders"&&c.query.get("filter[lateOnly]")==="1");
-    expect(query?.query.get("filter[openOnly]")).toBe("1");
-    const user=userEvent.setup();
-    await user.click(screen.getByRole("checkbox",{name:"لم يتم تسليمها"}));
-    await waitFor(()=>expect(calls.some(c=>c.url==="/orders"&&c.query.get("filter[lateOnly]")==="1"&&c.query.get("filter[openOnly]")===null)).toBe(true));
+    expect(calls.some(c => c.url === "/orders" && c.query.get("filter[lateOnly]") === "1"
+      && !c.query.has("filter[openOnly]"))).toBe(true);
+    expect(screen.queryByRole("checkbox",{name:"لم يتم تسليمها"})).toBeNull();
+    const user = userEvent.setup();
     await user.click(screen.getByRole("checkbox",{name:"المتأخرة فقط"}));
-    await waitFor(()=>expect(calls.some(c=>c.url==="/orders"&&c.query.get("filter[lateOnly]")===null&&c.query.get("filter[openOnly]")===null)).toBe(true));
+    await waitFor(() => expect(calls.some(c => c.url === "/orders" &&
+      !c.query.has("filter[lateOnly]"))).toBe(true));
+  });
+
+  it("filters ready-to-deliver-today orders and switches away from overdue on selection", async () => {
+    visit("/orders?lateOnly=1");
+    expect(await screen.findByRole("table")).toBeTruthy();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("checkbox",{name:"جاهزة للتسليم اليوم"}));
+    await waitFor(() => expect(calls.some(c => c.url === "/orders" &&
+      c.query.get("filter[readyDueToday]") === "1" && !c.query.has("filter[lateOnly]"))).toBe(true));
+    expect((screen.getByRole("checkbox",{name:"المتأخرة فقط"}) as HTMLInputElement).checked).toBe(false);
+    await user.click(screen.getByRole("checkbox",{name:"المتأخرة فقط"}));
+    await waitFor(() => expect(calls.some(c => c.url === "/orders" &&
+      c.query.get("filter[lateOnly]") === "1" && !c.query.has("filter[readyDueToday]"))).toBe(true));
+  });
+
+  it("does not replace an agreed price with the system suggestion without explicit confirmation", async () => {
+    visit("/orders/new");
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("combobox", {name:"اختيار العميل"}));
+    await user.click(await screen.findByRole("option", {name:/أحمد - 01012345678/}));
+    await user.click(await screen.findByRole("combobox", {name:"خدمة العنصر 1"}));
+    await user.click(await screen.findByRole("option", {name:"كروت شخصية"}));
+    await user.clear(screen.getByRole("spinbutton", {name:"كمية العنصر 1"}));
+    await user.type(screen.getByRole("spinbutton", {name:"كمية العنصر 1"}), "100");
+    const input = screen.getByRole("textbox", {name:"إجمالي العنصر 1"}) as HTMLInputElement;
+    await user.type(input, "350.00");
+    expect(screen.getByText((_, element) => element?.tagName === "P" && element.textContent?.includes("سعر الوحدة المتفق عليه:") === true)).toBeTruthy();
+    await user.click(screen.getByRole("button", {name:"السعر المقترح"}));
+    expect(await screen.findByText("الإجمالي المقترح من النظام")).toBeTruthy();
+    await user.click(screen.getByRole("button", {name:"استخدام السعر المقترح"}));
+    expect(input.value).toBe("350.00");
+    expect(screen.getByRole("button", {name:"تأكيد الاستبدال"})).toBeTruthy();
+    await user.click(screen.getByRole("button", {name:"الاحتفاظ بالسعر الحالي"}));
+    expect(input.value).toBe("350.00");
+    await user.click(screen.getByRole("button", {name:"استخدام السعر المقترح"}));
+    await user.click(screen.getByRole("button", {name:"تأكيد الاستبدال"}));
+    expect(input.value).toBe("500.00");
+    expect(screen.queryByRole("button", {name:"تأكيد الاستبدال"})).toBeNull();
+  });
+
+  it("separates the customer's existing balance from the current order and explains collection timing", async () => {
+    visit("/orders/new");
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("combobox", {name:"اختيار العميل"}));
+    await user.click(await screen.findByRole("option", {name:/أحمد - 01012345678/}));
+    expect(await screen.findByText("رصيد العميل السابق")).toBeTruthy();
+    expect(screen.getByText("الرصيد السابق مستقل عن المتبقي من الأوردر الحالي.")).toBeTruthy();
+    expect(screen.getByText(/حفظ المسودة لا يسجل تحصيلًا/)).toBeTruthy();
+  });
+
+  it("shows cancellation as an order-level status and marks the last production stage as historical", async () => {
+    orders[0] = {...orders[0],status:2,statusLabel:"ملغي",orderNumber:"ORD-CANCELLED-1",
+      productionStatus:3,productionStatusLabel:"جاهز للتسليم",delayStatus:1,delayStatusLabel:"متأخر"};
+    visit("/orders/101");
+    expect(await screen.findByRole("heading",{name:"ORD-CANCELLED-1"})).toBeTruthy();
+    expect(screen.getByText("ملغي").closest('[data-slot="badge"]')).toBeTruthy();
+    expect(screen.getByText("آخر مرحلة إنتاج مسجلة")).toBeTruthy();
+    expect(screen.getByText("الأوردر ملغي ولا توجد إجراءات إنتاج جديدة.")).toBeTruthy();
+    expect(screen.queryByText("متأخر")).toBeNull();
+  });
+
+  it("uses the themed delivery calendar and preserves the API date format", async () => {
+    visit("/orders/new");
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("combobox", {name:"اختيار العميل"}));
+    await user.click(await screen.findByRole("option", {name:/أحمد - 01012345678/}));
+    const dateButton = screen.getByRole("button", {name:"تاريخ التسليم (اختياري)"});
+    expect(screen.queryByRole("textbox", {name:"تاريخ التسليم"})).toBeNull();
+    await user.click(dateButton);
+    const calendar = await screen.findByRole("dialog", {name:"اختيار تاريخ التسليم (اختياري)"});
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      day:"2-digit", month:"2-digit", year:"numeric", timeZone:"Africa/Cairo",
+    }).formatToParts(new Date());
+    const part = (name: string) => parts.find(p => p.type === name)?.value;
+    const today = `${part("year")}-${part("month")}-${part("day")}`;
+    await user.click(within(calendar).getByRole("gridcell", {name:today}));
+    expect(dateButton.textContent).toContain(`${part("day")}/${part("month")}/${part("year")}`);
+    await user.click(screen.getByRole("combobox", {name:"خدمة العنصر 1"}));
+    await user.click(screen.getByRole("option", {name:"كروت شخصية"}));
+    await user.type(screen.getByRole("textbox", {name:"إجمالي العنصر 1"}), "100");
+    await user.click(screen.getByRole("button", {name:"حفظ مسودة"}));
+    await waitFor(() => expect(calls.some(c => c.method === "post" && c.url === "/orders")).toBe(true));
+    expect(calls.find(c => c.method === "post" && c.url === "/orders")?.body.dueDate).toBe(today);
+  });
+
+  it("scrolls to and focuses the missing print service after attempting confirmation at the bottom", async () => {
+    visit("/orders/new");
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("combobox", {name:"اختيار العميل"}));
+    await user.click(await screen.findByRole("option", {name:/أحمد - 01012345678/}));
+    const scrolled: Element[] = [];
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function() { scrolled.push(this); };
+    try {
+      await user.click(screen.getByRole("button", {name:"تأكيد الأوردر"}));
+      const service = screen.getByRole("combobox", {name:"خدمة العنصر 1"});
+      expect(await screen.findByText("اختر خدمة الطباعة.")).toBeTruthy();
+      await waitFor(() => expect(document.activeElement).toBe(service));
+      expect(service.getAttribute("aria-invalid")).toBe("true");
+      expect(scrolled.some(node => node.getAttribute("data-order-field") === "items.0.serviceId")).toBe(true);
+      expect(calls.some(c => c.method === "post" && c.url === "/orders")).toBe(false);
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
+  it("focuses the earliest missing required field and moves to the next on retry", async () => {
+    visit("/orders/new");
+    const user = userEvent.setup();
+    await screen.findByRole("combobox", {name:"اختيار العميل"});
+    await user.click(screen.getByRole("button", {name:"حفظ مسودة"}));
+    expect(await screen.findByText("اختر عميلًا مسجلًا.")).toBeTruthy();
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("combobox", {name:"اختيار العميل"})));
+    await user.click(screen.getByRole("option", {name:/أحمد - 01012345678/}));
+    await user.click(screen.getByRole("button", {name:"حفظ مسودة"}));
+    expect(await screen.findByText("اختر خدمة الطباعة.")).toBeTruthy();
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("combobox", {name:"خدمة العنصر 1"})));
   });
 
   it("creates a draft with registered customer, agreed total, source enum and idempotency key", async () => {
     visit("/orders/new");
-    expect(await screen.findByRole("heading",{name:"إضافة أوردر"})).toBeTruthy();
+    expect((await screen.findAllByRole("heading",{name:"إضافة أوردر"})).length).toBeGreaterThan(0);
     const user=userEvent.setup();
     await user.click(await screen.findByRole("combobox",{name:"اختيار العميل"}));
     await user.click(await screen.findByRole("option", { name: /أحمد - 01012345678/ }));

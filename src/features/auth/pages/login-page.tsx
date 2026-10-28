@@ -48,25 +48,25 @@ export function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-screen bg-background lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)]">
+    <main className="grid min-h-screen bg-white lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)]">
       <div className="flex min-h-screen flex-col justify-center px-5 py-10 sm:px-12 lg:px-16 xl:px-24">
         <div className="mx-auto w-full max-w-[430px]">
-          <div className="mb-12 flex items-center gap-3">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+          <div className="mb-10 flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-[#4d5ac6] ">
               <Printer className="size-6" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-[23px] font-extrabold tracking-tight">طَبعة</p>
+              <p className="text-xl font-semibold tracking-tight">طَبعة</p>
               <p className="text-xs text-muted-foreground">إدارة الطباعة والإنتاج</p>
             </div>
           </div>
 
           <div className="mb-9 space-y-3">
             <span className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-semibold text-muted-foreground">
-              <ShieldCheck className="size-3.5 text-emerald-700" aria-hidden="true" />
+              <ShieldCheck className="size-3.5 text-[#147c58]" aria-hidden="true" />
               دخول آمن لمساحة العمل
             </span>
-            <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">مرحبًا بعودتك</h1>
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">مرحبًا بعودتك</h1>
             <p className="text-sm leading-7 text-muted-foreground">
               أدخل بيانات حسابك للمتابعة وإدارة أعمال المطبعة.
             </p>
@@ -74,7 +74,7 @@ export function LoginPage() {
 
           <form onSubmit={handleSubmit(submit)} noValidate className="space-y-6">
             {serverError && (
-              <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-sm leading-6 text-red-800">
+              <div role="alert" className="rounded-xl border border-[#efbec6] bg-[#fff0f2] p-3.5 text-sm leading-6 text-[#c8384a]">
                 {serverError}
               </div>
             )}
@@ -90,7 +90,7 @@ export function LoginPage() {
                 placeholder="username"
                 aria-invalid={Boolean(errors.username)}
                 aria-describedby={errors.username ? "username-error" : undefined}
-                className="h-12 w-full rounded-xl border border-input bg-card px-4 text-left text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25"
+                className="h-10 w-full rounded-md border border-input bg-card px-4 text-left text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25"
                 disabled={loginMutation.isPending}
               />
               {errors.username && <p id="username-error" role="alert" className="text-xs text-destructive">{errors.username.message}</p>}
@@ -108,7 +108,7 @@ export function LoginPage() {
                   placeholder="••••••••"
                   aria-invalid={Boolean(errors.password)}
                   aria-describedby={errors.password ? "password-error" : undefined}
-                  className="h-12 w-full rounded-xl border border-input bg-card px-12 text-left text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25"
+                  className="h-10 w-full rounded-md border border-input bg-card px-12 text-left text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25"
                   disabled={loginMutation.isPending}
                 />
                 <button
@@ -124,7 +124,7 @@ export function LoginPage() {
               {errors.password && <p id="password-error" role="alert" className="text-xs text-destructive">{errors.password.message}</p>}
             </div>
 
-            <Button type="submit" size="lg" className="h-12 w-full text-sm" disabled={loginMutation.isPending}>
+            <Button type="submit" size="lg" className="h-10 w-full text-sm" disabled={loginMutation.isPending}>
               {loginMutation.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <LockKeyhole className="size-4" />}
               {loginMutation.isPending ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
               {!loginMutation.isPending && <ArrowLeft className="ms-auto size-4" />}
@@ -140,32 +140,32 @@ export function LoginPage() {
         </div>
       </div>
 
-      <aside className="relative hidden min-h-screen flex-col justify-between overflow-hidden bg-[#17253a] p-10 text-white lg:flex xl:p-16" aria-label="عن طَبعة">
-        <div className="pointer-events-none absolute -top-32 -left-20 size-96 rounded-full border border-white/10" aria-hidden="true" />
-        <div className="pointer-events-none absolute top-16 -left-28 size-[30rem] rounded-full border border-white/7" aria-hidden="true" />
-        <div className="relative z-10 flex items-center gap-2 text-xs font-semibold text-[#b9e4d8]">
-          <span className="size-2 rounded-full bg-[#b9e4d8]" aria-hidden="true" />
+      <aside className="relative hidden min-h-screen flex-col justify-between overflow-hidden bg-gradient-to-bl from-[#eff1ff] via-[#f5f6ff] to-[#f8f9fe] p-10 text-foreground lg:flex xl:p-16" aria-label="عن طَبعة">
+        <div className="pointer-events-none absolute -top-32 -left-20 size-96 rounded-full border border-[#d6ddfa]" aria-hidden="true" />
+        <div className="pointer-events-none absolute top-16 -left-28 size-[30rem] rounded-full border border-[#d6ddfa]" aria-hidden="true" />
+        <div className="relative z-10 flex items-center gap-2 text-xs font-semibold text-[#4d5ac6]">
+          <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
           مساحة العمل
         </div>
 
         <div className="relative z-10 max-w-lg space-y-10">
-          <div className="flex size-14 items-center justify-center rounded-2xl border border-white/15 bg-white/10">
-            <Printer className="size-7 text-[#b9e4d8]" aria-hidden="true" />
+          <div className="flex size-14 items-center justify-center rounded-lg border border-border bg-white/75">
+            <Printer className="size-7 text-[#4d5ac6]" aria-hidden="true" />
           </div>
           <div className="space-y-5">
             <h2 className="text-[clamp(2rem,3.2vw,3.5rem)] leading-[1.45] font-extrabold">
               من أول طلب،<br />
               لحد آخر تسليم.
             </h2>
-            <p className="max-w-md text-base leading-9 text-[#d3dce8]">
+            <p className="max-w-md text-base leading-9 text-[#646e8d]">
               كل مرحلة واضحة، وكل عملية في مكانها. مساحة واحدة تخلّي فريقك مركز على الشغل المهم.
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/15 bg-white/5 p-4 backdrop-blur-sm sm:gap-3 sm:p-5">
+          <div className="grid grid-cols-3 gap-2 rounded-lg border border-[#d9def8] bg-white/65 p-4 backdrop-blur-sm sm:gap-3 sm:p-5">
             {["الطلبات", "الإنتاج", "التسليم"].map((step, index) => (
-              <div key={step} className="flex flex-col items-center gap-3 rounded-xl bg-white/5 py-4">
-                <span className="flex size-9 items-center justify-center rounded-full border border-[#b9e4d8]/25 bg-[#b9e4d8]/10 text-sm font-extrabold text-[#b9e4d8]">
+              <div key={step} className="flex flex-col items-center gap-3 rounded-xl bg-card/5 py-4">
+                <span className="flex size-9 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-sm font-extrabold text-[#4d5ac6]">
                   {index + 1}
                 </span>
                 <span className="text-sm font-bold">{step}</span>
@@ -174,7 +174,7 @@ export function LoginPage() {
           </div>
         </div>
 
-        <p className="relative z-10 text-xs text-[#aebbd0]">نظام إدارة الطباعة · واجهة عربية سهلة الاستخدام</p>
+        <p className="relative z-10 text-xs text-[#8894ac]">نظام إدارة الطباعة · واجهة عربية سهلة الاستخدام</p>
       </aside>
     </main>
   );

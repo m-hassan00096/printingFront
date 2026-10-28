@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { Calculator, LoaderCircle } from "lucide-react";
+import { Calculator, CircleAlert, LoaderCircle } from "lucide-react";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { Button } from "@/shared/components/ui/button";
 import { getApiErrorMessage } from "@/shared/api/http";
 import { useCustomerTypes } from "@/features/customers/hooks/use-customers";
@@ -7,13 +8,7 @@ import { fieldClass } from "@/features/identity/components/identity-ui";
 import { usePrintingServiceMutations } from "../hooks/use-printing-services";
 import type { PricePreview } from "../types/printing-service.types";
 
-const sourceLabels: Record<NonNullable<PricePreview["source"]>, string> = {
-  customerTypeQuantityTier: "شريحة كمية مخصصة لنوع العميل",
-  customerTypeCatchAll: "شريحة عامة مخصصة لنوع العميل",
-  genericQuantityTier: "شريحة كمية عامة",
-  genericCatchAll: "الشريحة العامة",
-  basePrice: "السعر الأساسي",
-};
+const sourceLabels: Record<NonNullable<PricePreview["source"]>, string> = uiMessages.printingServices.previewSources;
 
 export function PricePreviewCalculator({ serviceId, active }: { serviceId: number; active: boolean }) {
   const [customerTypeId, setCustomerTypeId] = useState("");
@@ -49,20 +44,20 @@ export function PricePreviewCalculator({ serviceId, active }: { serviceId: numbe
     }
   }
 
-  return <section aria-labelledby="price-preview-heading" className="rounded-2xl border bg-card px-4 py-4 shadow-sm sm:px-5">
-    <div className="mb-4 flex items-center gap-2">
+  return <section aria-labelledby="price-preview-heading" className="rounded-lg border bg-card px-4 py-4  sm:px-5">
+    <div className="mb-3 flex items-center gap-2">
       <Calculator className="size-5 text-primary" />
       <h2 id="price-preview-heading" className="font-bold">حاسبة السعر المقترح</h2>
     </div>
 
     {!active ? <p className="text-sm text-muted-foreground">الخدمة غير نشطة، ولا يمكن حساب سعرها حاليًا.</p> :
-      <form onSubmit={(event) => void calculate(event)} className="space-y-4">
+      <form onSubmit={(event) => void calculate(event)} className="space-y-3">
         <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto]">
           <label className="block text-xs font-semibold">نوع العميل
             <select aria-label="نوع عميل المعاينة" value={customerTypeId}
               className={fieldClass + " mt-2"} disabled={preview.isPending}
               onChange={(e) => { setCustomerTypeId(e.target.value); invalidateResult(); }}>
-              <option value="">سعر عام — بدون نوع عميل</option>
+              <option value="">{uiMessages.printingServices.unclassifiedPrice}</option>
               {types.data?.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
             </select>
           </label>
@@ -71,7 +66,7 @@ export function PricePreviewCalculator({ serviceId, active }: { serviceId: numbe
               type="number" min="1" step="1" value={quantity} disabled={preview.isPending}
               onChange={(e) => { setQuantity(e.target.value); invalidateResult(); }} />
           </label>
-          <Button type="submit" disabled={preview.isPending}>
+          <Button type="submit" className="self-end" disabled={preview.isPending}>
             {preview.isPending && <LoaderCircle className="size-4 animate-spin" />}
             حساب السعر المقترح
           </Button>
@@ -83,20 +78,29 @@ export function PricePreviewCalculator({ serviceId, active }: { serviceId: numbe
         </p>}
         {previewError && <p role="alert" className="text-sm text-destructive">{previewError}</p>}
         {result && <div aria-label="نتيجة معاينة السعر" role="status"
-          className="rounded-xl border bg-muted/40 px-4 py-3">
-          {result.requiresManualTotal ? <p className="text-sm font-medium">
-            لا يوجد سعر محدد لهذا النوع والكمية؛ أدخل إجمالي السعر يدويًا عند إنشاء الأوردر.
-          </p> : <div className="grid gap-3 sm:grid-cols-3">
-            <div><p className="text-xs text-muted-foreground">مصدر السعر</p>
-              <p className="mt-1 text-sm font-semibold">{result.source ? sourceLabels[result.source] : "غير محدد"}</p>
-            </div>
-            <div><p className="text-xs text-muted-foreground">سعر الوحدة</p>
-              <p className="mt-1 text-base font-bold tabular-nums" dir="ltr">{result.suggestedUnitPrice} ج.م</p>
-            </div>
-            <div><p className="text-xs text-muted-foreground">الإجمالي المقترح</p>
-              <p className="mt-1 text-xl font-extrabold tabular-nums" dir="ltr">{result.suggestedTotal} ج.م</p>
-            </div>
-          </div>}
+          className="overflow-hidden rounded-xl border border-primary/10 bg-[#f8f9ff]">
+          {result.requiresManualTotal
+            ? <div className="flex items-start gap-3 p-4">
+                <CircleAlert className="mt-0.5 size-5 shrink-0 text-[#ad7519]" aria-hidden="true" />
+                <div>
+                  <p className="font-bold">{uiMessages.printingServices.manualPricing}</p>
+                  <p className="mt-1 text-xs leading-6 text-muted-foreground">{uiMessages.printingServices.manualPreviewHelp}</p>
+                </div>
+              </div>
+            : <div className="space-y-3 p-3 sm:p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground">{uiMessages.printingServices.previewTotal}</p>
+                    <p className="mt-1 text-2xl font-extrabold text-[#253050] tabular-nums" dir="ltr">{result.suggestedTotal} ج.م</p>
+                  </div>
+                  {result.source && <span className="rounded-md border border-primary/15 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                    {sourceLabels[result.source]}
+                  </span>}
+                </div>
+                <p className="border-t border-primary/10 pt-2.5 text-xs font-medium text-muted-foreground">
+                  <span dir="ltr" className="inline-block tabular-nums">{result.quantity} × {result.suggestedUnitPrice} ج.م</span>
+                </p>
+              </div>}
         </div>}
       </form>}
   </section>;

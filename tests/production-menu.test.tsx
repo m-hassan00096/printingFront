@@ -33,7 +33,7 @@ describe("Production card action menu overflow regression",()=>{
     expect(menu.className).toContain("fixed");
     expect(menu.getAttribute("dir")).toBe("rtl");
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
-    await user.click(within(menu).getByRole("menuitem",{name:"تغيير مكان الطباعة"}));
+    await user.click(within(menu).getByRole("menuitem",{name:"تغيير المطبعة"}));
     expect(onAction).toHaveBeenCalledWith("change-location",fixture);
     expect(screen.queryByRole("menu")).toBeNull();
   });

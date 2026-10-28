@@ -132,8 +132,101 @@ describe("Production board against Laravel API contracts",()=>{
     await waitFor(()=>expect(calls.filter(c=>c.url==="/production/items").length).toBeGreaterThanOrEqual(4));
     expect(new Set(calls.filter(c=>c.url==="/production/items").map(c=>c.query.get("filter[column]"))))
       .toEqual(new Set(["0","1","2","3"]));
-    expect(await screen.findByText("تصميم مكتمل")).toBeTruthy();
+    expect(await screen.findByRole("region",{name:"ملخص مراحل الإنتاج"})).toBeTruthy();
+    expect(screen.getByText("مكتمل")).toBeTruthy();
     expect(screen.getByRole("link",{name:"الإنتاج"})).toBeTruthy();
+  });
+
+  it("defaults to operational priority and offers explicit chronological alternatives", async()=>{
+    visit();await screen.findByText("رول أب");
+    await waitFor(()=>expect(calls.some(c=>c.url==="/production/items"
+      && c.query.get("sort")==="priority")).toBe(true));
+    const sort=screen.getByRole("combobox",{name:"ترتيب عناصر الإنتاج"});
+    expect((sort as HTMLSelectElement).value).toBe("priority");
+    expect(within(sort).getByRole("option",{name:"الأولوية التشغيلية"})).toBeTruthy();
+    const user=userEvent.setup();
+    await user.selectOptions(sort,"-dueDate");
+    await waitFor(()=>expect(calls.some(c=>c.url==="/production/items"
+      && c.query.get("sort")==="-dueDate")).toBe(true));
+    await user.click(screen.getByRole("button",{name:"مسح الفلاتر"}));
+    expect((sort as HTMLSelectElement).value).toBe("priority");
+  });
+
+  it("marks overdue and Cairo-due-today orders distinctly on their cards",async()=>{
+    const parts=new Intl.DateTimeFormat("en-GB",{
+      timeZone:"Africa/Cairo",year:"numeric",month:"2-digit",day:"2-digit",
+    }).formatToParts(new Date());
+    const part=(type:string)=>parts.find(x=>x.type===type)?.value??"";
+    items[0].dueDate=`${part("year")}-${part("month")}-${part("day")}`;
+    items[0].isLate=false;
+    items[1].isLate=true;
+    visit();
+    const notStarted=await screen.findByRole("region",{name:"عمود لم يبدأ"});
+    expect(await within(notStarted).findByText("تسليم اليوم")).toBeTruthy();
+    const design=screen.getByRole("region",{name:"عمود التصميم"});
+    expect(await within(design).findByText("متأخر")).toBeTruthy();
+    expect(within(design).queryByText("تسليم اليوم")).toBeNull();
+  });
+
+  it("groups four stage KPIs and lets an operator apply overdue filter via the metric",async()=>{
+    visit();await screen.findByText("رول أب");
+    const overview=await screen.findByRole("region",{name:"ملخص مراحل الإنتاج"});
+    expect(within(overview).getByText("التصميم")).toBeTruthy();
+    expect(within(overview).getByText("جارٍ")).toBeTruthy();
+    expect(within(overview).getByText("مكتمل")).toBeTruthy();
+    const user=userEvent.setup();
+    const overdue=within(overview).getByRole("button",{name:"عرض الأوردرات المتأخرة فقط"});
+    await user.click(overdue);
+    await waitFor(()=>expect(
+      within(screen.getByRole("region",{name:"ملخص مراحل الإنتاج"}))
+        .getByRole("button",{name:"عرض الأوردرات المتأخرة فقط"}).getAttribute("aria-pressed")
+    ).toBe("true"));
+    expect((screen.getByRole("checkbox",{name:"المتأخرة فقط"}) as HTMLInputElement).checked).toBe(true);
+    await waitFor(()=>expect(calls.some(c=>c.url==="/production/items" &&
+      c.query.get("filter[lateOnly]")==="1")).toBe(true));
+  });
+
+  it("groups items by order within each column, with clearly separate independently actionable cards", async()=>{
+    visit();
+    const design=await screen.findByRole("region",{name:"عمود التصميم"});
+    const group=await within(design).findByRole("region",{name:"الأوردر ORD-2026-101"});
+    expect(within(group).getAllByRole("article")).toHaveLength(2);
+    expect(within(group).getAllByText("أحمد")).toHaveLength(1);
+    expect(within(group).getAllByText("01012345678")).toHaveLength(1);
+    expect(within(group).getByText("2 عناصر في المرحلة")).toBeTruthy();
+    const banner=within(group).getByRole("article",{name:"عنصر بنر"});
+    const card=within(group).getByRole("article",{name:"عنصر كروت شخصية"});
+    expect(within(banner).getByText("قيد التصميم")).toBeTruthy();
+    expect(within(card).getByText("تم التصميم")).toBeTruthy();
+    expect(within(banner).getByRole("button",{name:"إنهاء التصميم"})).toBeTruthy();
+    expect(within(banner).getByRole("button",{name:"إنهاء وإرسال للطباعة"})).toBeTruthy();
+    expect(within(banner).getByText("إنهاء فقط")).toBeTruthy();
+    const user=userEvent.setup();
+    await user.click(within(banner).getByRole("button",{name:"إنهاء التصميم"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/production/items/102/complete-design")).toBe(true));
+    expect(calls.some(c=>c.url==="/production/items/103/complete-design")).toBe(false);
+    expect(items.find(x=>x.id===102)?.productionStage).toBe(2);
+    expect(items.find(x=>x.id===103)?.productionStage).toBe(2);
+  });
+
+  it("groups an order independently in different production columns, without linking item transitions", async()=>{
+    visit();
+    const printing=await screen.findByRole("region",{name:"عمود الطباعة"});
+    const ready=screen.getByRole("region",{name:"عمود جاهز للتسليم"});
+    const printingGroup=await within(printing).findByRole("region",{name:"الأوردر ORD-2026-102"});
+    const readyGroup=within(ready).getByRole("region",{name:"الأوردر ORD-2026-102"});
+    expect(within(printingGroup).getAllByRole("article")).toHaveLength(1);
+    expect(within(readyGroup).getAllByRole("article")).toHaveLength(1);
+    expect(within(printingGroup).getByRole("article",{name:"عنصر استيكرات"})).toBeTruthy();
+    expect(within(readyGroup).getByRole("article",{name:"عنصر بوستر"})).toBeTruthy();
+    const user=userEvent.setup();
+    await user.click(within(printingGroup).getByRole("button",{name:"جاهز للتسليم"}));
+    const dialog=await screen.findByRole("dialog",{name:"إنهاء الطباعة وتجهيز العنصر"});
+    await user.click(within(dialog).getByRole("button",{name:"تأكيد العملية"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/production/items/104/mark-ready")).toBe(true));
+    expect(calls.some(c=>c.url==="/production/items/105/mark-ready")).toBe(false);
+    expect(items.find(x=>x.id===104)?.productionStage).toBe(4);
+    expect(items.find(x=>x.id===105)?.productionStage).toBe(4);
   });
 
   it("starts design using authenticated actor and a fresh idempotency key",async()=>{
@@ -159,7 +252,7 @@ describe("Production board against Laravel API contracts",()=>{
     await user.click((await screen.findAllByRole("button",{name:"إرسال للطباعة"}))[0]);
     const dialog=await screen.findByRole("dialog",{name:"إرسال للطباعة"});
     expect(within(dialog).getByRole("button",{name:"تأكيد العملية"}).hasAttribute("disabled")).toBe(true);
-    await user.click(within(dialog).getByRole("combobox",{name:"اختيار مكان الطباعة"}));
+    await user.click(within(dialog).getByRole("combobox",{name:"اختيار المطبعة"}));
     await user.click(within(dialog).getByRole("option",{name:"المطبعة الرئيسية"}));
     await user.click(within(dialog).getByRole("button",{name:"تأكيد العملية"}));
     await waitFor(()=>expect(calls.some(c=>c.url==="/production/items/103/send-to-printing")).toBe(true));
@@ -172,7 +265,7 @@ describe("Production board against Laravel API contracts",()=>{
     await user.click((await screen.findAllByRole("checkbox",{name:/للإرسال/}))[1]);
     await user.click(screen.getByRole("button",{name:"إرسال المحدد للطباعة"}));
     const dialog=await screen.findByRole("dialog",{name:"إرسال العناصر المحددة للطباعة"});
-    await user.click(within(dialog).getByRole("combobox",{name:"اختيار مكان الطباعة"}));
+    await user.click(within(dialog).getByRole("combobox",{name:"اختيار المطبعة"}));
     await user.click(within(dialog).getByRole("option",{name:"المطبعة الرئيسية"}));
     await user.click(within(dialog).getByRole("button",{name:"تأكيد العملية"}));
     await waitFor(()=>expect(calls.some(c=>c.url==="/production/items/send-to-printing")).toBe(true));
@@ -269,7 +362,7 @@ describe("Production board against Laravel API contracts",()=>{
     visit();const user=userEvent.setup();
     await screen.findByText("رول أب");
     await user.click(screen.getByRole("checkbox",{name:"المتأخرة فقط"}));
-    await user.selectOptions(screen.getByRole("combobox",{name:"فلتر أعمال التصميم"}),"2");
+    await user.selectOptions(screen.getByRole("combobox",{name:"عملي في التصميم"}),"2");
     await waitFor(()=>expect(calls.some(c=>c.url==="/production/items" &&
       c.query.get("filter[lateOnly]")==="1"&&c.query.get("filter[myDesignWork]")==="2")).toBe(true));
     await user.click(screen.getByRole("combobox",{name:"تصفية حسب العميل"}));

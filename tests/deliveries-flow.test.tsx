@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { AxiosError } from "axios";
 import type { AxiosAdapter, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { App } from "@/App";
 import { apiClient } from "@/shared/api/http";
@@ -15,6 +16,7 @@ const allPermissions=[
   "finance.collections.view","orders.view",
 ];
 let permissions=[...allPermissions];
+let failDeliveryValidation=false;
 let orders:ReadyOrder[]=[];
 let records:DeliveryRecord[]=[];
 let calls:{url:string;method:string;body:Record<string,unknown>;query:URLSearchParams;key:string|null}[]=[];
@@ -61,12 +63,16 @@ const adapter:AxiosAdapter=async config=>{
     let found=orders;
     const search=query.get("filter[search]");
     if(search)found=found.filter(x=>[x.orderNumber,x.customerName,x.customerPhone].some(v=>v.includes(search)));
+    const customerId=query.get("filter[customerId]");
+    if(customerId)found=found.filter(x=>x.customerId===Number(customerId));
     return response(config,{orders:found,pagination:{...pages,total:found.length}});
   }
   if(url==="/deliveries"&&method==="get") {
     let found=records;
     const status=query.get("filter[status]");
     if(status)found=found.filter(x=>x.status===Number(status));
+    const customerId=query.get("filter[customerId]");
+    if(customerId)found=found.filter(x=>x.customerId===Number(customerId));
     return response(config,{deliveries:found,pagination:{...pages,total:found.length}});
   }
   if(url==="/deliveries/ready/10") return response(config,{
@@ -80,11 +86,21 @@ const adapter:AxiosAdapter=async config=>{
         paymentMethod:0,paymentMethodLabel:"نقدي",paymentDestinationId:null,destinationLabel:null,
       }},
   });
+  if(url==="/selects"&&query.get("selects")==="deliveryCustomers")return response(config,[
+    {label:"deliveryCustomers",options:
+      query.get("params[deliveryCustomers]")==="history"
+        ? [{value:7,label:"أحمد - 01000000000"},{value:8,label:"منى - 01122223333"}]
+        : [{value:7,label:"أحمد - 01000000000"},{value:8,label:"منى - 01122223333"}]},
+  ]);
   if(url==="/selects"&&query.get("selects")==="bankAccounts,eWallets")return response(config,[
     {label:"bankAccounts",options:[{value:3,label:"حساب بنك القاهرة"}]},
     {label:"eWallets",options:[{value:5,label:"محفظة فودافون"}]},
   ]);
   if(url==="/deliveries/orders/10/deliver"&&method==="post") {
+    if(failDeliveryValidation) throw new AxiosError("Invalid request","ERR_BAD_REQUEST",config,undefined,{
+      ...response(config,null),status:422,statusText:"Unprocessable Entity",
+      data:{message:"بيانات التسليم غير صحيحة",errors:{receiverName:["أدخل اسم مستلم صحيحًا."]}},
+    });
     orders=orders.filter(o=>o.orderId!==10);
     records=[delivered];
     return response(config,null);
@@ -97,7 +113,7 @@ const adapter:AxiosAdapter=async config=>{
 };
 function visit(){window.history.replaceState({},"","/deliveries");return render(<App/>);}
 beforeEach(()=>{
-  calls=[];permissions=[...allPermissions];orders=[fullyReady,partial];records=[delivered];
+  calls=[];failDeliveryValidation=false;permissions=[...allPermissions];orders=[fullyReady,partial];records=[delivered];
   apiClient.defaults.adapter=adapter;
 });
 afterEach(()=>{apiClient.defaults.adapter=original;});
@@ -112,7 +128,59 @@ describe("Deliveries frontend against the existing Laravel contract",()=>{
     const dialog=await screen.findByRole("dialog",{name:"تسليم الأوردر"});
     expect(within(dialog).getByText("350.00 ج.م")).toBeTruthy();
     expect(within(dialog).getByText("2 من 2")).toBeTruthy();
+    const phoneLabel=within(dialog).getByText("الهاتف");
+    const phoneValue=within(dialog).getByText("01000000000");
+    expect(phoneLabel.parentElement?.parentElement?.textContent).toContain("01000000000");
+    expect(phoneValue.getAttribute("dir")).toBe("ltr");
   });
+  it("labels the customer name and phone explicitly inside a ready order card",async()=>{
+    visit();
+    const article=await screen.findByRole("article",{name:"الأوردر ORD-261026001"});
+    expect(within(article).getByText("العميل")).toBeTruthy();
+    expect(within(article).getByText("الهاتف")).toBeTruthy();
+    expect(within(article).getByText("أحمد")).toBeTruthy();
+    const phone=within(article).getByText("01000000000");
+    const phoneRow=within(article).getByText("الهاتف").parentElement;
+    expect(phoneRow?.querySelector("dd")?.textContent?.trim()).toBe("01000000000");
+    expect(phoneRow?.querySelector("dd")?.className).toContain("text-right");
+    expect(phone.getAttribute("dir")).toBe("ltr");
+  });
+
+  it("filters ready orders by a searchable customer selection and resets the filter",async()=>{
+    orders=[fullyReady,{...partial,customerId:8,customerName:"منى",customerPhone:"01122223333"}];
+    visit();const user=userEvent.setup();
+    expect(await screen.findByText("أحمد")).toBeTruthy();
+    const select=await screen.findByRole("combobox",{name:"العميل"});
+    await user.click(select);
+    await user.type(select,"0112222");
+    await user.click(await screen.findByRole("option",{name:"منى - 01122223333"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/deliveries/ready"&&c.query.get("filter[customerId]")==="8")).toBe(true));
+    expect(screen.getByText("منى")).toBeTruthy();
+    expect(screen.queryByText("أحمد")).toBeNull();
+    await user.click(screen.getByRole("button",{name:"مسح الفلاتر"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/deliveries/ready"&&!c.query.has("filter[customerId]"))).toBe(true));
+    expect((screen.getByRole("combobox",{name:"العميل"}) as HTMLInputElement).value).toBe("");
+    expect(screen.getByText("أحمد")).toBeTruthy();
+  });
+
+  it("filters delivery history by customer independently of customers.view permission",async()=>{
+    permissions=["deliveries.list"];
+    records=[delivered,{...delivered,id:91,customerId:8,customerName:"منى",customerPhone:"01122223333"}];
+    visit();const user=userEvent.setup();
+    expect((await screen.findAllByText("مدير الفرع")).length).toBeGreaterThan(0);
+    const select=await screen.findByRole("combobox",{name:"العميل"});
+    await user.click(select);
+    await user.click(await screen.findByRole("option",{name:"منى - 01122223333"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/deliveries"&&c.query.get("filter[customerId]")==="8")).toBe(true));
+    expect(screen.getByText("منى")).toBeTruthy();
+    expect(screen.queryByText("أحمد")).toBeNull();
+    expect(calls.some(c=>c.url==="/customers")).toBe(false);
+    expect(calls.some(c=>c.url==="/selects"&&
+      c.query.get("params[deliveryCustomers]")==="history")).toBe(true);
+    await user.click(screen.getByRole("button",{name:"مسح الفلاتر"}));
+    expect((screen.getByRole("combobox",{name:"العميل"}) as HTMLInputElement).value).toBe("");
+  });
+
   it("submits a zero-payment delivery without a separate Finance collection",async()=>{
     visit();const user=userEvent.setup();
     await user.click(await screen.findByRole("button",{name:"تسليم الأوردر"}));
@@ -128,8 +196,8 @@ describe("Deliveries frontend against the existing Laravel contract",()=>{
     visit();const user=userEvent.setup();
     await user.click(await screen.findByRole("button",{name:"تسليم الأوردر"}));
     const modal=await screen.findByRole("dialog",{name:"تسليم الأوردر"});
-    await user.clear(within(modal).getByRole("textbox",{name:/المبلغ المحصل/}));
-    await user.type(within(modal).getByRole("textbox",{name:/المبلغ المحصل/}),"150.00");
+    await user.clear(within(modal).getByRole("textbox",{name:"المبلغ المحصّل (ج.م)"}));
+    await user.type(within(modal).getByRole("textbox",{name:"المبلغ المحصّل (ج.م)"}),"150.00");
     await user.selectOptions(within(modal).getByRole("combobox",{name:"طريقة التحصيل"}),"1");
     expect(within(modal).getByRole("button",{name:"تأكيد التسليم"}).hasAttribute("disabled")).toBe(true);
     await user.click(within(modal).getByRole("combobox",{name:"حساب التحصيل"}));
@@ -143,6 +211,74 @@ describe("Deliveries frontend against the existing Laravel contract",()=>{
       receiverName:null,collectedAmount:"150.00",paymentMethod:1,paymentDestinationId:3,
       confirmCreditBalance:true,
     });
+  });
+  it("keeps the modal concise with a persistent footer and an editable collection amount",async()=>{
+    visit();const user=userEvent.setup();
+    await user.click(await screen.findByRole("button",{name:"تسليم الأوردر"}));
+    const dialog=await screen.findByRole("dialog",{name:"تسليم الأوردر"});
+    expect(within(dialog).getByText("ORD-261026001")).toBeTruthy();
+    expect(within(dialog).getByText("2 من 2")).toBeTruthy();
+    expect(within(dialog).queryByText(/رصيد حساب العميل يشمل جميع الأوردرات/)).toBeNull();
+    expect(within(dialog).queryByRole("button",{name:"قيمة الأوردر"})).toBeNull();
+    expect(within(dialog).queryByRole("button",{name:"بدون تحصيل"})).toBeNull();
+    expect(within(dialog).getByRole("region",{name:"ملخص الحساب بعد التسليم"})).toBeTruthy();
+    expect(within(dialog).getByText("الرصيد الحالي")).toBeTruthy();
+    expect(within(dialog).getByText("التحصيل الآن")).toBeTruthy();
+    expect(within(dialog).getByText("الرصيد بعد التحصيل")).toBeTruthy();
+    const submit=within(dialog).getByRole("button",{name:"تأكيد التسليم"});
+    expect(submit.closest("footer")).toBeTruthy();
+    const amount=within(dialog).getByRole("textbox",{name:"المبلغ المحصّل (ج.م)"}) as HTMLInputElement;
+    expect(amount.value).toBe("0.00");
+    expect(within(dialog).queryByRole("combobox",{name:"طريقة التحصيل"})).toBeNull();
+    await user.clear(amount);
+    expect(amount.value).toBe("");
+    expect(submit.hasAttribute("disabled")).toBe(false);
+    await user.type(amount,"50.00");
+    expect(within(dialog).getByRole("combobox",{name:"طريقة التحصيل"})).toBeTruthy();
+    expect(within(dialog).getAllByText("50.00 ج.م").length).toBeGreaterThan(0);
+    expect(calls.some(c=>c.method==="post"&&c.url.includes("/deliver"))).toBe(false);
+    await user.clear(amount);
+    expect(within(dialog).queryByRole("combobox",{name:"طريقة التحصيل"})).toBeNull();
+    expect(submit.hasAttribute("disabled")).toBe(false);
+  });
+  it("submits an empty collection amount as zero while preserving ledger and delivery contract",async()=>{
+    visit();const user=userEvent.setup();
+    await user.click(await screen.findByRole("button",{name:"تسليم الأوردر"}));
+    const dialog=await screen.findByRole("dialog",{name:"تسليم الأوردر"});
+    const amount=within(dialog).getByRole("textbox",{name:"المبلغ المحصّل (ج.م)"});
+    await user.clear(amount);
+    await user.click(within(dialog).getByRole("button",{name:"تأكيد التسليم"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/deliveries/orders/10/deliver")).toBe(true));
+    expect(calls.find(c=>c.url==="/deliveries/orders/10/deliver")?.body)
+      .toEqual({receiverName:null,collectedAmount:"0.00"});
+  });
+  it("keeps ready queue filters compact and resets them together",async()=>{
+    visit();const user=userEvent.setup();
+    expect(await screen.findByText(/رول أب · كمية 50/)).toBeTruthy();
+    expect(screen.getByRole("button",{name:"مسح الفلاتر"}).hasAttribute("disabled")).toBe(true);
+    await user.selectOptions(screen.getByRole("combobox",{name:"ترتيب الأوردرات الجاهزة"}),"-id");
+    expect(screen.getByRole("button",{name:"مسح الفلاتر"}).hasAttribute("disabled")).toBe(false);
+    await user.click(screen.getByRole("button",{name:"مسح الفلاتر"}));
+    expect((screen.getByRole("combobox",{name:"ترتيب الأوردرات الجاهزة"}) as HTMLSelectElement).value).toBe("dueDate");
+  });
+  it("uses theme calendars for the history date range",async()=>{
+    visit();const user=userEvent.setup();
+    await user.click(await screen.findByRole("tab",{name:"سجل التسليمات"}));
+    await user.click(screen.getByRole("button",{name:"من تاريخ"}));
+    const calendar=await screen.findByRole("dialog",{name:"اختيار من تاريخ"});
+    expect(within(calendar).getByRole("grid")).toBeTruthy();
+    expect(screen.queryByRole("textbox",{name:"من تاريخ"})).toBeNull();
+  });
+  it("shows server field errors below the relevant control and focuses it",async()=>{
+    failDeliveryValidation=true;visit();const user=userEvent.setup();
+    await user.click(await screen.findByRole("button",{name:"تسليم الأوردر"}));
+    const dialog=await screen.findByRole("dialog",{name:"تسليم الأوردر"});
+    await user.click(within(dialog).getByRole("button",{name:"تأكيد التسليم"}));
+    expect(await within(dialog).findByText("أدخل اسم مستلم صحيحًا.")).toBeTruthy();
+    const receiver=within(dialog).getByRole("textbox",{name:"اسم المستلم (اختياري)"});
+    await waitFor(()=>expect(document.activeElement).toBe(receiver));
+    expect(receiver.getAttribute("aria-invalid")).toBe("true");
+    expect(within(dialog).getByRole("button",{name:"تأكيد التسليم"})).toBeTruthy();
   });
   it("filters historical deliveries with canonical date and status params",async()=>{
     visit();const user=userEvent.setup();

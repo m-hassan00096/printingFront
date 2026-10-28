@@ -66,7 +66,7 @@ describe("Production designer visibility on Kanban cards", () => {
     const printing=show(3);
     expect(within(printing).queryByText("المصمم المسؤول")).toBeNull();
     expect(within(printing).queryByText("أنهى التصميم:")).toBeNull();
-    expect(within(printing).getByText("مكان الطباعة: —")).toBeTruthy();
+    expect(within(printing).getByText("المطبعة: —")).toBeTruthy();
   });
 
   it("shows the server quantity consistently after design is completed", () => {

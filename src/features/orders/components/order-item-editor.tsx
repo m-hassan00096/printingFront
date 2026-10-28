@@ -4,6 +4,7 @@ import { Calculator, ChevronDown, ChevronUp, LoaderCircle, X } from "lucide-reac
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { fieldClass } from "@/features/identity/components/identity-ui";
 import { getApiErrorMessage } from "@/shared/api/http";
 import type { ApiErrorResponse } from "@/shared/api/api-types";
@@ -25,6 +26,7 @@ export function OrderItemEditor({ order, item, canPricePreview, onClose }: {
   const [specifications, setSpecifications] = useState(item?.specifications ?? "");
   const [showSpecifications, setShowSpecifications] = useState(!!item?.specifications);
   const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [confirmSuggestion, setConfirmSuggestion] = useState(false);
   const [previewBusy, setPreviewBusy] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [generalError, setGeneralError] = useState("");
@@ -96,12 +98,12 @@ export function OrderItemEditor({ order, item, canPricePreview, onClose }: {
   const fieldError = (key: string) => errors[key] ?
     <p role="alert" className="mt-1 text-xs text-destructive">{errors[key]}</p> : null;
 
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-4">
     <section role="dialog" aria-modal="true" aria-label={item ? "تعديل عنصر" : "إضافة عنصر"}
-      className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-card p-5 shadow-xl sm:p-6">
+      className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-card p-5 shadow-xl sm:p-6">
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-extrabold">{item ? "تعديل عنصر" : "إضافة عنصر"}</h2>
+          <h2 className="text-base font-semibold">{item ? "تعديل عنصر" : "إضافة عنصر"}</h2>
           <p className="mt-1 text-xs text-muted-foreground">يمكن تعديل الخدمة والكمية والسعر في المسودة فقط.</p>
         </div>
         <Button type="button" variant="ghost" size="icon-sm" onClick={onClose} disabled={busy} aria-label="إغلاق">
@@ -113,7 +115,7 @@ export function OrderItemEditor({ order, item, canPricePreview, onClose }: {
           <label className="mb-2 block text-sm font-semibold">خدمة الطباعة *</label>
           <SearchableSelect options={options} label="خدمة الطباعة للعنصر" placeholder="ابحث عن خدمة..."
             value={serviceId} loading={services.isPending} disabled={busy || services.isPending || services.isError}
-            onChange={(v) => {setServiceId(v);setSuggestion(null);reset("serviceId");}} />
+            onChange={(v) => {setServiceId(v);setSuggestion(null);setConfirmSuggestion(false);reset("serviceId");}} />
           {fieldError("serviceId")}
           {services.isError && <button type="button" className="mt-2 text-xs text-destructive underline"
             onClick={() => void services.refetch()}>تعذّر تحميل الخدمات — إعادة المحاولة</button>}
@@ -124,26 +126,39 @@ export function OrderItemEditor({ order, item, canPricePreview, onClose }: {
           <label className="block text-sm font-semibold">الكمية *
             <input aria-label="كمية العنصر" aria-invalid={!!errors.quantity} type="number" min="1" max="1000000"
               className={fieldClass + " mt-2"} value={quantity} disabled={busy}
-              onChange={(e) => {setQuantity(e.target.value);setSuggestion(null);reset("quantity");}} />
+              onChange={(e) => {setQuantity(e.target.value);setSuggestion(null);setConfirmSuggestion(false);reset("quantity");}} />
             {fieldError("quantity")}
           </label>
           <label className="block text-sm font-semibold">الإجمالي المتفق عليه (ج.م) *
             <input aria-label="إجمالي السعر" aria-invalid={!!errors.agreedTotal} className={fieldClass + " mt-2"}
               inputMode="decimal" dir="ltr" placeholder="أدخل الإجمالي" value={agreedTotal} disabled={busy}
-              onChange={(e) => {setAgreedTotal(e.target.value);reset("agreedTotal");}} />
+              onChange={(e) => {setAgreedTotal(e.target.value);setConfirmSuggestion(false);reset("agreedTotal");}} />
             {fieldError("agreedTotal")}
           </label>
         </div>
+        {moneyPattern.test(agreedTotal) && Number(quantity) > 0 && <p className="text-xs text-muted-foreground">
+          {uiMessages.orders.agreedUnitPrice}: <span dir="ltr" className="inline-block font-semibold">{(Number(agreedTotal) / Number(quantity)).toFixed(2)} ج.م</span>
+        </p>}
         {canPricePreview && <div className="flex flex-wrap items-center gap-3">
           <Button type="button" variant="outline" size="sm" disabled={busy || previewBusy} onClick={() => void suggested()}>
             {previewBusy ? <LoaderCircle className="size-4 animate-spin" /> : <Calculator className="size-4" />}
             السعر المقترح
           </Button>
-          {suggestion && <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-muted/40 px-3 py-2 text-sm">
-            <span>الإجمالي المقترح: <strong>{suggestion} ج.م</strong></span>
-            <Button type="button" variant="outline" size="sm" onClick={() => {setAgreedTotal(suggestion);reset("agreedTotal");}}>
-              استخدام السعر
-            </Button>
+          {suggestion !== null && <div className="w-full rounded-lg border border-primary/15 bg-[#f8f9ff] px-3 py-3 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div><p className="text-xs text-muted-foreground">{uiMessages.orders.suggestedPrice}</p>
+                <strong>{suggestion} ج.م</strong></div>
+              <Button type="button" variant="outline" size="sm" onClick={() => {
+                if (agreedTotal && Number(agreedTotal) !== Number(suggestion) && !confirmSuggestion) {
+                  setConfirmSuggestion(true);return;
+                }
+                setAgreedTotal(suggestion);setConfirmSuggestion(false);reset("agreedTotal");
+              }}>{confirmSuggestion ? uiMessages.orders.confirmReplacement : uiMessages.orders.useSuggested}</Button>
+            </div>
+            {confirmSuggestion && <div role="alert" className="mt-2 border-t pt-2 text-xs">
+              <p>{uiMessages.orders.replaceAgreedPrice}: <span dir="ltr" className="inline-block">{agreedTotal} ج.م</span> ← <span dir="ltr" className="inline-block">{suggestion} ج.م</span></p>
+              <Button type="button" size="sm" variant="ghost" onClick={() => setConfirmSuggestion(false)}>{uiMessages.orders.keepAgreedPrice}</Button>
+            </div>}
           </div>}
         </div>}
         <div>

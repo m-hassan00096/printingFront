@@ -5,6 +5,7 @@ import {
   Factory, Layers3, Plus, RefreshCw, Truck, Wallet, Clock3,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { SectionHeader, LoadingState, ErrorState } from "@/features/identity/components/identity-ui";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { formatCollectionDate } from "@/features/collections/components/collection-date-field";
@@ -20,25 +21,25 @@ function MetricCard({label,value,detail,icon:Icon,tone}:{
   tone:"blue"|"red"|"green"|"amber";
 }){
   const colors={
-    blue:"bg-blue-50 text-blue-700",
-    red:"bg-rose-50 text-rose-700",
-    green:"bg-emerald-50 text-emerald-700",
-    amber:"bg-amber-50 text-amber-700",
+    blue:"bg-primary/10 text-[#4d5ac6]",
+    red:"bg-[#fff0f2] text-[#c8384a]",
+    green:"bg-[#e5f7ee] text-[#147c58]",
+    amber:"bg-[#fff5df] text-[#a36a0d]",
   };
-  return <article className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+  return <article className="rounded-xl border border-border bg-card p-5 shadow-[0_6px_25px_#26396c08] sm:p-6">
     <div className="flex items-center justify-between gap-3">
-      <span className="text-xs font-bold text-foreground/75">{label}</span>
-      <span className={"flex size-10 items-center justify-center rounded-xl "+colors[tone]}>
+      <span className="text-xs font-semibold text-muted-foreground">{label}</span>
+      <span className={"flex size-10 items-center justify-center rounded-lg "+colors[tone]}>
         <Icon className="size-5" aria-hidden="true"/>
       </span>
     </div>
-    <div className="mt-2 text-3xl font-extrabold tabular-nums">{integer(value)}</div>
-    <p className="mt-1 text-xs text-foreground/60">{detail}</p>
+    <div className="mt-4 text-[28px] font-bold leading-9 tracking-tight tabular-nums">{integer(value)}</div>
+    <p className="mt-1 text-[11px] text-muted-foreground">{detail}</p>
   </article>;
 }
 function SectionTitle({title,detail,link,label}:{title:string;detail:string;link?:string;label?:string}){
   return <div className="flex flex-wrap items-start justify-between gap-3">
-    <div><h3 className="text-base font-extrabold">{title}</h3>
+    <div><h3 className="text-base font-bold">{title}</h3>
       <p className="mt-1 text-xs text-foreground/65">{detail}</p></div>
     {link&&<Link to={link} className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline">
       {label??"عرض الكل"} <ArrowUpLeft className="size-3.5"/>
@@ -49,12 +50,12 @@ function OrderSummary({order,allowView}:{order:DashboardOrder;allowView:boolean}
   const content=<>
     <div className="flex min-w-0 flex-1 items-center gap-3">
       <span className={"flex size-9 shrink-0 items-center justify-center rounded-xl "+
-        (order.isOverdue?"bg-rose-50 text-rose-700":"bg-secondary text-primary")}>
+        (order.isOverdue?"bg-[#fff0f2] text-[#c8384a]":"bg-secondary text-primary")}>
         {order.isOverdue?<AlertTriangle className="size-4"/>:<ClipboardList className="size-4"/>}
       </span>
       <div className="min-w-0">
         <p className="truncate text-sm font-bold">
-          <span dir="ltr" className="inline-block">{order.orderNumber??"أوردر"}</span>
+          <span dir="ltr" className="inline-block font-mono text-xs">{order.orderNumber??"أوردر"}</span>
           <span className="mx-1 text-foreground/30">·</span>{order.customerName}
         </p>
         <p className="mt-1 text-xs text-foreground/65">
@@ -63,7 +64,7 @@ function OrderSummary({order,allowView}:{order:DashboardOrder;allowView:boolean}
       </div>
     </div>
     <span className={"shrink-0 rounded-lg px-2 py-1 text-[11px] font-bold "+
-      (order.isOverdue?"bg-rose-50 text-rose-700":"bg-muted text-foreground/70")}>
+      (order.isOverdue?"bg-[#fff0f2] text-[#c8384a]":"bg-muted text-foreground/70")}>
       {order.isOverdue?"متأخر":order.productionStatusLabel??"قيد المتابعة"}
     </span>
     {allowView&&<ArrowUpLeft className="size-4 shrink-0 text-muted-foreground"/>}
@@ -74,14 +75,14 @@ function OrderSummary({order,allowView}:{order:DashboardOrder;allowView:boolean}
 }
 function PressureCard({data,canProduction}:{data:DashboardData["productionPressure"];canProduction:boolean}){
   const stages=[
-    {name:"لم يبدأ",value:data.notStarted,bar:"bg-slate-400"},
-    {name:"التصميم",value:data.design,bar:"bg-sky-500"},
-    {name:"الطباعة",value:data.printing,bar:"bg-indigo-500"},
-    {name:"جاهز للتسليم",value:data.ready,bar:"bg-emerald-500"},
+    {name:"لم يبدأ",value:data.notStarted,bar:"bg-muted-foreground"},
+    {name:"التصميم",value:data.design,bar:"bg-[#7580e0]"},
+    {name:"الطباعة",value:data.printing,bar:"bg-primary/100"},
+    {name:"جاهز للتسليم",value:data.ready,bar:"bg-[#e5f7ee]0"},
   ];
   const max=Math.max(...stages.map(s=>s.value),1);
   const total=stages.reduce((sum,s)=>sum+s.value,0);
-  return <section aria-label="ضغط الإنتاج" className="space-y-4 rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+  return <section aria-label="ضغط الإنتاج" className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-[0_6px_25px_#26396c08] sm:p-6">
     <SectionTitle title="ضغط الإنتاج" detail="عدد بنود الطلبات النشطة في كل مرحلة"
       link={canProduction?"/production":undefined} label="فتح لوحة الإنتاج"/>
     <div className="space-y-3">
@@ -107,10 +108,10 @@ function QuickActions({permissions}:{permissions:readonly string[]}){
     {label:"التحصيلات",to:"/collections",icon:Wallet,allow:permissions.some(p=>["finance.collections.view","finance.collections.create"].includes(p))},
   ].filter(x=>x.allow);
   if(!links.length)return null;
-  return <section aria-label="إجراءات سريعة" className="space-y-3 rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+  return <section aria-label="إجراءات سريعة" className="space-y-3 rounded-lg border bg-card p-4  sm:p-5">
     <SectionTitle title="إجراءات سريعة" detail="اختصارات لمهامك اليومية"/>
     <div className="grid grid-cols-2 gap-2">
-      {links.map(link=><Link to={link.to} key={link.to} className="flex min-h-20 flex-col justify-between rounded-xl border bg-background p-3 text-sm font-semibold hover:border-primary/35 hover:bg-muted/30">
+      {links.map(link=><Link to={link.to} key={link.to} className="flex min-h-20 flex-col justify-between rounded-lg border border-[#e8ebf5] bg-[#fafbff] p-3 text-sm font-semibold hover:border-primary/35 hover:bg-muted/30">
         <link.icon className="size-5 text-primary" aria-hidden="true"/>
         <span>{link.label}</span>
       </Link>)}
@@ -137,7 +138,7 @@ export function DashboardPage(){
         </Button>
         {permissions.includes("orders.create")&&<Button asChild><Link to="/orders/new"><Plus className="size-4"/> أوردر جديد</Link></Button>}
       </div>}/>
-    {!canOrders&&<div className="rounded-2xl border bg-card p-6 text-sm text-foreground/75">
+    {!canOrders&&<div className="rounded-lg border bg-card p-6 text-sm text-foreground/75">
       ملخص الأوردرات يحتاج صلاحية عرض قائمة الأوردرات. الاختصارات المتاحة لك موجودة أدناه.
     </div>}
     {canOrders&&(query.isPending?<LoadingState/>:query.isError?
@@ -146,21 +147,24 @@ export function DashboardPage(){
         <div className="flex flex-wrap items-center gap-2 text-xs text-foreground/65">
           <Clock3 className="size-4"/> تحديث البيانات حسب تاريخ القاهرة: <DateLabel value={data.asOfDate}/>
         </div>
-        <section aria-label="المؤشرات الرئيسية" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section aria-label="المؤشرات الرئيسية" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="الأوردرات النشطة" value={data.metrics.activeOrders}
             detail="مؤكدة ولم يتم تسليمها" icon={ClipboardList} tone="blue"/>
           <MetricCard label="الأوردرات المتأخرة" value={data.metrics.overdueOrders}
             detail="تجاوزت موعد التسليم" icon={AlertTriangle} tone="red"/>
           <MetricCard label="جاهزة للتسليم" value={data.metrics.readyForDelivery}
             detail="بانتظار التسليم الفعلي" icon={CheckCircle2} tone="green"/>
-          <MetricCard label="تسليمات اليوم" value={data.metrics.dueToday}
-            detail="أوردرات موعدها اليوم" icon={CalendarDays} tone="amber"/>
+          <Link to="/orders?readyDueToday=1" aria-label={uiMessages.orders.dashboardReadyDueTodayLink}
+            className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+            <MetricCard label={uiMessages.orders.readyDueTodayDashboard} value={data.metrics.readyDueToday}
+              detail={uiMessages.orders.readyDueTodayDetail} icon={CalendarDays} tone="amber"/>
+          </Link>
         </section>
-        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(330px,1fr)]">
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(310px,1fr)]">
           <div className="space-y-4">
-            <section aria-label="أوردرات تحتاج المتابعة" className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+            <section aria-label="أوردرات تحتاج المتابعة" className="rounded-lg border bg-card p-4  sm:p-5">
               <SectionTitle title="أوردرات تحتاج المتابعة" detail="الأقرب في موعد التسليم، مع إظهار المتأخر أولًا"
-                link="/orders?lateOnly=1&openOnly=1" label="عرض المتأخرة"/>
+                link="/orders?lateOnly=1" label="عرض المتأخرة"/>
               {data.attentionOrders.length
                 ? <div className="mt-3 divide-y">{data.attentionOrders.map(o=>
                     <OrderSummary order={o} allowView={canOrderDetail} key={o.id}/>)}</div>
@@ -168,7 +172,7 @@ export function DashboardPage(){
                     لا توجد أوردرات بمواعيد تسليم تحتاج المتابعة حاليًا.
                   </div>}
             </section>
-            <section aria-label="آخر الأوردرات" className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+            <section aria-label="آخر الأوردرات" className="overflow-hidden rounded-lg border bg-card ">
               <div className="p-4 sm:p-5">
                 <SectionTitle title="آخر الأوردرات" detail="أحدث الأوردرات المؤكدة" link="/orders"/>
               </div>
@@ -176,16 +180,16 @@ export function DashboardPage(){
                 <table className="w-full min-w-[570px] text-right text-sm">
                   <thead className="bg-muted/50 text-xs text-foreground/65">
                     <tr>{["الأوردر","العميل","موعد التسليم","حالة الإنتاج"].map(h=>
-                      <th key={h} className="px-4 py-3 font-bold">{h}</th>)}</tr>
+                      <th key={h} className="px-4 py-3 font-mono text-xs font-medium">{h}</th>)}</tr>
                   </thead>
                   <tbody className="divide-y">{data.latestOrders.map(o=><tr key={o.id} className="hover:bg-muted/30">
-                    <td className="px-4 py-3 font-bold">{canOrderDetail?<Link className="text-primary hover:underline"
+                    <td className="px-4 py-3 font-mono text-xs font-semibold">{canOrderDetail?<Link className="text-[#4d5ac6] hover:underline"
                       to={`/orders/${o.id}`}>{o.orderNumber??`#${o.id}`}</Link>:
                       o.orderNumber??`#${o.id}`}</td>
                     <td className="px-4 py-3">{o.customerName}</td>
                     <td className="whitespace-nowrap px-4 py-3"><DateLabel value={o.dueDate}/></td>
                     <td className="px-4 py-3"><span className={"rounded-lg px-2 py-1 text-xs font-semibold "+
-                      (o.isOverdue?"bg-rose-50 text-rose-700":"bg-muted text-foreground/75")}>
+                      (o.isOverdue?"bg-[#fff0f2] text-[#c8384a]":"bg-muted text-foreground/75")}>
                       {o.productionStatusLabel??"—"}</span></td>
                   </tr>)}</tbody>
                 </table>

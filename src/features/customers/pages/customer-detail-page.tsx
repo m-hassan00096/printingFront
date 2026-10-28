@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowRight, ClipboardList, FileClock, Pencil, Wallet } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { MoneyAmount } from "@/shared/components/money-amount";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { ErrorState, IdentityStatus, LoadingState, PaginationBar } from "@/features/identity/components/identity-ui";
@@ -13,7 +14,7 @@ type CustomerTab = "details" | "ledger" | "orders";
 const money = (value: string) => <MoneyAmount amount={value} />;
 
 function CustomerField({ label, value, ltr = false }: { label: string; value: string; ltr?: boolean }) {
-  return <div className="min-w-0 rounded-xl bg-muted/50 px-4 py-2.5">
+  return <div className="min-w-0 rounded-lg bg-muted/50 px-4 py-2.5">
     <dt className="mb-2 text-xs font-medium text-muted-foreground">{label}</dt>
     <dd className="break-words text-sm font-bold" dir={ltr ? "ltr" : undefined}>{value}</dd>
   </div>;
@@ -23,9 +24,9 @@ function BalanceCard({ title, amount, tone = "default" }: {
   title: string; amount: string; tone?: "default" | "debit" | "credit";
 }) {
   const toneClass = tone === "debit" ? "text-rose-600" : tone === "credit" ? "text-emerald-600" : "text-foreground";
-  return <div className="rounded-2xl border bg-card px-5 py-5 shadow-sm">
+  return <div className="rounded-lg border bg-card px-5 py-5 ">
     <p className="mb-3 text-xs font-semibold text-muted-foreground">{title}</p>
-    <p className={`text-2xl font-extrabold sm:text-3xl ${toneClass}`}>{money(amount)}</p>
+    <p className={`text-xl font-semibold sm:text-3xl ${toneClass}`}>{money(amount)}</p>
   </div>;
 }
 
@@ -64,7 +65,7 @@ export function CustomerDetailPage() {
     });
   }
 
-  if (!valid) return <div role="alert" className="rounded-xl border p-6">معرّف العميل غير صحيح.</div>;
+  if (!valid) return <div role="alert" className="rounded-lg border p-6">معرّف العميل غير صحيح.</div>;
   if (customer.isPending) return <LoadingState />;
   if (customer.isError) return <ErrorState error={customer.error} retry={() => void customer.refetch()} />;
 
@@ -78,7 +79,7 @@ export function CustomerDetailPage() {
       <header className="mt-3 flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-2">
           <p className="text-xs font-semibold text-muted-foreground">إدارة الطباعة / العملاء</p>
-          <h1 className="text-2xl font-extrabold sm:text-3xl">{value.name}</h1>
+          <h1 className="text-xl font-semibold sm:text-3xl">{value.name}</h1>
           <div className="pt-1">
             <IdentityStatus status={value.status} label={value.statusLabel} />
           </div>
@@ -103,24 +104,24 @@ export function CustomerDetailPage() {
 
     <div className="space-y-4">
       <div role="tablist" aria-label="أقسام تفاصيل العميل"
-        className="flex w-fit max-w-full flex-wrap gap-1 rounded-xl bg-muted/70 p-1">
+        className="flex w-fit max-w-full flex-wrap gap-1 rounded-lg bg-muted/70 p-1">
         {tabs.map((tab) =>
           <button key={tab.id} type="button" role="tab" id={`customer-tab-${tab.id}`}
             aria-controls={`customer-panel-${tab.id}`} aria-selected={activeTab === tab.id}
             onClick={() => openTab(tab.id)}
             className={activeTab === tab.id
-              ? "rounded-lg bg-card px-4 py-2.5 text-sm font-bold text-primary shadow-sm"
+              ? "rounded-lg bg-card px-4 py-2.5 text-sm font-bold text-primary "
               : "rounded-lg px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground"}>
             {tab.label}
           </button>)}
       </div>
 
       <section role="tabpanel" id={`customer-panel-${activeTab}`}
-        aria-labelledby={`customer-tab-${activeTab}`} className="overflow-hidden rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+        aria-labelledby={`customer-tab-${activeTab}`} className="overflow-hidden rounded-lg border bg-card p-4  sm:p-5">
         {activeTab === "details" && <dl className="grid gap-2.5 sm:grid-cols-2">
           <CustomerField label="الاسم" value={value.name} />
           <CustomerField label="الهاتف" value={value.phone} ltr />
-          <CustomerField label="نوع العميل" value={value.customerType?.name ?? "—"} />
+          <CustomerField label="نوع العميل" value={value.customerType?.name ?? uiMessages.customers.unclassified} />
           <CustomerField label="العنوان" value={value.address || "—"} />
         </dl>}
 
@@ -166,7 +167,7 @@ export function CustomerDetailPage() {
         </div>}
 
         {activeTab === "orders" && mayOrders && <div className="flex min-h-52 flex-col items-center justify-center gap-3 text-center">
-          <div className="rounded-2xl bg-muted p-4"><ClipboardList className="size-7 text-primary" /></div>
+          <div className="rounded-lg bg-muted p-4"><ClipboardList className="size-7 text-primary" /></div>
           <h2 className="font-bold">أوردرات العميل</h2>
           <p className="max-w-lg text-sm leading-7 text-muted-foreground">
             سيتم عرض أوردرات العميل هنا بعد إضافة فلتر العميل وربط شاشة الأوردرات بالـ Backend.

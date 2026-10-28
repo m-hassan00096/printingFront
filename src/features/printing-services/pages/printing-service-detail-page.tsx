@@ -1,4 +1,5 @@
 import { ArrowRight, Pencil, Printer } from "lucide-react";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { Link, useParams } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
@@ -9,7 +10,7 @@ import { PricePreviewCalculator } from "../components/price-preview-calculator";
 import type { ServiceTier } from "../types/printing-service.types";
 
 function QuantityRange({ tier }: { tier: ServiceTier }) {
-  if (tier.minQuantity === null && tier.maxQuantity === null) return <>كل الكميات</>;
+  if (tier.minQuantity === null && tier.maxQuantity === null) return <span className="inline-flex rounded-md border border-primary/15 bg-primary/5 px-2 py-1 text-xs font-semibold text-primary">{uiMessages.printingServices.defaultTier}</span>;
   if (tier.minQuantity !== null && tier.maxQuantity !== null && tier.minQuantity === tier.maxQuantity)
     return <>الكمية {tier.minQuantity}</>;
   return <>
@@ -39,19 +40,20 @@ export function PrintingServiceDetailPage() {
 
   const item = service.data;
   const tiers = item.priceTiers ?? [];
+  const copy = uiMessages.printingServices;
   function typeName(typeId: number | null): string {
-    if (typeId === null) return "كل أنواع العملاء";
+    if (typeId === null) return copy.genericTiers;
     return types.data?.find((type) => type.value === typeId)?.label ?? `نوع عميل #${typeId}`;
   }
 
-  return <div className="space-y-5">
+  return <div className="space-y-4">
     <Button asChild variant="ghost" className="px-0"><Link to="/printing-services"><ArrowRight className="size-4" /> العودة لخدمات الطباعة</Link></Button>
 
     <header className="flex flex-wrap items-center justify-between gap-4">
       <div className="space-y-2">
         <p className="text-xs text-muted-foreground">إدارة الطباعة / خدمات الطباعة</p>
-        <h1 className="flex items-center gap-2 text-2xl font-extrabold">
-          <Printer className="size-5 text-primary" /> {item.name}
+        <h1 className="flex items-center gap-2 text-xl font-semibold">
+          <Printer className="size-5 shrink-0 text-primary" /> <span dir="auto" className="min-w-0 break-words">{item.name}</span>
         </h1>
         <IdentityStatus status={item.status} label={item.status === 1 ? "نشط" : "غير نشط"} />
       </div>
@@ -60,16 +62,13 @@ export function PrintingServiceDetailPage() {
       </Button>}
     </header>
 
-    <section className="overflow-hidden rounded-2xl border bg-card shadow-sm" aria-labelledby="service-pricing-title">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
+    <section className="overflow-hidden rounded-xl border bg-card shadow-[0_4px_18px_#29376b08]" aria-labelledby="service-pricing-title">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
         <div>
           <h2 id="service-pricing-title" className="text-lg font-bold">أسعار الخدمة</h2>
-          <p className="mt-1 text-xs text-muted-foreground">الأسعار حسب نوع العميل والكمية</p>
+          <p className="mt-1 text-xs text-muted-foreground">{copy.tierSimpleHelp}</p>
         </div>
-        {item.basePrice !== null && <p className="rounded-lg bg-muted/60 px-3 py-2 text-sm">
-          <span className="text-muted-foreground">السعر الأساسي: </span>
-          <strong><Currency amount={item.basePrice} /></strong>
-        </p>}
+
       </div>
 
       {tiers.length > 0 ? <div className="overflow-x-auto">
@@ -90,16 +89,16 @@ export function PrintingServiceDetailPage() {
           </tbody>
         </table>
       </div> : <p className="px-5 py-7 text-sm text-muted-foreground">
-        {item.basePrice === null
-          ? "لا توجد أسعار محددة. سيتم تحديد السعر يدويًا عند إنشاء الأوردر."
-          : "لا توجد شرائح خاصة. يُستخدم السعر الأساسي عند عدم وجود شريحة مناسبة."}
+        {copy.noTiers}
       </p>}
 
-      {tiers.length > 0 && <p className="border-t px-5 py-3 text-xs text-muted-foreground">
-        {item.basePrice === null
-          ? "إذا لم تنطبق أي شريحة على نوع العميل والكمية، يُحدد السعر يدويًا عند إنشاء الأوردر."
-          : "إذا لم تنطبق أي شريحة، يُستخدم السعر الأساسي للخدمة."}
-      </p>}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t bg-[#f8f9ff] px-5 py-3">
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-foreground">{copy.basePrice}</p>
+          <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{copy.basePriceDescription}</p>
+        </div>
+        <strong className="shrink-0 text-base font-bold text-foreground"><Currency amount={item.basePrice ?? "0.00"} /></strong>
+      </div>
     </section>
     {mayPreview && <PricePreviewCalculator key={item.id} serviceId={item.id} active={item.status === 1} />}
   </div>;

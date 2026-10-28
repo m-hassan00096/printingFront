@@ -76,6 +76,23 @@ beforeEach(() => {
 afterEach(() => { apiClient.defaults.adapter = originalAdapter; });
 
 describe("Identity feature browser workflows", () => {
+  it("groups role permissions without changing their IDs and can show only selected ones", async () => {
+    open("/roles/2/edit");
+    expect(await screen.findByText("عرض المستخدمين")).toBeTruthy();
+    expect(screen.getByRole("group", { name: "المستخدمون والأدوار" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "الأوردرات" })).toBeTruthy();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "المحددة فقط" }));
+    expect(screen.queryByRole("checkbox", { name: "إنشاء طلب" })).toBeNull();
+    expect(screen.getByRole("checkbox", { name: "عرض المستخدمين" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "كل الصلاحيات" }));
+    expect(screen.getByRole("checkbox", { name: "إنشاء طلب" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "المستخدمون والأدوار" }));
+    expect(screen.queryByRole("checkbox", { name: "عرض المستخدمين" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "فتح الكل" }));
+    expect(screen.getByRole("checkbox", { name: "عرض المستخدمين" })).toBeTruthy();
+  });
+
   it("shows users and applies status=0 without dropping the filter", async () => {
     open("/users");
     expect(await screen.findByRole("link", { name: "أحمد علي" })).toBeTruthy();
@@ -188,7 +205,7 @@ describe("Identity feature browser workflows", () => {
     expect(await screen.findByText("عرض المستخدمين")).toBeTruthy();
     const user = userEvent.setup();
     await user.type(screen.getByPlaceholderText("ابحث عن صلاحية..."), "إنشاء");
-    await user.click(screen.getByRole("button", { name: "تحديد الظاهر" }));
+    await user.click(screen.getByRole("button", { name: "تحديد مجموعة الأوردرات" }));
     await user.click(screen.getByRole("button", { name: "حفظ الدور" }));
     await waitFor(() => expect(requests.some((r) => r.path === "/roles/2" && r.method === "patch")).toBe(true));
     expect(requests.find((r) => r.path === "/roles/2" && r.method === "patch")!.data)

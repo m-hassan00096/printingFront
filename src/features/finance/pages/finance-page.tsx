@@ -105,7 +105,7 @@ export function FinancePage() {
       </Button>}/>
 
     {canAccountDetails && <section className="space-y-3">
-      <section aria-label="اختيار حساب العميل" className="rounded-2xl border bg-card p-3 sm:p-4">
+      <section aria-label="اختيار حساب العميل" className="rounded-lg border bg-card p-3 sm:p-4">
         <div className="flex flex-wrap items-center gap-2">
           <UserRound className="size-4 text-primary"/>
           <h2 className="text-sm font-extrabold">اختيار العميل</h2>
@@ -128,7 +128,7 @@ export function FinancePage() {
       </div>}
 
       {customerId > 0 && <div className="space-y-3">
-        <section aria-label="بيانات حساب العميل" className="rounded-2xl border bg-card p-3 sm:p-4">
+        <section aria-label="بيانات حساب العميل" className="rounded-lg border bg-card p-3 sm:p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 space-y-1">
               <p className="text-xs font-semibold text-foreground/65">العميل المحدد</p>
@@ -159,9 +159,9 @@ export function FinancePage() {
               {((canBalance && balance.isPending) || (!canBalance && canLedger && ledger.isPending))
                 ? <p className="text-sm text-foreground/65">جاري تحميل الرصيد...</p>
                 : actualBalance && balanceReady
-                  ? <div className={"text-lg font-extrabold tabular-nums " +
-                    (actualBalance.type === 1 ? "text-rose-700" :
-                    actualBalance.type === 2 ? "text-emerald-700" : "text-foreground")}>
+                  ? <div className={"text-base font-semibold tabular-nums " +
+                    (actualBalance.type === 1 ? "text-[#c8384a]" :
+                    actualBalance.type === 2 ? "text-[#147c58]" : "text-foreground")}>
                       <span className="me-2 text-sm">{actualBalance.typeLabel}</span>
                       <MoneyAmount amount={actualBalance.amount}/>
                     </div>
@@ -213,7 +213,7 @@ export function FinancePage() {
           </div>
           {ledger.isPending ? <LoadingState/> : ledger.isError ?
             <ErrorState error={ledger.error} retry={() => void ledger.refetch()}/> :
-            ledger.data?.entries.length ? <div className="overflow-hidden rounded-2xl border bg-card">
+            ledger.data?.entries.length ? <div className="overflow-hidden rounded-lg border bg-card">
               <div className="flex items-center justify-between border-b px-4 py-3">
                 <h3 className="text-sm font-bold">سجل الحركات</h3>
                 <span className="text-xs font-semibold text-foreground/70">
@@ -234,7 +234,7 @@ export function FinancePage() {
                       <td className="px-3 py-3 font-semibold">{!credit ? <MoneyAmount amount={entry.amount}/> : "—"}</td>
                       <td className="px-3 py-3 font-semibold">{credit ? <MoneyAmount amount={entry.amount}/> : "—"}</td>
                       <td className={"whitespace-nowrap px-3 py-3 font-bold tabular-nums " +
-                        (entry.runningBalance.type === 1 ? "text-rose-700" : entry.runningBalance.type === 2 ? "text-emerald-700" : "text-foreground")}>
+                        (entry.runningBalance.type === 1 ? "text-[#c8384a]" : entry.runningBalance.type === 2 ? "text-[#147c58]" : "text-foreground")}>
                         {entry.runningBalance.typeLabel} · <MoneyAmount amount={entry.runningBalance.amount}/>
                       </td>
                       <td className="px-3 py-3">{entry.orderId && canViewOrders ?
@@ -258,7 +258,7 @@ export function FinancePage() {
       </div>}
     </section>}
 
-    {canRefund && !canAccountDetails && <section className="space-y-3 rounded-2xl border bg-card p-4">
+    {canRefund && !canAccountDetails && <section className="space-y-3 rounded-lg border bg-card p-4">
       <h2 className="text-sm font-extrabold">رد الأرصدة الدائنة</h2>
       <Button type="button" size="sm" onClick={() => setRefunding(true)}>
         <RotateCcw className="size-4"/> رد رصيد دائن

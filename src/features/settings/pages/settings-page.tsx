@@ -14,11 +14,11 @@ import {
   type SettingsFilters, type SettingsKind, type SettingsPayload, type SettingsRecord,
 } from "../types/settings.types";
 
-const control = "h-11 w-full rounded-xl border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/20";
+const control = "h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/20";
 const fieldLabel = "mb-2 block text-sm font-bold";
 const icons = [MapPin, UsersRound, Banknote, CreditCard];
 const names: Record<SettingsKind, string> = {
-  "printing-locations": "مكان طباعة",
+  "printing-locations": "مطبعة",
   "customer-types": "نوع عميل",
   "bank-accounts": "حساب بنكي",
   "e-wallets": "محفظة إلكترونية",
@@ -89,19 +89,19 @@ function cleanedForm(kind: SettingsKind, form: SettingsPayload): SettingsPayload
 }
 function Status({ value }: { value: 0 | 1 }) {
   return <span className={value === 1
-    ? "inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800"
-    : "inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600"}>
+    ? "inline-flex rounded-full bg-[#e5f7ee] px-3 py-1 text-xs font-bold text-[#147c58]"
+    : "inline-flex rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground"}>
     {value === 1 ? "نشط" : "غير نشط"}
   </span>;
 }
 function ModalFrame({ title, onClose, busy, children }: {
   title: string; onClose: () => void; busy: boolean; children: React.ReactNode;
 }) {
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-4"
     onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}>
     <section role="dialog" aria-modal="true" aria-label={title}
       onKeyDown={(e) => { if (e.key === "Escape" && !busy) onClose(); }}
-      className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-card p-6 shadow-2xl">
+      className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-card p-6 shadow-[0_20px_48px_#27396b22]">
       <div className="mb-5 flex items-center justify-between">
         <h3 className="text-xl font-extrabold">{title}</h3>
         <Button type="button" size="icon-sm" variant="ghost" onClick={onClose} disabled={busy} aria-label="إغلاق"><X /></Button>
@@ -212,13 +212,13 @@ export function SettingsPage() {
     }
   }
 
-  if (!current) return <div role="alert" className="rounded-2xl border bg-card p-8 text-center text-sm">
+  if (!current) return <div role="alert" className="rounded-lg border bg-card p-8 text-center text-sm">
     ليس لديك صلاحية عرض أي قسم من أقسام الإعدادات.
   </div>;
 
   return <div className="space-y-6">
     <header>
-      <h2 className="text-2xl font-extrabold">الإعدادات</h2>
+      <h2 className="text-xl font-semibold">الإعدادات</h2>
       <p className="mt-2 text-sm leading-7 text-muted-foreground">إدارة قوائم التشغيل ووسائل التحصيل. التغييرات تخضع لصلاحياتك وقواعد النظام.</p>
     </header>
     <div role="tablist" aria-label="أقسام الإعدادات" className="flex flex-wrap gap-2 border-b pb-4">
@@ -231,10 +231,10 @@ export function SettingsPage() {
           onClick={() => switchTab(section.key)}><Icon className="size-4" />{section.label}</button>;
       })}
     </div>
-    <section role="tabpanel" className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+    <section role="tabpanel" className="overflow-hidden rounded-lg border bg-card ">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b p-5">
         <div>
-          <h3 className="text-lg font-extrabold">{current.label}</h3>
+          <h3 className="text-base font-semibold">{current.label}</h3>
           <p className="mt-1 text-xs text-muted-foreground">إضافة وتعديل وتعطيل العناصر حسب الحاجة.</p>
         </div>
         {canAdd && <Button type="button" onClick={() => openForm()}><Plus /> إضافة {names[kind]}</Button>}
@@ -242,7 +242,7 @@ export function SettingsPage() {
       <div className="flex flex-wrap gap-3 border-b p-4">
         <label className="relative block min-w-52 flex-1">
           <span className="sr-only">بحث في {current.label}</span>
-          <Search className="pointer-events-none absolute right-3 top-3.5 size-4 text-muted-foreground" />
+          <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <input className={control + " pr-10"} placeholder="ابحث بالاسم أو البيانات..." value={filters.search}
             onChange={(e) => setFilter("search", e.target.value)} />
         </label>
@@ -265,19 +265,39 @@ export function SettingsPage() {
           <Button type="button" variant="outline" onClick={() => void list.refetch()}>إعادة المحاولة</Button>
         </div>
         : list.data?.items.length === 0 ? <p className="p-14 text-center text-sm text-muted-foreground">لا توجد نتائج في هذا القسم.</p>
-        : <div className="divide-y">
-          {list.data?.items.map((row) => <div key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 hover:bg-muted/30">
-            <div className="min-w-0 space-y-1">
-              <p className="break-words text-sm font-bold">{displayName(row)}</p>
-              {secondaryName(row) && <p className="break-all text-xs text-muted-foreground">{secondaryName(row)}</p>}
-            </div>
-            <div className="flex items-center gap-3">
-              <Status value={row.status} />
-              {isDefault(row) && <span className="rounded-full bg-secondary px-2 py-1 text-xs font-semibold">افتراضي</span>}
-              {canEdit && <Button size="icon-sm" variant="ghost" aria-label={`تعديل ${displayName(row)}`} title="تعديل" onClick={() => openForm(row)}><Pencil /></Button>}
-              {canDelete && <Button size="icon-sm" variant="ghost" aria-label={`حذف ${displayName(row)}`} title="حذف" onClick={() => setRemoving(row)}><Trash2 className="text-destructive" /></Button>}
-            </div>
-          </div>)}
+        : <div className="overflow-x-auto">
+          <table className="w-full min-w-[670px] text-right text-sm">
+            <thead className="bg-muted/50 text-xs text-muted-foreground">
+              <tr>
+                <th scope="col" className="px-5 py-3 font-semibold">{kind === "printing-locations" ? "اسم المطبعة" : kind === "customer-types" ? "نوع العميل" : kind === "bank-accounts" ? "اسم البنك" : "المحفظة الإلكترونية"}</th>
+                <th scope="col" className="px-5 py-3 font-semibold">البيانات</th>
+                <th scope="col" className="px-5 py-3 font-semibold">الحالة</th>
+                <th scope="col" className="px-5 py-3 font-semibold">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {list.data?.items.map((row) => (
+                <tr key={row.id} className="transition-colors hover:bg-muted/30">
+                  <td className="px-5 py-4 font-semibold">{displayName(row)}</td>
+                  <td className="max-w-[340px] px-5 py-4 text-xs text-muted-foreground">
+                    {secondaryName(row) ? <span className="break-all">{secondaryName(row)}</span> : "—"}
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Status value={row.status} />
+                      {isDefault(row) && <span className="rounded-md bg-secondary px-2 py-1 text-xs font-semibold text-primary">افتراضي</span>}
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-1">
+                      {canEdit && <Button size="icon-sm" variant="ghost" aria-label={`تعديل ${displayName(row)}`} title="تعديل" onClick={() => openForm(row)}><Pencil /></Button>}
+                      {canDelete && <Button size="icon-sm" variant="ghost" aria-label={`حذف ${displayName(row)}`} title="حذف" onClick={() => setRemoving(row)}><Trash2 className="text-destructive" /></Button>}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>}
       {list.data && list.data.pagination.total > 0 && <footer className="flex flex-wrap items-center justify-between gap-4 border-t p-4 text-xs text-muted-foreground">
         <span>إجمالي النتائج: {list.data.pagination.total.toLocaleString("ar-EG")}</span>
@@ -314,7 +334,7 @@ export function SettingsPage() {
           تعيين كوسيلة دفع افتراضية
           <FieldError field="isDefault" errors={fieldErrors} />
         </label>}
-        {savingError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{savingError}</p>}
+        {savingError && <p role="alert" className="rounded-xl border border-[#efbec6] bg-[#fff0f2] p-3 text-sm text-[#c8384a]">{savingError}</p>}
         <div className="flex justify-end gap-2 border-t pt-4">
           <Button type="button" variant="outline" disabled={busy} onClick={() => setForm(null)}>إلغاء</Button>
           <Button type="submit" disabled={busy}>{busy && <LoaderCircle className="size-4 animate-spin" />}حفظ</Button>
