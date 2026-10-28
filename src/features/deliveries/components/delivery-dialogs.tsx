@@ -175,7 +175,7 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
             </span>}
           </label>
           {!needsPayment&&<p className="text-xs text-muted-foreground">{uiMessages.deliveries.deliveryNoPayment}</p>}
-        </section>}
+        </section>
         {needsPayment && !canCollect && <p role="alert" className="rounded-lg bg-[#fff4df] p-3 text-sm text-[#a46b0b]">
           {uiMessages.deliveries.collectionPermissionError}
         </p>}
