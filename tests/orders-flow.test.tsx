@@ -242,10 +242,10 @@ describe("Orders Laravel API workflow", () => {
     await user.click(within(calendar).getByRole("gridcell", {name:"2026-10-27"}));
     await waitFor(() => expect(calls.some(c => c.url === "/orders" &&
       c.query.get("filter[createdFrom]") === "2026-10-27")).toBe(true));
-    await user.click(screen.getByRole("button", {name:"مسح التاريخ"}));
+    await user.click(screen.getByRole("button", {name:"مسح الفلاتر"}));
     await waitFor(() => expect(calls.some(c => c.url === "/orders" &&
       !c.query.has("filter[createdFrom]") && !c.query.has("filter[createdTo]"))).toBe(true));
-    expect(screen.queryByRole("button", {name:"مسح التاريخ"})).toBeNull();
+    expect(screen.getByRole("button", {name:"مسح الفلاتر"})).toHaveProperty("disabled", true);
   });
 
   it("keeps desktop filters on one row and preserves their form controls", async () => {
