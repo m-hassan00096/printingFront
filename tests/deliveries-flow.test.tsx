@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { AxiosError } from "axios";
 import type { AxiosAdapter, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { App } from "@/App";
 import { apiClient } from "@/shared/api/http";
@@ -15,6 +16,7 @@ const allPermissions=[
   "finance.collections.view","orders.view",
 ];
 let permissions=[...allPermissions];
+let failDeliveryValidation=false;
 let orders:ReadyOrder[]=[];
 let records:DeliveryRecord[]=[];
 let calls:{url:string;method:string;body:Record<string,unknown>;query:URLSearchParams;key:string|null}[]=[];
@@ -85,6 +87,10 @@ const adapter:AxiosAdapter=async config=>{
     {label:"eWallets",options:[{value:5,label:"محفظة فودافون"}]},
   ]);
   if(url==="/deliveries/orders/10/deliver"&&method==="post") {
+    if(failDeliveryValidation) throw new AxiosError("Invalid request","ERR_BAD_REQUEST",config,undefined,{
+      ...response(config,null),status:422,statusText:"Unprocessable Entity",
+      data:{message:"بيانات التسليم غير صحيحة",errors:{receiverName:["أدخل اسم مستلم صحيحًا."]}},
+    });
     orders=orders.filter(o=>o.orderId!==10);
     records=[delivered];
     return response(config,null);
@@ -97,7 +103,7 @@ const adapter:AxiosAdapter=async config=>{
 };
 function visit(){window.history.replaceState({},"","/deliveries");return render(<App/>);}
 beforeEach(()=>{
-  calls=[];permissions=[...allPermissions];orders=[fullyReady,partial];records=[delivered];
+  calls=[];failDeliveryValidation=false;permissions=[...allPermissions];orders=[fullyReady,partial];records=[delivered];
   apiClient.defaults.adapter=adapter;
 });
 afterEach(()=>{apiClient.defaults.adapter=original;});
@@ -175,6 +181,17 @@ describe("Deliveries frontend against the existing Laravel contract",()=>{
     const calendar=await screen.findByRole("dialog",{name:"اختيار من تاريخ"});
     expect(within(calendar).getByRole("grid")).toBeTruthy();
     expect(screen.queryByRole("textbox",{name:"من تاريخ"})).toBeNull();
+  });
+  it("shows server field errors below the relevant control and focuses it",async()=>{
+    failDeliveryValidation=true;visit();const user=userEvent.setup();
+    await user.click(await screen.findByRole("button",{name:"تسليم الأوردر"}));
+    const dialog=await screen.findByRole("dialog",{name:"تسليم الأوردر"});
+    await user.click(within(dialog).getByRole("button",{name:"تأكيد التسليم"}));
+    expect(await within(dialog).findByText("أدخل اسم مستلم صحيحًا.")).toBeTruthy();
+    const receiver=within(dialog).getByRole("textbox",{name:"اسم المستلم (اختياري)"});
+    await waitFor(()=>expect(document.activeElement).toBe(receiver));
+    expect(receiver.getAttribute("aria-invalid")).toBe("true");
+    expect(within(dialog).getByRole("button",{name:"تأكيد التسليم"})).toBeTruthy();
   });
   it("filters historical deliveries with canonical date and status params",async()=>{
     visit();const user=userEvent.setup();
