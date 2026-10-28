@@ -72,6 +72,15 @@ export function OrdersPage() {
     search, status: params.get("status") ?? "", productionStatus: params.get("productionStatus") ?? "",
     lateOnly: params.get("lateOnly") === "1", readyDueToday: params.get("readyDueToday") === "1", createdFrom: params.get("createdFrom") ?? "", createdTo: params.get("createdTo") ?? "", sort: params.get("sort") ?? "-id", page: pageOf(params.get("page")),
   };
+  const hasActiveFilters = Boolean(
+    draftSearch.trim() || filters.search || filters.status || filters.productionStatus ||
+    filters.lateOnly || filters.readyDueToday || filters.createdFrom || filters.createdTo ||
+    filters.sort !== "-id" || params.has("openOnly")
+  );
+  function clearFilters() {
+    setDraftSearch("");
+    setParams(new URLSearchParams(), { replace: true });
+  }
   const orders = useOrders(filters);
   const actions = useOrderActions();
   const [deleting, setDeleting] = useState<Order | null>(null);
@@ -162,14 +171,10 @@ export function OrdersPage() {
           <CreatedDatePicker label={uiMessages.orders.createdTo} value={filters.createdTo} min={filters.createdFrom || undefined}
             onChange={(value) => setFilter("createdTo", value)} />
         </div>
-        {(filters.createdFrom || filters.createdTo) && <Button type="button" variant="ghost" size="sm"
-          onClick={() => setParams(previous => {
-            const next = new URLSearchParams(previous);
-            next.delete("createdFrom");
-            next.delete("createdTo");
-            next.delete("page");
-            return next;
-          })}>{uiMessages.orders.clearCreatedFilter}</Button>}
+        <Button type="button" variant="ghost" size="sm" className="ms-auto"
+          disabled={!hasActiveFilters} onClick={clearFilters}>
+          {uiMessages.orders.clearAllFilters}
+        </Button>
         {filters.createdFrom && filters.createdTo && filters.createdFrom > filters.createdTo &&
           <p role="alert" className="text-xs text-destructive">{uiMessages.orders.invalidCreatedRange}</p>}
       </div>
