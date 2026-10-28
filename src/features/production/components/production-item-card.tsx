@@ -84,7 +84,7 @@ export function ProductionItemCard({item,permissions,selected,busy,onSelect,onAc
       <div className="flex min-w-0 items-center gap-1.5">
         <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-card text-primary"
           aria-hidden="true"><UserRound className="size-3.5"/></span>
-        <span className="shrink-0 text-[11px] text-muted-foreground">المصمم المسؤول:</span>
+        <span className="shrink-0 text-[11px] text-muted-foreground">المصمم المسؤول</span>
         <span className="min-w-0 truncate text-xs font-semibold" dir="auto"
           title={item.designerName ?? "غير محدد"}>{item.designerName || "غير محدد"}</span>
       </div>

@@ -240,14 +240,10 @@ export function ProductionPage() {
     </section>
     {can("production.summary.view") && summary.data && <section aria-label={uiMessages.production.summaryLabel}
       className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-      {[
-        [uiMessages.production.stageNotStarted,summary.data.notStartedCount],
-        [uiMessages.production.stagePrinting,summary.data.printingCount],
-        [uiMessages.production.stageReady,summary.data.readyCount],
-      ].slice(0,1).map(([label,n])=><div key={label} className="rounded-xl border border-[#e8eaf2] bg-white p-3.5 shadow-[0_3px_12px_#27396b07]">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="mt-1 text-xl font-bold tabular-nums">{n}</p>
-      </div>)}
+      <div className="rounded-xl border border-[#e8eaf2] bg-white p-3.5 shadow-[0_3px_12px_#27396b07]">
+        <p className="text-xs text-muted-foreground">{uiMessages.production.stageNotStarted}</p>
+        <p className="mt-1 text-xl font-bold tabular-nums">{summary.data.notStartedCount}</p>
+      </div>
       <div className="rounded-xl border border-[#e8eaf2] bg-white p-3.5 shadow-[0_3px_12px_#27396b07]">
         <p className="text-xs text-muted-foreground">{uiMessages.production.stageDesign}</p>
         <p className="mt-1 text-xl font-bold tabular-nums">{summary.data.designInProgressCount+summary.data.designCompletedCount}</p>

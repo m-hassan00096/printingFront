@@ -94,7 +94,7 @@ export const uiMessages = {
     dueTodayLabel: "تسليم اليوم",
     deliveryDueLabel: "التسليم",
     designFilterLabel: "عملي في التصميم",
-    allMyDesignWork: "كل الأعمال",
+    allMyDesignWork: "عملي في التصميم: الكل",
     designStartedByMe: "بدأتها أنا",
     designCompletedByMe: "أنهيتها أنا",
     sortPriority: "الأولوية التشغيلية",
