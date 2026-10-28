@@ -164,7 +164,7 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
   const [acknowledged,setAcknowledged]=useState(false);
   const [error,setError]=useState("");
   const c=query.data;
-  const reversable=c?.source===0&&c.status===1&&canReverse;
+  const reversable=c?.status===1&&canReverse;
   async function confirm(){
     if(!reversable||reason.trim().length<3||!acknowledged||actions.reverse.isPending)return;
     setError("");
@@ -178,18 +178,24 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
     {query.isPending?<LoadingState/>:query.isError?
       <ErrorState error={query.error} retry={()=>void query.refetch()}/>:c&&
       <div className="space-y-4">
-        <div className="grid gap-4 rounded-xl bg-muted/40 p-4 text-sm sm:grid-cols-2">
-          {[
-            ["رقم الإيصال",c.receiptNumber],["العميل",c.customerName],
-            ["رقم الهاتف",c.customerPhone],["تاريخ التحصيل",formatCollectionDate(c.collectedOn)],
-            ["طريقة التحصيل",c.paymentMethodLabel],["مصدر التحصيل",c.sourceLabel],
-            ["الحالة",c.statusLabel],["جهة التحصيل",c.destinationLabel??"—"],
-          ].map(([label,value])=><div key={label}>
-            <p className="text-xs text-muted-foreground">{label}</p>
-            <p className="mt-1 break-words font-semibold text-foreground">{value}</p>
-          </div>)}
-          <div><p className="text-xs text-muted-foreground">المبلغ</p>
-            <p className="mt-1 font-extrabold"><MoneyAmount amount={c.amount}/></p></div>
+        <div className="overflow-hidden rounded-xl border">
+          <table className="w-full text-right text-sm">
+            <tbody className="divide-y">
+              {([
+                ["رقم الإيصال",c.receiptNumber],["العميل",c.customerName],
+                ["رقم الهاتف",c.customerPhone],["تاريخ التحصيل",formatCollectionDate(c.collectedOn)],
+                ["طريقة التحصيل",c.paymentMethodLabel],["مصدر التحصيل",c.sourceLabel],
+                ["الحالة",c.statusLabel],["جهة التحصيل",c.destinationLabel??"—"],
+              ] as [string,string][]).map(([label,value])=><tr key={label}>
+                <th scope="row" className="w-2/5 bg-muted/40 px-3 py-2.5 font-semibold text-muted-foreground">{label}</th>
+                <td className="break-words px-3 py-2.5 font-semibold">{value}</td>
+              </tr>)}
+              <tr>
+                <th scope="row" className="bg-muted/40 px-3 py-2.5 font-semibold text-muted-foreground">المبلغ</th>
+                <td className="px-3 py-2.5 font-extrabold"><MoneyAmount amount={c.amount}/></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
         {c.note&&<p className="whitespace-pre-wrap rounded-xl border p-3 text-sm">ملاحظات: {c.note}</p>}
         {c.orderId&&canViewOrders&&<Link to={`/orders/${c.orderId}`} className="text-sm font-semibold text-primary underline">فتح الأوردر المرتبط</Link>}
@@ -197,16 +203,17 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
         {c.status===2&&<div className="rounded-xl border border-amber-200 p-3 text-sm">
           <p className="font-bold">تحصيل معكوس</p>
           <p className="mt-1">سبب العكس: {c.reversalReason??"—"}</p>
+          {c.reversedAt&&<p className="mt-1">تاريخ العكس: {new Intl.DateTimeFormat("ar-EG",{dateStyle:"medium",timeStyle:"short",timeZone:"Africa/Cairo"}).format(new Date(c.reversedAt))}</p>}
         </div>}
-        {c.source!==0&&<p className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
-          التحصيلات المرتبطة بتأكيد الأوردر أو التسليم تُعالج من العملية الأصلية، وليس من هذه الشاشة.
+        {c.status===1&&c.source!==0&&<p className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
+          يمكن تصحيح إيصال التحصيل بالعكس المحاسبي هنا. عكس الإيصال لا يلغي الأوردر أو التسليم المرتبط به.
         </p>}
         {reversable&&!reversing&&<Button variant="destructive" onClick={()=>setReversing(true)}>عكس التحصيل</Button>}
         {reversable&&reversing&&<div className="space-y-3 rounded-xl border border-destructive/30 p-4">
           <p className="flex items-center gap-2 text-sm font-bold text-destructive"><AlertTriangle className="size-4"/> عكس التحصيل</p>
           <p className="rounded-lg bg-amber-50 p-3 text-sm leading-6 text-amber-900">
-            سيعود تأثير هذا المبلغ على رصيد العميل من خلال حركة عكسية، مع الاحتفاظ بالإيصال الأصلي.
-            لا تعيد هذه العملية أموالًا نقدية أو بنكية تلقائيًا.
+            إذا كان الإيصال مسجلًا بالخطأ، سيُضاف قيد عكسي إلى حساب العميل مع الاحتفاظ بالإيصال الأصلي.
+            إذا تم استلام المبلغ وردّه للعميل بالفعل، استخدم عملية رد الأموال المنفصلة. العكس لا ينفّذ رد أموال ولا يلغي الأوردر أو التسليم.
           </p>
           <label className="block space-y-1 text-sm font-semibold">
             <span>سبب العكس *</span>
