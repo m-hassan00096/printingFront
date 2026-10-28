@@ -186,6 +186,47 @@ describe("Production board against Laravel API contracts",()=>{
       c.query.get("filter[lateOnly]")==="1")).toBe(true));
   });
 
+  it("groups items by order within each column, with clearly separate independently actionable cards", async()=>{
+    visit();
+    const design=await screen.findByRole("region",{name:"عمود التصميم"});
+    const group=await within(design).findByRole("region",{name:"الأوردر ORD-2026-101"});
+    expect(within(group).getAllByRole("article")).toHaveLength(2);
+    expect(within(group).getAllByText("أحمد")).toHaveLength(1);
+    expect(within(group).getAllByText("01012345678")).toHaveLength(1);
+    expect(within(group).getByText("2 عناصر في المرحلة")).toBeTruthy();
+    const banner=within(group).getByRole("article",{name:"عنصر بنر"});
+    const card=within(group).getByRole("article",{name:"عنصر كروت شخصية"});
+    expect(within(banner).getByText("قيد التصميم")).toBeTruthy();
+    expect(within(card).getByText("تم التصميم")).toBeTruthy();
+    expect(within(banner).getByRole("button",{name:"إنهاء التصميم"})).toBeTruthy();
+    expect(within(banner).getByRole("button",{name:"إنهاء وإرسال للطباعة"})).toBeTruthy();
+    expect(within(banner).getByText("إنهاء فقط")).toBeTruthy();
+    const user=userEvent.setup();
+    await user.click(within(banner).getByRole("button",{name:"إنهاء التصميم"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/production/items/102/complete-design")).toBe(true));
+    expect(calls.some(c=>c.url==="/production/items/103/complete-design")).toBe(false);
+    expect(items.find(x=>x.id===102)?.productionStage).toBe(2);
+    expect(items.find(x=>x.id===103)?.productionStage).toBe(2);
+  });
+
+  it("groups an order independently in different production columns, without linking item transitions", async()=>{
+    visit();
+    const printing=await screen.findByRole("region",{name:"عمود الطباعة"});
+    const ready=screen.getByRole("region",{name:"عمود جاهز للتسليم"});
+    const printingGroup=await within(printing).findByRole("region",{name:"الأوردر ORD-2026-102"});
+    const readyGroup=within(ready).getByRole("region",{name:"الأوردر ORD-2026-102"});
+    expect(within(printingGroup).getAllByRole("article")).toHaveLength(1);
+    expect(within(readyGroup).getAllByRole("article")).toHaveLength(1);
+    expect(within(printingGroup).getByRole("article",{name:"عنصر استيكرات"})).toBeTruthy();
+    expect(within(readyGroup).getByRole("article",{name:"عنصر بوستر"})).toBeTruthy();
+    const user=userEvent.setup();
+    await user.click(within(printingGroup).getByRole("button",{name:"جاهز للتسليم"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/production/items/104/mark-ready")).toBe(true));
+    expect(calls.some(c=>c.url==="/production/items/105/mark-ready")).toBe(false);
+    expect(items.find(x=>x.id===104)?.productionStage).toBe(4);
+    expect(items.find(x=>x.id===105)?.productionStage).toBe(4);
+  });
+
   it("starts design using authenticated actor and a fresh idempotency key",async()=>{
     visit();const user=userEvent.setup();
     await user.click(await screen.findByRole("button",{name:"بدء التصميم"}));
