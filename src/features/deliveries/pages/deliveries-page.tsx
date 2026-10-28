@@ -4,7 +4,9 @@ import { ClipboardCheck, Eye, RefreshCw, Truck } from "lucide-react";
 import { CreatedDatePicker, cairoTodayISO } from "@/features/orders/components/created-date-picker";
 import { formatCollectionDate } from "@/features/collections/components/collection-date-field";
 import { uiMessages } from "@/shared/translations/ar/ui";
-import { useQueryClient } from "@tanstack/react-query";
+import { SearchableSelect } from "@/features/orders/components/searchable-select";
+import { getDeliveryCustomerOptions } from "../api/deliveries.api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
@@ -15,7 +17,7 @@ import type { HistoryFilters, ReadyFilters, ReadyOrder } from "../types/deliveri
 
 const defaultReady: ReadyFilters = { search:"", customerId:null, sort:"dueDate" };
 const defaultHistory: HistoryFilters = {
-  search:"", dateFrom:"", dateTo:"", status:"", sort:"-deliveredAt",
+  search:"", customerId:null, dateFrom:"", dateTo:"", status:"", sort:"-deliveredAt",
 };
 function dateTime(value: string | null) {
   if (!value) return "—";
@@ -29,16 +31,24 @@ function ReadyCard({ order, canViewOrder, onPreview }: {
   const isLate=!!order.dueDate && order.dueDate<cairoTodayISO();
   const dueToday=!!order.dueDate && order.dueDate===cairoTodayISO();
   return <article className="overflow-hidden rounded-xl border border-[#e4e8f3] bg-card shadow-[0_3px_14px_#24345b08]">
-    <header className="flex flex-wrap items-start justify-between gap-2 border-b bg-muted/30 p-4">
-      <div className="min-w-0 space-y-1">
+    <header className="space-y-3 border-b bg-muted/30 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-bold" dir="ltr">{order.orderNumber}</h3>
-        <p className="text-sm font-semibold">{order.customerName}</p>
-        <p className="text-xs text-muted-foreground" dir="ltr">{order.customerPhone}</p>
+        <span className={"rounded-md px-2.5 py-1 text-xs font-bold " +
+          (order.isReadyForDelivery?"bg-[#e5f7ee] text-[#147c58]":"bg-[#fff5df] text-[#a36a0d]")}>
+          {order.isReadyForDelivery?"جاهز للتسليم":"جاهز جزئيًا"}
+        </span>
       </div>
-      <span className={"rounded-md px-2.5 py-1 text-xs font-bold " +
-        (order.isReadyForDelivery?"bg-[#e5f7ee] text-[#147c58]":"bg-[#fff5df] text-[#a36a0d]")}>
-        {order.isReadyForDelivery?"جاهز للتسليم":"جاهز جزئيًا"}
-      </span>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <dt className="text-xs text-muted-foreground">{uiMessages.deliveries.customerLabel}</dt>
+          <dd className="mt-1 truncate text-sm font-semibold" title={order.customerName}>{order.customerName}</dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-xs text-muted-foreground">{uiMessages.deliveries.phoneLabel}</dt>
+          <dd className="mt-1 text-sm font-medium tabular-nums" dir="ltr">{order.customerPhone}</dd>
+        </div>
+      </dl>
     </header>
     <div className="space-y-3 p-4">
       <div className="grid grid-cols-2 gap-3 text-sm">
@@ -92,6 +102,7 @@ export function DeliveriesPage() {
   const [tab,setTab]=useState<"ready"|"history">("ready");
   const activeTab=tab==="ready" && !canReady && canHistory ? "history" : tab==="history" && !canHistory && canReady ? "ready" : tab;
   const [searchInput,setSearchInput]=useState("");
+  const [customerId,setCustomerId]=useState("");
   const [search,setSearch]=useState("");
   const [readySort,setReadySort]=useState<ReadyFilters["sort"]>("dueDate");
   const [historySort,setHistorySort]=useState<HistoryFilters["sort"]>("-deliveredAt");
@@ -101,14 +112,20 @@ export function DeliveriesPage() {
   const [page,setPage]=useState(1);
   const [delivering,setDelivering]=useState<number|null>(null);
   const [details,setDetails]=useState<number|null>(null);
+  const customerOptions=useQuery({
+    queryKey:["deliveries","customer-options"],
+    queryFn:getDeliveryCustomerOptions,
+    enabled:canReady||canHistory,
+    staleTime:60_000,
+  });
 
   useEffect(()=>{
     const timer=setTimeout(()=>setSearch(searchInput.trim()),350);
     return ()=>clearTimeout(timer);
   },[searchInput]);
-  useEffect(()=>setPage(1),[activeTab,search,readySort,historySort,status,dateFrom,dateTo]);
-  const readyFilters:ReadyFilters={...defaultReady,search,sort:readySort};
-  const historyFilters:HistoryFilters={...defaultHistory,search,dateFrom,dateTo,status,sort:historySort};
+  useEffect(()=>setPage(1),[activeTab,search,customerId,readySort,historySort,status,dateFrom,dateTo]);
+  const readyFilters:ReadyFilters={...defaultReady,search,customerId:customerId?Number(customerId):null,sort:readySort};
+  const historyFilters:HistoryFilters={...defaultHistory,search,customerId:customerId?Number(customerId):null,dateFrom,dateTo,status,sort:historySort};
   const ready=useReadyOrders(readyFilters,page,canReady && activeTab==="ready");
   const history=useDeliveryHistory(historyFilters,page,canHistory && activeTab==="history");
   const resultPage=activeTab==="ready"?ready.data?.pagination:history.data?.pagination;
@@ -117,7 +134,7 @@ export function DeliveriesPage() {
       setPage(resultPage.lastPage);
   },[resultPage,page]);
   function reset() {
-    setSearchInput("");setSearch("");setStatus("");setDateFrom("");setDateTo("");
+    setSearchInput("");setSearch("");setCustomerId("");setStatus("");setDateFrom("");setDateTo("");
     setReadySort("dueDate");setHistorySort("-deliveredAt");
   }
   function done() {
@@ -138,12 +155,22 @@ export function DeliveriesPage() {
         onClick={()=>{setTab("history");reset();}}>سجل التسليمات</button>}
     </div>
     <section aria-label="فلاتر التسليمات" className="rounded-xl border bg-card px-4 py-3">
-      <div className={activeTab==="ready"?"grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_minmax(200px,300px)_auto]":"grid items-end gap-3 md:grid-cols-2 xl:grid-cols-[minmax(230px,1fr)_repeat(3,minmax(150px,190px))_auto]"}>
+      <div className={activeTab==="ready"?"grid items-end gap-3 md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_minmax(200px,300px)_minmax(180px,230px)_auto]":"grid items-end gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-[minmax(200px,1fr)_minmax(180px,250px)_repeat(3,minmax(140px,170px))_auto]"}>
         <label className="block space-y-1 text-xs font-semibold">
           <span>البحث برقم الأوردر أو العميل أو الهاتف</span>
           <input className={fieldClass} value={searchInput} onChange={e=>setSearchInput(e.target.value)}
             placeholder="بحث في التسليمات..." maxLength={200}/>
         </label>
+        <div className="min-w-0 space-y-1">
+          <label className="block text-xs font-semibold" htmlFor="delivery-customer-filter">{uiMessages.deliveries.customerFilter}</label>
+          <div id="delivery-customer-filter">
+            <SearchableSelect label={uiMessages.deliveries.customerFilter}
+              placeholder={uiMessages.deliveries.customerPlaceholder}
+              options={customerOptions.data??[]} value={customerId} onChange={setCustomerId}
+              loading={customerOptions.isPending} disabled={customerOptions.isError}/>
+          </div>
+          {customerOptions.isError && <p role="alert" className="text-xs text-destructive">{uiMessages.deliveries.customerLoadError}</p>}
+        </div>
         {activeTab==="ready" ? <label className="block space-y-1 text-xs font-semibold">
           <span>الترتيب</span>
           <select className={fieldClass} value={readySort} aria-label="ترتيب الأوردرات الجاهزة"
@@ -175,7 +202,7 @@ export function DeliveriesPage() {
           </label>
         </>}
         <Button type="button" variant="ghost" size="sm" className="shrink-0"
-          disabled={!searchInput.trim()&&!search&&!dateFrom&&!dateTo&&!status&&readySort==="dueDate"&&historySort==="-deliveredAt"}
+          disabled={!searchInput.trim()&&!search&&!customerId&&!dateFrom&&!dateTo&&!status&&readySort==="dueDate"&&historySort==="-deliveredAt"}
           onClick={reset}>{uiMessages.deliveries.clearFilters}</Button>
       </div>
     </section>

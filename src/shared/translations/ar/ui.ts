@@ -104,6 +104,12 @@ export const uiMessages = {
     sortOldest: "العناصر الأقدم",
   },
   deliveries: {
+    customerLabel: "العميل",
+    phoneLabel: "الهاتف",
+    customerFilter: "العميل",
+    customerPlaceholder: "كل العملاء — ابحث بالاسم أو الهاتف...",
+    customerLoadError: "تعذّر تحميل قائمة عملاء التسليمات.",
+
     overdue: "متأخر",
     dueToday: "تسليم اليوم",
     itemsLabel: "عناصر الأوردر",

@@ -46,6 +46,6 @@ export type DeliverPayload = {
 export type CancelPayload = { reason: string; fundsReturnConfirmed?: boolean };
 export type ReadyFilters = { search: string; customerId: number | null; sort: "dueDate" | "-dueDate" | "id" | "-id" };
 export type HistoryFilters = {
-  search: string; dateFrom: string; dateTo: string; status: "" | "1" | "2";
+  search: string; customerId: number | null; dateFrom: string; dateTo: string; status: "" | "1" | "2";
   sort: "deliveredAt" | "-deliveredAt" | "id" | "-id";
 };
