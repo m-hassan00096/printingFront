@@ -177,7 +177,10 @@ describe("Production board against Laravel API contracts",()=>{
     const user=userEvent.setup();
     const overdue=within(overview).getByRole("button",{name:"عرض الأوردرات المتأخرة فقط"});
     await user.click(overdue);
-    expect(overdue.getAttribute("aria-pressed")).toBe("true");
+    await waitFor(()=>expect(
+      within(screen.getByRole("region",{name:"ملخص مراحل الإنتاج"}))
+        .getByRole("button",{name:"عرض الأوردرات المتأخرة فقط"}).getAttribute("aria-pressed")
+    ).toBe("true"));
     expect((screen.getByRole("checkbox",{name:"المتأخرة فقط"}) as HTMLInputElement).checked).toBe(true);
     await waitFor(()=>expect(calls.some(c=>c.url==="/production/items" &&
       c.query.get("filter[lateOnly]")==="1")).toBe(true));
