@@ -199,7 +199,7 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
               loading={paymentOptions.isPending} disabled={busy||paymentOptions.isError}/>
             {!destination&&!paymentOptions.isPending&&!paymentOptions.isError&&
               <p className="text-xs text-muted-foreground">{uiMessages.deliveries.destinationRequired}</p>}
-            {fieldErrors.paymentDestinationId&&<p role="alert" className="text-xs text-destructive">{fieldErrors.paymentDestinationId}</p>
+            {fieldErrors.paymentDestinationId&&<p role="alert" className="text-xs text-destructive">{fieldErrors.paymentDestinationId}</p>}
             {paymentOptions.isError && <p role="alert" className="text-sm text-destructive">
               تعذّر تحميل حسابات التحصيل.
               <button type="button" className="mr-2 underline" onClick={()=>void paymentOptions.refetch()}>
