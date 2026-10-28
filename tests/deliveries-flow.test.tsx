@@ -128,8 +128,8 @@ describe("Deliveries frontend against the existing Laravel contract",()=>{
     visit();const user=userEvent.setup();
     await user.click(await screen.findByRole("button",{name:"تسليم الأوردر"}));
     const modal=await screen.findByRole("dialog",{name:"تسليم الأوردر"});
-    await user.clear(within(modal).getByRole("textbox",{name:/المبلغ المحصل/}));
-    await user.type(within(modal).getByRole("textbox",{name:/المبلغ المحصل/}),"150.00");
+    await user.clear(within(modal).getByRole("textbox",{name:/تحصيل عند التسليم/}));
+    await user.type(within(modal).getByRole("textbox",{name:/تحصيل عند التسليم/}),"150.00");
     await user.selectOptions(within(modal).getByRole("combobox",{name:"طريقة التحصيل"}),"1");
     expect(within(modal).getByRole("button",{name:"تأكيد التسليم"}).hasAttribute("disabled")).toBe(true);
     await user.click(within(modal).getByRole("combobox",{name:"حساب التحصيل"}));
@@ -143,6 +143,38 @@ describe("Deliveries frontend against the existing Laravel contract",()=>{
       receiverName:null,collectedAmount:"150.00",paymentMethod:1,paymentDestinationId:3,
       confirmCreditBalance:true,
     });
+  });
+  it("clarifies the prior account balance and presets the order amount without auto-posting",async()=>{
+    visit();const user=userEvent.setup();
+    await user.click(await screen.findByRole("button",{name:"تسليم الأوردر"}));
+    const dialog=await screen.findByRole("dialog",{name:"تسليم الأوردر"});
+    expect(within(dialog).getByText(/رصيد حساب العميل يشمل جميع الأوردرات/)).toBeTruthy();
+    expect(within(dialog).getByRole("region",{name:"ملخص الحساب بعد التسليم"})).toBeTruthy();
+    await user.click(within(dialog).getByRole("button",{name:"قيمة الأوردر"}));
+    const amount=within(dialog).getByRole("textbox",{name:/تحصيل عند التسليم/}) as HTMLInputElement;
+    expect(amount.value).toBe("350.00");
+    expect(within(dialog).getByRole("combobox",{name:"طريقة التحصيل"})).toBeTruthy();
+    expect(calls.some(c=>c.method==="post"&&c.url.includes("/deliver"))).toBe(false);
+    await user.click(within(dialog).getByRole("button",{name:"بدون تحصيل"}));
+    expect(amount.value).toBe("0.00");
+    expect(within(dialog).queryByRole("combobox",{name:"طريقة التحصيل"})).toBeNull();
+  });
+  it("keeps ready queue filters compact and resets them together",async()=>{
+    visit();const user=userEvent.setup();
+    expect(await screen.findByText(/رول أب · كمية 50/)).toBeTruthy();
+    expect(screen.getByRole("button",{name:"مسح الفلاتر"}).hasAttribute("disabled")).toBe(true);
+    await user.selectOptions(screen.getByRole("combobox",{name:"ترتيب الأوردرات الجاهزة"}),"-id");
+    expect(screen.getByRole("button",{name:"مسح الفلاتر"}).hasAttribute("disabled")).toBe(false);
+    await user.click(screen.getByRole("button",{name:"مسح الفلاتر"}));
+    expect((screen.getByRole("combobox",{name:"ترتيب الأوردرات الجاهزة"}) as HTMLSelectElement).value).toBe("dueDate");
+  });
+  it("uses theme calendars for the history date range",async()=>{
+    visit();const user=userEvent.setup();
+    await user.click(await screen.findByRole("tab",{name:"سجل التسليمات"}));
+    await user.click(screen.getByRole("button",{name:"من تاريخ"}));
+    const calendar=await screen.findByRole("dialog",{name:"اختيار من تاريخ"});
+    expect(within(calendar).getByRole("grid")).toBeTruthy();
+    expect(screen.queryByRole("textbox",{name:"من تاريخ"})).toBeNull();
   });
   it("filters historical deliveries with canonical date and status params",async()=>{
     visit();const user=userEvent.setup();
