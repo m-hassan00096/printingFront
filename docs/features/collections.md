@@ -10,7 +10,10 @@ Backend contract verified from printingApi `develop`: `GET /finance/collections`
 - User-selected `collectedOn` is optional and cannot be future-dated; backend defaults to current Africa/Cairo date.
 - The POST is idempotent, and new receipt response is `201` with `data: {id,receiptNumber}`, not `data:null`. The frontend uses that exact response.
 - No direct editing/deletion of financial documents. A reversed record remains visible in history.
-- The frontend permits general receipt reversal (source=0) only. Linked deposits and delivery receipts require handling from the originating workflow; in particular never call Finance reversal on a delivery receipt separately from delivery cancellation.
+- Any **POSTED** receipt (general, order deposit or delivery source) can be corrected via **عكس التحصيل** with `finance.collections.reverse`, a mandatory reason and a second acknowledgment. It creates an opposite ledger entry and records audit details while preserving the original collection, order and delivery. The backend has always allowed this correction; the previous UI restriction to general receipts has been removed.
+- If the delivery is later cancelled after its collection was already reversed independently, its finance adapter recognizes the reversed state and does not post a second reversal. Cancellation and reimbursement are distinct operations.
+- If money was actually received and must be returned, use the separate **رد رصيد** workflow in `/finance?customerId=...`, subject to available refundable credit and `finance.refunds.create`; reversal does **not** transfer money back to a customer.
+- The existing two-column receipt details layout remains unchanged. Reversed receipts display reason and reversal timestamp; view-only users cannot reverse.
 - Mutations invalidate Collections, Finance, Customers, Orders and Deliveries caches. Authorization is enforced server-side. Buttons also hide when permissions are unavailable.
 - Account selectors reuse the existing `getOrderPaymentOptions`, no duplicate service API.
 
