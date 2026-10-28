@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { Link } from "react-router-dom";
@@ -11,6 +12,7 @@ import { ErrorState, LoadingState, fieldClass } from "@/features/identity/compon
 import { getOrderPaymentOptions } from "@/features/orders/api/order-options.api";
 import { SearchableSelect } from "@/features/orders/components/searchable-select";
 import { estimatedBalance, centsToMoney, parseCents } from "../lib/delivery-money";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { useDeliveryActions, useDeliveryDetails, useDeliveryPreview } from "../hooks/use-deliveries";
 import type { DeliverPayload, PaymentMethod } from "../types/deliveries.types";
 
@@ -54,6 +56,21 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
   const [destination, setDestination] = useState("");
   const [creditConfirmed, setCreditConfirmed] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string,string>>({});
+  const [focusField, setFocusField] = useState<string | null>(null);
+  useEffect(()=>{
+    if(!focusField) return;
+    const field=Array.from(document.querySelectorAll<HTMLElement>("[data-delivery-field]"))
+      .find(element=>element.dataset.deliveryField===focusField);
+    field?.scrollIntoView?.({block:"center",behavior:"smooth"});
+    field?.querySelector<HTMLElement>('input:not(:disabled), select:not(:disabled), button:not(:disabled)')
+      ?.focus({preventScroll:true});
+  },[focusField]);
+  function clearField(name:string) {
+    setFieldErrors(current=>{if(!current[name])return current;const next={...current};delete next[name];return next;});
+    setError("");
+    setFocusField(null);
+  }
   const paid = parseCents(amount);
   const needsPayment = paid !== null && paid > 0;
   const canCollect = preview.data?.canCollect === true;
@@ -86,10 +103,22 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
     setError("");
     try {
       await actions.deliver.mutateAsync({id:orderId,payload});
-      toast.success("تم تسليم الأوردر بنجاح.");
+      toast.success(uiMessages.deliveries.deliverySuccess.replace("{number}",preview.data?.order.orderNumber??""));
       onSuccess();
     } catch (e:unknown) {
-      setError(getApiErrorMessage(e,"تعذّر تنفيذ التسليم. حدّث البيانات وحاول مجددًا."));
+      const response=axios.isAxiosError<{errors?:Record<string,string[]>}>(e)?e.response?.data:undefined;
+      const mapped=Object.fromEntries(Object.entries(response?.errors??{})
+        .filter((entry):entry is [string,string[]]=>Array.isArray(entry[1])&&entry[1].length>0)
+        .map(([name,messages])=>[name,messages[0]]));
+      if(Object.keys(mapped).length>0) {
+        setFieldErrors(mapped);
+        const first=["receiverName","collectedAmount","paymentMethod","paymentDestinationId","confirmCreditBalance"]
+          .find(name=>mapped[name]) ?? Object.keys(mapped)[0];
+        setFocusField(first);
+        setError("");
+      } else {
+        setError(getApiErrorMessage(e,uiMessages.deliveries.genericError));
+      }
     }
   }
 
