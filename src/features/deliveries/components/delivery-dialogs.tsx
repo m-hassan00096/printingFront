@@ -228,16 +228,18 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
           </div>
           <p className="mt-2 text-xs text-muted-foreground">{uiMessages.deliveries.estimateWarning}</p>
         </section>}
-        {willCreateCredit && <label data-delivery-field="confirmCreditBalance" className="flex scroll-mt-24 items-start gap-2 rounded-lg border border-amber-200 bg-[#fff4df] p-3 text-sm text-[#a46b0b]">
+        {willCreateCredit && <label data-delivery-field="confirmCreditBalance" className="flex flex-wrap scroll-mt-24 items-start gap-2 rounded-lg border border-amber-200 bg-[#fff4df] p-3 text-sm text-[#a46b0b]">
           <input type="checkbox" checked={creditConfirmed} onChange={e=>{setCreditConfirmed(e.target.checked);clearField("confirmCreditBalance");}}
             aria-label="تأكيد الرصيد الدائن"/>
           أؤكد أن المبلغ سيُنشئ أو يزيد رصيدًا دائنًا لحساب العميل.
+          {fieldErrors.confirmCreditBalance&&<span role="alert" className="basis-full text-xs text-destructive">{fieldErrors.confirmCreditBalance}</span>}
         </label>}
         {needsPayment && estimated === null && canCollect &&
-          <label data-delivery-field="confirmCreditBalance" className="flex scroll-mt-24 items-start gap-2 rounded-lg border p-3 text-sm">
+          <label data-delivery-field="confirmCreditBalance" className="flex flex-wrap scroll-mt-24 items-start gap-2 rounded-lg border p-3 text-sm">
             <input type="checkbox" checked={creditConfirmed} onChange={e=>{setCreditConfirmed(e.target.checked);clearField("confirmCreditBalance");}}
               aria-label="السماح بالرصيد الدائن"/>
             أوافق على إنشاء رصيد دائن إذا تجاوز المبلغ المستحق (قد يطلب النظام هذا التأكيد).
+            {fieldErrors.confirmCreditBalance&&<span role="alert" className="basis-full text-xs text-destructive">{fieldErrors.confirmCreditBalance}</span>}
           </label>}
         <p className="text-xs text-muted-foreground">
           تاريخ التسليم يسجله السيرفر تلقائيًا. لن يتم تسجيل أي تحصيل إذا كان المبلغ صفرًا.
