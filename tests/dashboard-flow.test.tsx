@@ -12,7 +12,7 @@ let permissions=["orders.list","orders.view","orders.create","production.items.l
 let calls:string[]=[];
 let data:DashboardData={
   asOfDate:"2026-10-26",
-  metrics:{activeOrders:7,overdueOrders:6,readyForDelivery:3,dueToday:0},
+  metrics:{activeOrders:7,overdueOrders:6,readyForDelivery:3,dueToday:2,readyDueToday:1},
   productionPressure:{notStarted:1,design:2,printing:4,ready:3},
   attentionOrders:[
     {id:15,orderNumber:"ORD-261015001",customerName:"أحمد",dueDate:"2026-10-24",
@@ -65,9 +65,10 @@ describe("Live dashboard contract",()=>{
     expect(screen.getByText("الأوردرات النشطة")).toBeTruthy();
     expect(screen.getByText("الأوردرات المتأخرة")).toBeTruthy();
     expect(screen.getByText("جاهزة للتسليم")).toBeTruthy();
-    expect(screen.getByText("تسليمات اليوم")).toBeTruthy();
+    expect(screen.getByText("جاهزة للتسليم اليوم")).toBeTruthy();
+    expect(screen.getByRole("link",{name:"عرض الأوردرات الجاهزة للتسليم اليوم"}).getAttribute("href")).toBe("/orders?readyDueToday=1");
     expect(screen.getAllByText(/ORD-261015001/).length).toBeGreaterThan(0);
-    expect(screen.getByRole("link",{name:/عرض المتأخرة/}).getAttribute("href")).toBe("/orders?lateOnly=1&openOnly=1");
+    expect(screen.getByRole("link",{name:/عرض المتأخرة/}).getAttribute("href")).toBe("/orders?lateOnly=1");
     expect(screen.getAllByText("ORD-261016001").length).toBeGreaterThan(0);
     expect(screen.getByRole("meter",{name:"الطباعة"}).getAttribute("aria-valuenow")).toBe("4");
     expect(screen.getByText(/إجمالي البنود:/)).toBeTruthy();
@@ -75,7 +76,7 @@ describe("Live dashboard contract",()=>{
     expect(calls.filter(x=>x==="/dashboard")).toHaveLength(1);
   });
   it("handles an empty day without mock/demo orders",async()=>{
-    data={...data,metrics:{activeOrders:0,overdueOrders:0,readyForDelivery:0,dueToday:0},
+    data={...data,metrics:{activeOrders:0,overdueOrders:0,readyForDelivery:0,dueToday:0,readyDueToday:0},
       productionPressure:{notStarted:0,design:0,printing:0,ready:0},
       attentionOrders:[],latestOrders:[]};
     visit();

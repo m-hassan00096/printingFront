@@ -33,3 +33,11 @@ Dashboard replaces the old static Foundation page at `/` with a useful **read-on
 
 ## Next
 Review the Dashboard visually with actual local Laravel + MySQL data prior to merging frontend PR #12. This Dashboard is the final planned business module for the first operational scope.
+
+## Operational delivery queues (2026-10-28)
+
+- **المتأخرة فقط** means: a confirmed, **undelivered** order with `due_date` before the current Cairo-local date. Include every production phase, including not-started, printing and ready. Exclude delivered, canceled and drafts, even if they were historically late.
+- **جاهزة للتسليم اليوم** means: a confirmed and not-yet-delivered order, due **today** in Cairo, whose order-level production state is `READY_FOR_DELIVERY` (all items complete). Exclude partial readiness, in-production, delivered, canceled and drafts.
+- These two operational shortcuts are mutually exclusive on the list page, and continue to compose with regular search/status/production and creation-date filters.
+- The overview's **جاهزة للتسليم اليوم** card uses exactly the same predicate as the list filter `readyDueToday=1`. Older `dueToday` metric remains in the API for compatibility, but the displayed card is the actionable subset.
+- Frontend no longer exposes `openOnly`; backend retains the parameter for existing clients. `lateOnly` by itself always means current overdue work (not historical late deliveries).
