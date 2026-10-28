@@ -342,6 +342,64 @@ describe("Orders Laravel API workflow", () => {
     expect(screen.queryByText("متأخر")).toBeNull();
   });
 
+  it("uses the themed delivery calendar and preserves the API date format", async () => {
+    visit("/orders/new");
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("combobox", {name:"اختيار العميل"}));
+    await user.click(await screen.findByRole("option", {name:/أحمد - 01012345678/}));
+    const dateButton = screen.getByRole("button", {name:"تاريخ التسليم (اختياري)"});
+    expect(screen.queryByRole("textbox", {name:"تاريخ التسليم"})).toBeNull();
+    await user.click(dateButton);
+    const calendar = await screen.findByRole("dialog", {name:"اختيار تاريخ التسليم (اختياري)"});
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      day:"2-digit", month:"2-digit", year:"numeric", timeZone:"Africa/Cairo",
+    }).formatToParts(new Date());
+    const part = (name: string) => parts.find(p => p.type === name)?.value;
+    const today = `${part("year")}-${part("month")}-${part("day")}`;
+    await user.click(within(calendar).getByRole("gridcell", {name:today}));
+    expect(dateButton.textContent).toContain(`${part("day")}/${part("month")}/${part("year")}`);
+    await user.click(screen.getByRole("combobox", {name:"خدمة العنصر 1"}));
+    await user.click(screen.getByRole("option", {name:"كروت شخصية"}));
+    await user.type(screen.getByRole("textbox", {name:"إجمالي العنصر 1"}), "100");
+    await user.click(screen.getByRole("button", {name:"حفظ مسودة"}));
+    await waitFor(() => expect(calls.some(c => c.method === "post" && c.url === "/orders")).toBe(true));
+    expect(calls.find(c => c.method === "post" && c.url === "/orders")?.body.dueDate).toBe(today);
+  });
+
+  it("scrolls to and focuses the missing print service after attempting confirmation at the bottom", async () => {
+    visit("/orders/new");
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("combobox", {name:"اختيار العميل"}));
+    await user.click(await screen.findByRole("option", {name:/أحمد - 01012345678/}));
+    const scrolled: Element[] = [];
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function() { scrolled.push(this); };
+    try {
+      await user.click(screen.getByRole("button", {name:"تأكيد الأوردر"}));
+      const service = screen.getByRole("combobox", {name:"خدمة العنصر 1"});
+      expect(await screen.findByText("اختر خدمة الطباعة.")).toBeTruthy();
+      await waitFor(() => expect(document.activeElement).toBe(service));
+      expect(service.getAttribute("aria-invalid")).toBe("true");
+      expect(scrolled.some(node => node.getAttribute("data-order-field") === "items.0.serviceId")).toBe(true);
+      expect(calls.some(c => c.method === "post" && c.url === "/orders")).toBe(false);
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
+  it("focuses the earliest missing required field and moves to the next on retry", async () => {
+    visit("/orders/new");
+    const user = userEvent.setup();
+    await screen.findByRole("combobox", {name:"اختيار العميل"});
+    await user.click(screen.getByRole("button", {name:"حفظ مسودة"}));
+    expect(await screen.findByText("اختر عميلًا مسجلًا.")).toBeTruthy();
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("combobox", {name:"اختيار العميل"})));
+    await user.click(screen.getByRole("option", {name:/أحمد - 01012345678/}));
+    await user.click(screen.getByRole("button", {name:"حفظ مسودة"}));
+    expect(await screen.findByText("اختر خدمة الطباعة.")).toBeTruthy();
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("combobox", {name:"خدمة العنصر 1"})));
+  });
+
   it("creates a draft with registered customer, agreed total, source enum and idempotency key", async () => {
     visit("/orders/new");
     expect((await screen.findAllByRole("heading",{name:"إضافة أوردر"})).length).toBeGreaterThan(0);
