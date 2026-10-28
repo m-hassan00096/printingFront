@@ -261,7 +261,7 @@ export function ProductionPage() {
         <p className="mt-1 text-xl font-bold tabular-nums">{n}</p>
       </div>)}
       <button type="button" aria-pressed={lateOnly} aria-label={uiMessages.production.filterOverdueAction}
-        onClick={()=>setLateOnly(true)}
+        onClick={()=>setLateOnly(current=>!current)}
         className={`rounded-xl border p-3.5 text-right shadow-[0_3px_12px_#27396b07] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${lateOnly
           ? "border-[#f0a6ad] bg-[#fff0f2]"
           : "border-[#e8eaf2] bg-white hover:border-[#f0a6ad] hover:bg-[#fff8f9]"}`}>
