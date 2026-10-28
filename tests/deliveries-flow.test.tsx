@@ -63,12 +63,16 @@ const adapter:AxiosAdapter=async config=>{
     let found=orders;
     const search=query.get("filter[search]");
     if(search)found=found.filter(x=>[x.orderNumber,x.customerName,x.customerPhone].some(v=>v.includes(search)));
+    const customerId=query.get("filter[customerId]");
+    if(customerId)found=found.filter(x=>x.customerId===Number(customerId));
     return response(config,{orders:found,pagination:{...pages,total:found.length}});
   }
   if(url==="/deliveries"&&method==="get") {
     let found=records;
     const status=query.get("filter[status]");
     if(status)found=found.filter(x=>x.status===Number(status));
+    const customerId=query.get("filter[customerId]");
+    if(customerId)found=found.filter(x=>x.customerId===Number(customerId));
     return response(config,{deliveries:found,pagination:{...pages,total:found.length}});
   }
   if(url==="/deliveries/ready/10") return response(config,{
@@ -82,6 +86,12 @@ const adapter:AxiosAdapter=async config=>{
         paymentMethod:0,paymentMethodLabel:"نقدي",paymentDestinationId:null,destinationLabel:null,
       }},
   });
+  if(url==="/selects"&&query.get("selects")==="deliveryCustomers")return response(config,[
+    {label:"deliveryCustomers",options:[
+      {value:7,label:"أحمد - 01000000000"},
+      {value:8,label:"منى - 01122223333"},
+    ]},
+  ]);
   if(url==="/selects"&&query.get("selects")==="bankAccounts,eWallets")return response(config,[
     {label:"bankAccounts",options:[{value:3,label:"حساب بنك القاهرة"}]},
     {label:"eWallets",options:[{value:5,label:"محفظة فودافون"}]},
@@ -119,6 +129,48 @@ describe("Deliveries frontend against the existing Laravel contract",()=>{
     expect(within(dialog).getByText("350.00 ج.م")).toBeTruthy();
     expect(within(dialog).getByText("2 من 2")).toBeTruthy();
   });
+  it("labels the customer name and phone explicitly inside a ready order card",async()=>{
+    visit();
+    const article=await screen.findByRole("article");
+    expect(within(article).getByText("العميل")).toBeTruthy();
+    expect(within(article).getByText("الهاتف")).toBeTruthy();
+    expect(within(article).getByText("أحمد")).toBeTruthy();
+    expect(within(article).getByText("01000000000")).toBeTruthy();
+  });
+
+  it("filters ready orders by a searchable customer selection and resets the filter",async()=>{
+    orders=[fullyReady,{...partial,customerId:8,customerName:"منى",customerPhone:"01122223333"}];
+    visit();const user=userEvent.setup();
+    expect(await screen.findByText("أحمد")).toBeTruthy();
+    const select=await screen.findByRole("combobox",{name:"العميل"});
+    await user.click(select);
+    await user.type(select,"0112222");
+    await user.click(await screen.findByRole("option",{name:"منى - 01122223333"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/deliveries/ready"&&c.query.get("filter[customerId]")==="8")).toBe(true));
+    expect(screen.getByText("منى")).toBeTruthy();
+    expect(screen.queryByText("أحمد")).toBeNull();
+    await user.click(screen.getByRole("button",{name:"مسح الفلاتر"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/deliveries/ready"&&!c.query.has("filter[customerId]"))).toBe(true));
+    expect((screen.getByRole("combobox",{name:"العميل"}) as HTMLInputElement).value).toBe("");
+    expect(screen.getByText("أحمد")).toBeTruthy();
+  });
+
+  it("filters delivery history by customer independently of customers.view permission",async()=>{
+    permissions=["deliveries.list"];
+    records=[delivered,{...delivered,id:91,customerId:8,customerName:"منى",customerPhone:"01122223333"}];
+    visit();const user=userEvent.setup();
+    expect(await screen.findByText("مدير الفرع")).toBeTruthy();
+    const select=await screen.findByRole("combobox",{name:"العميل"});
+    await user.click(select);
+    await user.click(await screen.findByRole("option",{name:"منى - 01122223333"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/deliveries"&&c.query.get("filter[customerId]")==="8")).toBe(true));
+    expect(screen.getByText("منى")).toBeTruthy();
+    expect(screen.queryByText("أحمد")).toBeNull();
+    expect(calls.some(c=>c.url==="/customers")).toBe(false);
+    await user.click(screen.getByRole("button",{name:"مسح الفلاتر"}));
+    expect((screen.getByRole("combobox",{name:"العميل"}) as HTMLInputElement).value).toBe("");
+  });
+
   it("submits a zero-payment delivery without a separate Finance collection",async()=>{
     visit();const user=userEvent.setup();
     await user.click(await screen.findByRole("button",{name:"تسليم الأوردر"}));

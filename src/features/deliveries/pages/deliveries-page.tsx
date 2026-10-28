@@ -162,8 +162,8 @@ export function DeliveriesPage() {
             placeholder="بحث في التسليمات..." maxLength={200}/>
         </label>
         <div className="min-w-0 space-y-1">
-          <label className="block text-xs font-semibold" htmlFor="delivery-customer-filter">{uiMessages.deliveries.customerFilter}</label>
-          <div id="delivery-customer-filter">
+          <span className="block text-xs font-semibold">{uiMessages.deliveries.customerFilter}</span>
+          <div>
             <SearchableSelect label={uiMessages.deliveries.customerFilter}
               placeholder={uiMessages.deliveries.customerPlaceholder}
               options={customerOptions.data??[]} value={customerId} onChange={setCustomerId}
