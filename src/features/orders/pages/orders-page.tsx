@@ -70,7 +70,7 @@ export function OrdersPage() {
   const [draftSearch, setDraftSearch] = useState(search);
   const filters: OrderFilters = {
     search, status: params.get("status") ?? "", productionStatus: params.get("productionStatus") ?? "",
-    lateOnly: params.get("lateOnly") === "1", openOnly: params.get("openOnly") === "1", createdFrom: params.get("createdFrom") ?? "", createdTo: params.get("createdTo") ?? "", sort: params.get("sort") ?? "-id", page: pageOf(params.get("page")),
+    lateOnly: params.get("lateOnly") === "1", readyDueToday: params.get("readyDueToday") === "1", createdFrom: params.get("createdFrom") ?? "", createdTo: params.get("createdTo") ?? "", sort: params.get("sort") ?? "-id", page: pageOf(params.get("page")),
   };
   const orders = useOrders(filters);
   const actions = useOrderActions();
@@ -89,8 +89,11 @@ export function OrdersPage() {
     setParams((previous) => {
       const next = new URLSearchParams(previous);
       if (value) next.set(name, value); else next.delete(name);
-      // Open-only is meaningful as a refinement of the late-order filter here.
-      if (name === "lateOnly" && !value) next.delete("openOnly");
+      // Operational quick filters represent distinct queues, never mix their counts.
+      if (name === "lateOnly" && value) next.delete("readyDueToday");
+      if (name === "readyDueToday" && value) next.delete("lateOnly");
+      // Remove obsolete dashboard URL parameter when any filter changes.
+      next.delete("openOnly");
       if (name !== "page") next.delete("page");
       return next;
     });
@@ -141,13 +144,11 @@ export function OrdersPage() {
               onChange={(e) => setFilter("lateOnly", e.target.checked ? "1" : "")} />
             المتأخرة فقط
           </label>
-          {filters.lateOnly && (
-            <label className="inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap text-xs font-semibold">
-              <input type="checkbox" aria-label="لم يتم تسليمها" checked={filters.openOnly}
-                onChange={(e) => setFilter("openOnly", e.target.checked ? "1" : "")} />
-              لم يتم تسليمها
-            </label>
-          )}
+          <label className="inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap text-xs font-semibold">
+            <input type="checkbox" aria-label={uiMessages.orders.readyDueTodayFilter} checked={filters.readyDueToday}
+              onChange={(e) => setFilter("readyDueToday", e.target.checked ? "1" : "")} />
+            {uiMessages.orders.readyDueTodayFilter}
+          </label>
         </div>
       </div>
       <div className="flex flex-wrap items-end gap-3 border-b border-[#e8eaf2] bg-[#fbfcff] px-4 py-3 xl:px-5">

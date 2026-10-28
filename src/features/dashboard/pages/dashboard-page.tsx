@@ -153,14 +153,17 @@ export function DashboardPage(){
             detail="تجاوزت موعد التسليم" icon={AlertTriangle} tone="red"/>
           <MetricCard label="جاهزة للتسليم" value={data.metrics.readyForDelivery}
             detail="بانتظار التسليم الفعلي" icon={CheckCircle2} tone="green"/>
-          <MetricCard label="تسليمات اليوم" value={data.metrics.dueToday}
-            detail="أوردرات موعدها اليوم" icon={CalendarDays} tone="amber"/>
+          <Link to="/orders?readyDueToday=1" aria-label={uiMessages.orders.dashboardReadyDueTodayLink}
+            className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+            <MetricCard label={uiMessages.orders.readyDueTodayDashboard} value={data.metrics.readyDueToday}
+              detail={uiMessages.orders.readyDueTodayDetail} icon={CalendarDays} tone="amber"/>
+          </Link>
         </section>
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(310px,1fr)]">
           <div className="space-y-4">
             <section aria-label="أوردرات تحتاج المتابعة" className="rounded-lg border bg-card p-4  sm:p-5">
               <SectionTitle title="أوردرات تحتاج المتابعة" detail="الأقرب في موعد التسليم، مع إظهار المتأخر أولًا"
-                link="/orders?lateOnly=1&openOnly=1" label="عرض المتأخرة"/>
+                link="/orders?lateOnly=1" label="عرض المتأخرة"/>
               {data.attentionOrders.length
                 ? <div className="mt-3 divide-y">{data.attentionOrders.map(o=>
                     <OrderSummary order={o} allowView={canOrderDetail} key={o.id}/>)}</div>

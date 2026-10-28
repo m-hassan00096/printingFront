@@ -1,5 +1,5 @@
 export type DashboardMetrics={
-  activeOrders:number;overdueOrders:number;readyForDelivery:number;dueToday:number;
+  activeOrders:number;overdueOrders:number;readyForDelivery:number;dueToday:number;readyDueToday:number;
 };
 export type DashboardPressure={
   notStarted:number;design:number;printing:number;ready:number;

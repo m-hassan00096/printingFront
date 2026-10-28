@@ -79,6 +79,11 @@ export const uiMessages = {
     logoutError: "تعذّر تسجيل الخروج. حاول مرة أخرى.",
   },
   orders: {
+    readyDueTodayFilter: "جاهزة للتسليم اليوم",
+    readyDueTodayDashboard: "جاهزة للتسليم اليوم",
+    dashboardReadyDueTodayLink: "عرض الأوردرات الجاهزة للتسليم اليوم",
+    readyDueTodayDetail: "موعدها اليوم واكتمل إنتاجها ولم تُسلّم",
+
     lastProductionStage: "آخر مرحلة إنتاج مسجلة",
     cancelledProductionNote: "الأوردر ملغي ولا توجد إجراءات إنتاج جديدة.",
     readableDeliveryDate: "تاريخ التسليم بصيغة يوم/شهر/سنة",
