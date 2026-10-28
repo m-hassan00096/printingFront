@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ClipboardCheck, Eye, RefreshCw, Truck } from "lucide-react";
+import { ClipboardCheck, Eye, RefreshCw, Truck, CalendarClock, AlertCircle } from "lucide-react";
+import { CreatedDatePicker, cairoTodayISO } from "@/features/orders/components/created-date-picker";
+import { formatCollectionDate } from "@/features/collections/components/collection-date-field";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
@@ -23,16 +26,18 @@ function dateTime(value: string | null) {
 function ReadyCard({ order, canViewOrder, onPreview }: {
   order: ReadyOrder; canViewOrder:boolean; onPreview:(id:number)=>void;
 }) {
-  return <article className="overflow-hidden rounded-lg border bg-card ">
+  const isLate=!!order.dueDate && order.dueDate<cairoTodayISO();
+  const dueToday=!!order.dueDate && order.dueDate===cairoTodayISO();
+  return <article className="overflow-hidden rounded-xl border border-[#e4e8f3] bg-card shadow-[0_3px_14px_#24345b08]">
     <header className="flex flex-wrap items-start justify-between gap-2 border-b bg-muted/30 p-4">
       <div className="min-w-0 space-y-1">
         <h3 className="font-bold" dir="ltr">{order.orderNumber}</h3>
         <p className="text-sm font-semibold">{order.customerName}</p>
         <p className="text-xs text-muted-foreground" dir="ltr">{order.customerPhone}</p>
       </div>
-      <span className={"rounded-full px-2.5 py-1 text-xs font-bold " +
+      <span className={"rounded-md px-2.5 py-1 text-xs font-bold " +
         (order.isReadyForDelivery?"bg-[#e5f7ee] text-[#147c58]":"bg-[#fff5df] text-[#a36a0d]")}>
-        {order.isReadyForDelivery?"جاهز بالكامل":"جاهز جزئيًا"}
+        {order.isReadyForDelivery?"جاهز للتسليم":"جاهز جزئيًا"}
       </span>
     </header>
     <div className="space-y-3 p-4">
@@ -40,20 +45,25 @@ function ReadyCard({ order, canViewOrder, onPreview }: {
         <div><p className="text-xs text-muted-foreground">إجمالي الأوردر</p>
           <p className="mt-1 font-bold"><MoneyAmount amount={order.orderTotal}/></p></div>
         <div><p className="text-xs text-muted-foreground">موعد التسليم</p>
-          <p className="mt-1 font-semibold">{order.dueDate??"بدون موعد"}</p></div>
-        <div><p className="text-xs text-muted-foreground">المنتجات الجاهزة</p>
+          <p className={"mt-1 flex flex-wrap items-center gap-1 font-semibold "+(isLate?"text-[#ba3646]":"")}>
+            <span dir="ltr">{order.dueDate?formatCollectionDate(order.dueDate):"بدون موعد"}</span>
+            {isLate?<span className="rounded bg-[#fff0f2] px-1.5 py-0.5 text-[11px]">{uiMessages.deliveries.overdue}</span>:
+              dueToday?<span className="rounded bg-[#fff4dc] px-1.5 py-0.5 text-[11px] text-[#9c6107]">{uiMessages.deliveries.dueToday}</span>:null}
+          </p></div>
+        <div><p className="text-xs text-muted-foreground">{uiMessages.deliveries.readyCount}</p>
           <p className="mt-1 font-bold">{order.readyItemsCount} / {order.totalItemsCount}</p></div>
-        <div><p className="text-xs text-muted-foreground">رصيد العميل</p>
+        <div><p className="text-xs text-muted-foreground">{uiMessages.deliveries.customerAccount}</p>
           <p className="mt-1 font-semibold">{order.customerBalance ?
             <>{order.customerBalance.typeLabel} · <MoneyAmount amount={order.customerBalance.amount}/></> :
             "غير متاح"}</p></div>
       </div>
-      <div className="space-y-2 border-t pt-3">
+      <div className="space-y-1.5 border-t pt-3">
+        <p className="text-xs font-semibold text-muted-foreground">{uiMessages.deliveries.itemsLabel} ({order.readyItemsCount}/{order.totalItemsCount})</p>
         {order.items.map(item=><div key={item.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
-          <span className="min-w-0 truncate font-semibold">{item.serviceName} · كمية {item.quantity.toLocaleString("en-US")}</span>
-          <span className={item.productionStage===4?"text-[#147c58]":"text-[#a36a0d]"}>
+          <span className="min-w-0 truncate font-medium">{item.serviceName} · كمية {item.quantity.toLocaleString("en-US")}</span>
+          {!order.isReadyForDelivery && <span className={item.productionStage===4?"text-[#147c58]":"text-[#a36a0d]"}>
             {item.productionStageLabel}
-          </span>
+          </span>}
         </div>)}
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t pt-3">
@@ -127,8 +137,8 @@ export function DeliveriesPage() {
         className={"rounded-lg px-4 py-2 text-sm font-bold "+(activeTab==="history"?"bg-primary text-primary-foreground":"bg-muted text-muted-foreground")}
         onClick={()=>{setTab("history");reset();}}>سجل التسليمات</button>}
     </div>
-    <section aria-label="فلاتر التسليمات" className="space-y-3 rounded-lg border bg-card p-3 sm:p-4">
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+    <section aria-label="فلاتر التسليمات" className="rounded-xl border bg-card px-4 py-3">
+      <div className={activeTab==="ready"?"grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_minmax(200px,300px)_auto]":"grid items-end gap-3 md:grid-cols-2 xl:grid-cols-[minmax(230px,1fr)_repeat(3,minmax(150px,190px))_auto]"}>
         <label className="block space-y-1 text-xs font-semibold">
           <span>البحث برقم الأوردر أو العميل أو الهاتف</span>
           <input className={fieldClass} value={searchInput} onChange={e=>setSearchInput(e.target.value)}
@@ -144,14 +154,8 @@ export function DeliveriesPage() {
             <option value="id">الأقدم</option>
           </select>
         </label> : <>
-          <label className="block space-y-1 text-xs font-semibold">
-            <span>من تاريخ</span><input type="date" aria-label="من تاريخ" className={fieldClass}
-              value={dateFrom} max={dateTo||undefined} onChange={e=>setDateFrom(e.target.value)}/>
-          </label>
-          <label className="block space-y-1 text-xs font-semibold">
-            <span>إلى تاريخ</span><input type="date" aria-label="إلى تاريخ" className={fieldClass}
-              min={dateFrom||undefined} value={dateTo} onChange={e=>setDateTo(e.target.value)}/>
-          </label>
+          <CreatedDatePicker label={uiMessages.deliveries.dateFrom} value={dateFrom} max={dateTo||undefined} onChange={setDateFrom}/>
+          <CreatedDatePicker label={uiMessages.deliveries.dateTo} value={dateTo} min={dateFrom||undefined} onChange={setDateTo}/>
           <label className="block space-y-1 text-xs font-semibold">
             <span>الحالة</span><select className={fieldClass} aria-label="حالة التسليم" value={status}
               onChange={e=>setStatus(e.target.value as HistoryFilters["status"])}>
@@ -170,12 +174,14 @@ export function DeliveriesPage() {
             </select>
           </label>
         </>}
+        <Button type="button" variant="ghost" size="sm" className="shrink-0"
+          disabled={!searchInput.trim()&&!search&&!dateFrom&&!dateTo&&!status&&readySort==="dueDate"&&historySort==="-deliveredAt"}
+          onClick={reset}>{uiMessages.deliveries.clearFilters}</Button>
       </div>
-      <Button type="button" variant="ghost" size="sm" onClick={reset}>مسح الفلاتر</Button>
     </section>
     {activeTab==="ready" && canReady ? ready.isPending ? <LoadingState/> : ready.isError ?
       <ErrorState error={ready.error} retry={()=>void ready.refetch()}/> :
-      ready.data?.orders.length ? <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      ready.data?.orders.length ? <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
         {ready.data.orders.map(order=><ReadyCard key={order.orderId} order={order}
           canViewOrder={canViewOrder} onPreview={setDelivering}/>)}
       </div> : <EmptyState title="لا توجد أوردرات جاهزة" detail="ستظهر الأوردرات هنا عند وصول منتجاتها لمرحلة الجاهزية."/> : null}
