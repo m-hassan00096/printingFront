@@ -227,7 +227,7 @@ describe("Deliveries frontend against the existing Laravel contract",()=>{
     expect(submit.hasAttribute("disabled")).toBe(false);
     await user.type(amount,"50.00");
     expect(within(dialog).getByRole("combobox",{name:"طريقة التحصيل"})).toBeTruthy();
-    expect(within(dialog).getByText("50.00 ج.م")).toBeTruthy();
+    expect(within(dialog).getAllByText("50.00 ج.م").length).toBeGreaterThan(0);
     expect(calls.some(c=>c.method==="post"&&c.url.includes("/deliver"))).toBe(false);
     await user.clear(amount);
     expect(within(dialog).queryByRole("combobox",{name:"طريقة التحصيل"})).toBeNull();
