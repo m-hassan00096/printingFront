@@ -188,8 +188,8 @@ describe("Deliveries frontend against the existing Laravel contract",()=>{
     visit();const user=userEvent.setup();
     await user.click(await screen.findByRole("button",{name:"تسليم الأوردر"}));
     const modal=await screen.findByRole("dialog",{name:"تسليم الأوردر"});
-    await user.clear(within(modal).getByRole("textbox",{name:"المبلغ المحصّل (ج.م)"});
-    await user.type(within(modal).getByRole("textbox",{name:"المبلغ المحصّل (ج.م)"},"150.00");
+    await user.clear(within(modal).getByRole("textbox",{name:"المبلغ المحصّل (ج.م)"}));
+    await user.type(within(modal).getByRole("textbox",{name:"المبلغ المحصّل (ج.م)"}),"150.00");
     await user.selectOptions(within(modal).getByRole("combobox",{name:"طريقة التحصيل"}),"1");
     expect(within(modal).getByRole("button",{name:"تأكيد التسليم"}).hasAttribute("disabled")).toBe(true);
     await user.click(within(modal).getByRole("combobox",{name:"حساب التحصيل"}));
