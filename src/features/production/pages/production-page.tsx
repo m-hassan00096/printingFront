@@ -248,9 +248,9 @@ export function ProductionPage() {
         <p className="text-xs text-muted-foreground">{uiMessages.production.stageDesign}</p>
         <p className="mt-1 text-xl font-bold tabular-nums">{summary.data.designInProgressCount+summary.data.designCompletedCount}</p>
         <p className="mt-1.5 text-[11px] text-muted-foreground">
-          {uiMessages.production.designInProgress}: <strong className="text-foreground">{summary.data.designInProgressCount}</strong>
+          <span>{uiMessages.production.designInProgress}</span>: <strong className="text-foreground">{summary.data.designInProgressCount}</strong>
           <span className="mx-1">·</span>
-          {uiMessages.production.designCompleted}: <strong className="text-foreground">{summary.data.designCompletedCount}</strong>
+          <span>{uiMessages.production.designCompleted}</span>: <strong className="text-foreground">{summary.data.designCompletedCount}</strong>
         </p>
       </div>
       {[
