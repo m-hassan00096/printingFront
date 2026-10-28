@@ -51,3 +51,12 @@ Deferred: drag-and-drop, dynamic stage configuration, production-quantity splits
 - Compact design responsibility and item action controls reduce card height without losing actual designer identity, last completer, quantity, file actions, workflow permissions or history.
 - Renamed the personal-work filter display to **عملي في التصميم**. It still selects items started or completed by the current user, **even after** the item advances to printing.
 - Requires backend Production priority sort support on `feature/optional-customer-type-pricing`. No DB migration, status transition, or permission changes.
+
+## Grouped order header with independent item cards (2026-10-28)
+
+- Keep grouping **per order within each currently loaded production column page**. The order summary (order number, customer, phone, due date/urgency) appears once as a visually distinct light-violet header. For groups with multiple items on that column page, the header shows their **visible** count.
+- Render **each item as its own bordered white sub-card** below the shared order header. Every sub-card owns its service name, quantity, stage badge, responsible designer (and different design completer where known), optional printing location, details button, and all permission-gated actions.
+- In active design, show two clearly separate actions: primary **إنهاء وإرسال** (existing action `complete-and-send-to-printing`, still requires printing-location confirmation) and secondary **إنهاء فقط** (existing `complete-design`, stays in design column). Accessible button labels preserve the full action names.
+- Keep item details available as an eye icon with a clear accessible label and tooltip; keep the portal-based overflow menu and stage undo/location operations unchanged. Compact layout reduces multi-row button clutter without merging item operations.
+- **No order-wide production action is introduced**. One item can progress to printing/ready independently while another item from the same order stays in design. If different items are in different columns, each column displays its own order header. The batch-send checkbox still selects individual item IDs.
+- The backend/API, permissions, file policy, idempotency, stage transitions and grouped-by-page pagination remain unchanged.
