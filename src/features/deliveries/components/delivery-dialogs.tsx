@@ -146,7 +146,7 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
         </p>}
         <label data-delivery-field="receiverName" className="block scroll-mt-24 space-y-1 text-sm font-semibold">
           <span>اسم المستلم (اختياري)</span>
-          <input className={fieldClass} maxLength={150} value={receiver} disabled={busy}
+          <input className={fieldClass} maxLength={150} value={receiver} disabled={busy} aria-label="اسم المستلم (اختياري)"
             aria-invalid={!!fieldErrors.receiverName}
             onChange={e=>{setReceiver(e.target.value);clearField("receiverName");}} placeholder="الشخص الذي استلم الأوردر"/>
           {fieldErrors.receiverName&&<span role="alert" className="block text-xs text-destructive">{fieldErrors.receiverName}</span>}
@@ -167,7 +167,7 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
           </div>
           <label data-delivery-field="collectedAmount" className="block scroll-mt-24 space-y-1 text-sm font-semibold">
             <span>{uiMessages.deliveries.collectOptional} (ج.م)</span>
-            <input className={fieldClass} inputMode="decimal" dir="ltr" value={amount} disabled={busy}
+            <input className={fieldClass} inputMode="decimal" dir="ltr" value={amount} disabled={busy} aria-label={uiMessages.deliveries.collectOptional+" (ج.م)"}
               onChange={e=>{setAmount(e.target.value);setCreditConfirmed(false);clearField("collectedAmount");}}
               aria-invalid={paid===null||!!fieldErrors.collectedAmount} placeholder="0.00"/>
             {(paid===null||fieldErrors.collectedAmount)&&<span role="alert" className="block text-xs text-destructive">
