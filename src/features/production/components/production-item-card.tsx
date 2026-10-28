@@ -78,7 +78,7 @@ export function ProductionItemCard({item,permissions,selected,busy,onSelect,onAc
       <StagePill stage={stage}/>
     </div>
     <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[11px]">
-      <span className="shrink-0 text-muted-foreground">الكمية: <strong className="font-semibold text-foreground tabular-nums">{item.quantity.toLocaleString("en-US")}</strong></span>
+      <span className="shrink-0 text-[11px] font-medium text-muted-foreground tabular-nums">الكمية: {item.quantity.toLocaleString("en-US")}</span>
       {(stage===1 || completed) && <span className="inline-flex min-w-0 items-center gap-1 text-muted-foreground"
         aria-label="مسؤول التصميم" title={item.designerName??"غير محدد"}>
         <UserRound className="size-3.5 shrink-0 text-primary" aria-hidden="true"/>

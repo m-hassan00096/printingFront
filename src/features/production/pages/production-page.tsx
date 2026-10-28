@@ -119,7 +119,7 @@ function ProductionColumn({ column, filters, page, onPage, count, countLoading,
                 onSelect={onSelect} onDetails={onDetails}
                 onAction={(action,i)=>onAction(i,action)}/>)}
             </div>
-          </section>)
+          </section>)}
     </div>
     {result.data && result.data.pagination.lastPage>1 &&
       <PaginationBar pagination={result.data.pagination} onPage={onPage}/>}
