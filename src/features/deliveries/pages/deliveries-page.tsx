@@ -30,7 +30,7 @@ function ReadyCard({ order, canViewOrder, onPreview }: {
 }) {
   const isLate=!!order.dueDate && order.dueDate<cairoTodayISO();
   const dueToday=!!order.dueDate && order.dueDate===cairoTodayISO();
-  return <article className="overflow-hidden rounded-xl border border-[#e4e8f3] bg-card shadow-[0_3px_14px_#24345b08]">
+  return <article aria-label={`الأوردر ${order.orderNumber}`} className="overflow-hidden rounded-xl border border-[#e4e8f3] bg-card shadow-[0_3px_14px_#24345b08]">
     <header className="space-y-3 border-b bg-muted/30 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-bold" dir="ltr">{order.orderNumber}</h3>

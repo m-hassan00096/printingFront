@@ -131,7 +131,7 @@ describe("Deliveries frontend against the existing Laravel contract",()=>{
   });
   it("labels the customer name and phone explicitly inside a ready order card",async()=>{
     visit();
-    const article=await screen.findByRole("article");
+    const article=await screen.findByRole("article",{name:"الأوردر ORD-261026001"});
     expect(within(article).getByText("العميل")).toBeTruthy();
     expect(within(article).getByText("الهاتف")).toBeTruthy();
     expect(within(article).getByText("أحمد")).toBeTruthy();
@@ -159,7 +159,7 @@ describe("Deliveries frontend against the existing Laravel contract",()=>{
     permissions=["deliveries.list"];
     records=[delivered,{...delivered,id:91,customerId:8,customerName:"منى",customerPhone:"01122223333"}];
     visit();const user=userEvent.setup();
-    expect(await screen.findByText("مدير الفرع")).toBeTruthy();
+    expect((await screen.findAllByText("مدير الفرع")).length).toBeGreaterThan(0);
     const select=await screen.findByRole("combobox",{name:"العميل"});
     await user.click(select);
     await user.click(await screen.findByRole("option",{name:"منى - 01122223333"}));
