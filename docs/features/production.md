@@ -41,3 +41,13 @@ Manual scenarios needed before merge:
 7. Confirm final physical delivery happens only in Deliveries (never on the board).
 
 Deferred: drag-and-drop, dynamic stage configuration, production-quantity splits and task comments.
+
+## Daily production UX — priority and visible urgency (2026-10-28)
+
+- **Priority is the default** list sort (`sort=priority`): confirmed, undelivered order items are sorted overdue first, then due today, upcoming dates in ascending date order, and finally items without any deadline. For matching dates in the design column, in-progress design comes before completed design; ties use the order item ID for stable paging. Implemented **server-side before pagination**, independently per Kanban column. Existing `dueDate`, `-dueDate`, `-id`, `id` remain available.
+- Changed chronological sort labels to explicitly say **موعد التسليم: الأقدم أولًا / الأبعد أولًا** and **العناصر الأحدث / الأقدم**. The latter refer to item IDs, not necessarily the order's creation date.
+- Each order group highlights **متأخر** or **تسليم اليوم** (mutually exclusive); both use Cairo-local date, and the due date is displayed DD / MM / YYYY. Missing deadlines get no urgency marker.
+- Main KPI cards now match the four board columns. The design card shows its combined count and compact in-progress/completed breakdown. A fifth, separate overdue-order count is a button that toggles the lateness filter; it respects all other active filters. Summary respects permissions and keeps counting all matching items, not only the currently loaded page.
+- Compact design responsibility and item action controls reduce card height without losing actual designer identity, last completer, quantity, file actions, workflow permissions or history.
+- Renamed the personal-work filter display to **عملي في التصميم**. It still selects items started or completed by the current user, **even after** the item advances to printing.
+- Requires backend Production priority sort support on `feature/optional-customer-type-pricing`. No DB migration, status transition, or permission changes.
