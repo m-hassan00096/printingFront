@@ -188,8 +188,8 @@ describe("Deliveries frontend against the existing Laravel contract",()=>{
     visit();const user=userEvent.setup();
     await user.click(await screen.findByRole("button",{name:"تسليم الأوردر"}));
     const modal=await screen.findByRole("dialog",{name:"تسليم الأوردر"});
-    await user.clear(within(modal).getByRole("textbox",{name:/تحصيل عند التسليم/}));
-    await user.type(within(modal).getByRole("textbox",{name:/تحصيل عند التسليم/}),"150.00");
+    await user.clear(within(modal).getByRole("textbox",{name:"المبلغ المحصّل (ج.م)"});
+    await user.type(within(modal).getByRole("textbox",{name:"المبلغ المحصّل (ج.م)"},"150.00");
     await user.selectOptions(within(modal).getByRole("combobox",{name:"طريقة التحصيل"}),"1");
     expect(within(modal).getByRole("button",{name:"تأكيد التسليم"}).hasAttribute("disabled")).toBe(true);
     await user.click(within(modal).getByRole("combobox",{name:"حساب التحصيل"}));
@@ -204,20 +204,45 @@ describe("Deliveries frontend against the existing Laravel contract",()=>{
       confirmCreditBalance:true,
     });
   });
-  it("clarifies the prior account balance and presets the order amount without auto-posting",async()=>{
+  it("keeps the modal concise with a persistent footer and an editable collection amount",async()=>{
     visit();const user=userEvent.setup();
     await user.click(await screen.findByRole("button",{name:"تسليم الأوردر"}));
     const dialog=await screen.findByRole("dialog",{name:"تسليم الأوردر"});
-    expect(within(dialog).getByText(/رصيد حساب العميل يشمل جميع الأوردرات/)).toBeTruthy();
+    expect(within(dialog).getByText("ORD-261026001")).toBeTruthy();
+    expect(within(dialog).getByText("2 من 2")).toBeTruthy();
+    expect(within(dialog).queryByText(/رصيد حساب العميل يشمل جميع الأوردرات/)).toBeNull();
+    expect(within(dialog).queryByRole("button",{name:"قيمة الأوردر"})).toBeNull();
+    expect(within(dialog).queryByRole("button",{name:"بدون تحصيل"})).toBeNull();
     expect(within(dialog).getByRole("region",{name:"ملخص الحساب بعد التسليم"})).toBeTruthy();
-    await user.click(within(dialog).getByRole("button",{name:"قيمة الأوردر"}));
-    const amount=within(dialog).getByRole("textbox",{name:/تحصيل عند التسليم/}) as HTMLInputElement;
-    expect(amount.value).toBe("350.00");
-    expect(within(dialog).getByRole("combobox",{name:"طريقة التحصيل"})).toBeTruthy();
-    expect(calls.some(c=>c.method==="post"&&c.url.includes("/deliver"))).toBe(false);
-    await user.click(within(dialog).getByRole("button",{name:"بدون تحصيل"}));
+    expect(within(dialog).getByText("الرصيد الحالي")).toBeTruthy();
+    expect(within(dialog).getByText("التحصيل الآن")).toBeTruthy();
+    expect(within(dialog).getByText("الرصيد بعد التحصيل")).toBeTruthy();
+    const submit=within(dialog).getByRole("button",{name:"تأكيد التسليم"});
+    expect(submit.closest("footer")).toBeTruthy();
+    const amount=within(dialog).getByRole("textbox",{name:"المبلغ المحصّل (ج.م)"}) as HTMLInputElement;
     expect(amount.value).toBe("0.00");
     expect(within(dialog).queryByRole("combobox",{name:"طريقة التحصيل"})).toBeNull();
+    await user.clear(amount);
+    expect(amount.value).toBe("");
+    expect(submit.hasAttribute("disabled")).toBe(false);
+    await user.type(amount,"50.00");
+    expect(within(dialog).getByRole("combobox",{name:"طريقة التحصيل"})).toBeTruthy();
+    expect(within(dialog).getByText("50.00 ج.م")).toBeTruthy();
+    expect(calls.some(c=>c.method==="post"&&c.url.includes("/deliver"))).toBe(false);
+    await user.clear(amount);
+    expect(within(dialog).queryByRole("combobox",{name:"طريقة التحصيل"})).toBeNull();
+    expect(submit.hasAttribute("disabled")).toBe(false);
+  });
+  it("submits an empty collection amount as zero while preserving ledger and delivery contract",async()=>{
+    visit();const user=userEvent.setup();
+    await user.click(await screen.findByRole("button",{name:"تسليم الأوردر"}));
+    const dialog=await screen.findByRole("dialog",{name:"تسليم الأوردر"});
+    const amount=within(dialog).getByRole("textbox",{name:"المبلغ المحصّل (ج.م)"});
+    await user.clear(amount);
+    await user.click(within(dialog).getByRole("button",{name:"تأكيد التسليم"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/deliveries/orders/10/deliver")).toBe(true));
+    expect(calls.find(c=>c.url==="/deliveries/orders/10/deliver")?.body)
+      .toEqual({receiverName:null,collectedAmount:"0.00"});
   });
   it("keeps ready queue filters compact and resets them together",async()=>{
     visit();const user=userEvent.setup();
