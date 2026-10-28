@@ -87,10 +87,10 @@ const adapter:AxiosAdapter=async config=>{
       }},
   });
   if(url==="/selects"&&query.get("selects")==="deliveryCustomers")return response(config,[
-    {label:"deliveryCustomers",options:[
-      {value:7,label:"أحمد - 01000000000"},
-      {value:8,label:"منى - 01122223333"},
-    ]},
+    {label:"deliveryCustomers",options:
+      query.get("params[deliveryCustomers]")==="history"
+        ? [{value:7,label:"أحمد - 01000000000"},{value:8,label:"منى - 01122223333"}]
+        : [{value:7,label:"أحمد - 01000000000"},{value:8,label:"منى - 01122223333"}]},
   ]);
   if(url==="/selects"&&query.get("selects")==="bankAccounts,eWallets")return response(config,[
     {label:"bankAccounts",options:[{value:3,label:"حساب بنك القاهرة"}]},
@@ -167,6 +167,8 @@ describe("Deliveries frontend against the existing Laravel contract",()=>{
     expect(screen.getByText("منى")).toBeTruthy();
     expect(screen.queryByText("أحمد")).toBeNull();
     expect(calls.some(c=>c.url==="/customers")).toBe(false);
+    expect(calls.some(c=>c.url==="/selects"&&
+      c.query.get("params[deliveryCustomers]")==="history")).toBe(true);
     await user.click(screen.getByRole("button",{name:"مسح الفلاتر"}));
     expect((screen.getByRole("combobox",{name:"العميل"}) as HTMLInputElement).value).toBe("");
   });

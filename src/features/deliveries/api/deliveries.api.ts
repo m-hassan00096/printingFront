@@ -49,9 +49,9 @@ export async function cancelDelivery(id: number, body: CancelPayload, key: strin
 }
 
 /** Scoped to delivery activity; available to delivery staff without customer-management permissions. */
-export async function getDeliveryCustomerOptions(): Promise<Array<{value:number;label:string}>> {
+export async function getDeliveryCustomerOptions(scope:"ready"|"history"): Promise<Array<{value:number;label:string}>> {
   const { data } = await apiClient.get<ApiResponse<Array<{label:string;options:Array<{value:number;label:string}>}>>>(
-    "/selects", { params: { selects: "deliveryCustomers" } },
+    "/selects", { params: { selects: "deliveryCustomers", "params[deliveryCustomers]": scope } },
   );
   const options=data.data?.find(group=>group.label==="deliveryCustomers")?.options;
   if(!Array.isArray(options)||!options.every(x=>Number.isSafeInteger(x.value)&&x.value>0&&typeof x.label==="string")) {

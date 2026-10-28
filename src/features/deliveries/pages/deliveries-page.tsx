@@ -113,9 +113,9 @@ export function DeliveriesPage() {
   const [delivering,setDelivering]=useState<number|null>(null);
   const [details,setDetails]=useState<number|null>(null);
   const customerOptions=useQuery({
-    queryKey:["deliveries","customer-options"],
-    queryFn:getDeliveryCustomerOptions,
-    enabled:canReady||canHistory,
+    queryKey:["deliveries","customer-options",activeTab],
+    queryFn:()=>getDeliveryCustomerOptions(activeTab),
+    enabled:(activeTab==="ready"&&canReady)||(activeTab==="history"&&canHistory),
     staleTime:60_000,
   });
 
