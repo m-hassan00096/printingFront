@@ -128,6 +128,10 @@ describe("Deliveries frontend against the existing Laravel contract",()=>{
     const dialog=await screen.findByRole("dialog",{name:"تسليم الأوردر"});
     expect(within(dialog).getByText("350.00 ج.م")).toBeTruthy();
     expect(within(dialog).getByText("2 من 2")).toBeTruthy();
+    const phoneLabel=within(dialog).getByText("الهاتف");
+    const phoneValue=within(dialog).getByText("01000000000");
+    expect(phoneLabel.parentElement?.textContent).toContain("01000000000");
+    expect(phoneValue.getAttribute("dir")).toBe("ltr");
   });
   it("labels the customer name and phone explicitly inside a ready order card",async()=>{
     visit();
@@ -135,7 +139,11 @@ describe("Deliveries frontend against the existing Laravel contract",()=>{
     expect(within(article).getByText("العميل")).toBeTruthy();
     expect(within(article).getByText("الهاتف")).toBeTruthy();
     expect(within(article).getByText("أحمد")).toBeTruthy();
-    expect(within(article).getByText("01000000000")).toBeTruthy();
+    const phone=within(article).getByText("01000000000");
+    const phoneRow=within(article).getByText("الهاتف").parentElement;
+    expect(phoneRow?.querySelector("dd")?.textContent?.trim()).toBe("01000000000");
+    expect(phoneRow?.querySelector("dd")?.className).toContain("text-right");
+    expect(phone.getAttribute("dir")).toBe("ltr");
   });
 
   it("filters ready orders by a searchable customer selection and resets the filter",async()=>{

@@ -44,9 +44,11 @@ function ReadyCard({ order, canViewOrder, onPreview }: {
           <dt className="text-xs text-muted-foreground">{uiMessages.deliveries.customerLabel}</dt>
           <dd className="mt-1 truncate text-sm font-semibold" title={order.customerName}>{order.customerName}</dd>
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 text-right">
           <dt className="text-xs text-muted-foreground">{uiMessages.deliveries.phoneLabel}</dt>
-          <dd className="mt-1 text-sm font-medium tabular-nums" dir="ltr">{order.customerPhone}</dd>
+          <dd className="mt-1 text-right text-sm font-medium tabular-nums">
+            <span dir="ltr" className="inline-block">{order.customerPhone}</span>
+          </dd>
         </div>
       </dl>
     </header>

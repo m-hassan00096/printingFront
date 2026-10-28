@@ -140,9 +140,11 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
         <div className="space-y-3 rounded-lg border border-[#e8ebf4] bg-[#f8f9fc] p-3.5">
           <div className="grid grid-cols-2 gap-3">
             <DeliveryField label="رقم الأوردر"><span dir="ltr" className="inline-block tabular-nums">{preview.data.order.orderNumber}</span></DeliveryField>
-            <div className="min-w-0">
+            <div className="min-w-0 space-y-2 text-right">
               <DeliveryField label="العميل">{preview.data.order.customerName}</DeliveryField>
-              <p className="mt-0.5 text-xs text-muted-foreground" dir="ltr">{preview.data.order.customerPhone}</p>
+              <DeliveryField label={uiMessages.deliveries.phoneLabel}>
+                <span dir="ltr" className="inline-block tabular-nums">{preview.data.order.customerPhone}</span>
+              </DeliveryField>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 border-t border-[#e5e8f1] pt-3">
