@@ -136,6 +136,52 @@ describe("Production board against Laravel API contracts",()=>{
     expect(screen.getByRole("link",{name:"الإنتاج"})).toBeTruthy();
   });
 
+  it("defaults to operational priority and offers explicit chronological alternatives", async()=>{
+    visit();await screen.findByText("رول أب");
+    await waitFor(()=>expect(calls.some(c=>c.url==="/production/items"
+      && c.query.get("sort")==="priority")).toBe(true));
+    const sort=screen.getByRole("combobox",{name:"ترتيب عناصر الإنتاج"});
+    expect((sort as HTMLSelectElement).value).toBe("priority");
+    expect(within(sort).getByRole("option",{name:"الأولوية التشغيلية"})).toBeTruthy();
+    const user=userEvent.setup();
+    await user.selectOptions(sort,"-dueDate");
+    await waitFor(()=>expect(calls.some(c=>c.url==="/production/items"
+      && c.query.get("sort")==="-dueDate")).toBe(true));
+    await user.click(screen.getByRole("button",{name:"مسح الفلاتر"}));
+    expect((sort as HTMLSelectElement).value).toBe("priority");
+  });
+
+  it("marks overdue and Cairo-due-today orders distinctly on their cards",async()=>{
+    const parts=new Intl.DateTimeFormat("en-GB",{
+      timeZone:"Africa/Cairo",year:"numeric",month:"2-digit",day:"2-digit",
+    }).formatToParts(new Date());
+    const part=(type:string)=>parts.find(x=>x.type===type)?.value??"";
+    items[0].dueDate=`${part("year")}-${part("month")}-${part("day")}`;
+    items[0].isLate=false;
+    items[1].isLate=true;
+    visit();
+    const notStarted=await screen.findByRole("region",{name:"عمود لم يبدأ"});
+    expect(await within(notStarted).findByText("تسليم اليوم")).toBeTruthy();
+    const design=screen.getByRole("region",{name:"عمود التصميم"});
+    expect(await within(design).findByText("متأخر")).toBeTruthy();
+    expect(within(design).queryByText("تسليم اليوم")).toBeNull();
+  });
+
+  it("groups four stage KPIs and lets an operator apply overdue filter via the metric",async()=>{
+    visit();await screen.findByText("رول أب");
+    const overview=await screen.findByRole("region",{name:"ملخص مراحل الإنتاج"});
+    expect(within(overview).getByText("التصميم")).toBeTruthy();
+    expect(within(overview).getByText("جارٍ")).toBeTruthy();
+    expect(within(overview).getByText("مكتمل")).toBeTruthy();
+    const user=userEvent.setup();
+    const overdue=within(overview).getByRole("button",{name:"عرض الأوردرات المتأخرة فقط"});
+    await user.click(overdue);
+    expect(overdue.getAttribute("aria-pressed")).toBe("true");
+    expect((screen.getByRole("checkbox",{name:"المتأخرة فقط"}) as HTMLInputElement).checked).toBe(true);
+    await waitFor(()=>expect(calls.some(c=>c.url==="/production/items" &&
+      c.query.get("filter[lateOnly]")==="1")).toBe(true));
+  });
+
   it("starts design using authenticated actor and a fresh idempotency key",async()=>{
     visit();const user=userEvent.setup();
     await user.click(await screen.findByRole("button",{name:"بدء التصميم"}));
@@ -269,7 +315,7 @@ describe("Production board against Laravel API contracts",()=>{
     visit();const user=userEvent.setup();
     await screen.findByText("رول أب");
     await user.click(screen.getByRole("checkbox",{name:"المتأخرة فقط"}));
-    await user.selectOptions(screen.getByRole("combobox",{name:"فلتر أعمال التصميم"}),"2");
+    await user.selectOptions(screen.getByRole("combobox",{name:"عملي في التصميم"}),"2");
     await waitFor(()=>expect(calls.some(c=>c.url==="/production/items" &&
       c.query.get("filter[lateOnly]")==="1"&&c.query.get("filter[myDesignWork]")==="2")).toBe(true));
     await user.click(screen.getByRole("combobox",{name:"تصفية حسب العميل"}));
