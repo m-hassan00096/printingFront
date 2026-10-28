@@ -11,8 +11,20 @@ import { ProductionItemCard } from "../components/production-item-card";
 import { ProductionActionDialog, ProductionDetailDialog, type ProductionPendingAction } from "../components/production-dialogs";
 import { PRODUCTION_COLUMNS, type ProductionColumnId, type ProductionFilters, type ProductionItem } from "../types/production.types";
 import { getApiErrorMessage } from "@/shared/api/http";
+import { uiMessages } from "@/shared/translations/ar/ui";
 
 const initialPages: Record<ProductionColumnId,number> = {0:1,1:1,2:1,3:1};
+function cairoToday(): string {
+  const parts = new Intl.DateTimeFormat("en-GB",{
+    timeZone:"Africa/Cairo",year:"numeric",month:"2-digit",day:"2-digit",
+  }).formatToParts(new Date());
+  const part = (type:string) => parts.find(x=>x.type===type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+function displayDueDate(value:string):string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  return match ? `${match[3]} / ${match[2]} / ${match[1]}` : value;
+}
 const summaryCounts = (summary:ReturnType<typeof useProductionSummary>["data"],id:ProductionColumnId):number|null => {
   if (!summary) return null;
   if (id===0) return summary.notStartedCount;
@@ -77,8 +89,15 @@ function ProductionColumn({ column, filters, page, onPage, count, countLoading,
               <p className="font-mono text-xs font-medium text-primary" dir="auto">{items[0].orderNumber}</p>
               <p className="truncate text-xs font-semibold" title={items[0].customerName}>{items[0].customerName}</p>
               <p className="text-xs text-muted-foreground">{items[0].customerPhone}</p>
-              {items[0].isLate && <span className="inline-flex rounded-full bg-[#fff0f2] px-2 py-0.5 text-xs font-bold text-[#c8384a]">متأخر</span>}
-              {items[0].dueDate && <p className="text-xs text-muted-foreground">التسليم: {items[0].dueDate}</p>}
+              {(items[0].isLate || items[0].dueDate===cairoToday()) &&
+                <span className={items[0].isLate
+                  ? "inline-flex w-fit rounded-md bg-[#fff0f2] px-2 py-0.5 text-[11px] font-bold text-[#c8384a]"
+                  : "inline-flex w-fit rounded-md bg-[#fff4dc] px-2 py-0.5 text-[11px] font-bold text-[#9c6107]"}>
+                  {items[0].isLate ? uiMessages.production.overdueLabel : uiMessages.production.dueTodayLabel}
+                </span>}
+              {items[0].dueDate && <p className="text-xs text-muted-foreground">
+                {uiMessages.production.deliveryDueLabel}: <span dir="ltr" className="inline-block tabular-nums">{displayDueDate(items[0].dueDate)}</span>
+              </p>}
             </header>
             {items.map(item=><ProductionItemCard key={item.id} item={item} permissions={permissions}
               selected={selected.has(item.id)} busy={busy}
@@ -106,7 +125,7 @@ export function ProductionPage() {
   const [serviceId,setServiceId]=useState("");
   const [myDesignWork,setMyDesignWork]=useState<ProductionFilters["myDesignWork"]>("");
   const [lateOnly,setLateOnly]=useState(false);
-  const [sort,setSort]=useState<ProductionFilters["sort"]>("dueDate");
+  const [sort,setSort]=useState<ProductionFilters["sort"]>("priority");
   const [activeColumn,setActiveColumn]=useState<ProductionColumnId>(0);
   const [pages,setPages]=useState(initialPages);
   const [selected,setSelected]=useState<ReadonlySet<number>>(new Set());
@@ -168,7 +187,7 @@ export function ProductionPage() {
     setPending(null);
   }
   function reset() {
-    setSearchInput("");setSearch("");setCustomerId("");setServiceId("");setMyDesignWork("");setLateOnly(false);setSort("dueDate");
+    setSearchInput("");setSearch("");setCustomerId("");setServiceId("");setMyDesignWork("");setLateOnly(false);setSort("priority");
   }
   return <div className="space-y-5">
     <SectionHeader title="لوحة الإنتاج" detail="متابعة عناصر الأوردرات المؤكدة من بدء التصميم حتى الجاهزية للتسليم."
@@ -190,11 +209,11 @@ export function ProductionPage() {
         <SearchableSelect label="تصفية حسب الخدمة" placeholder="كل الخدمات — ابحث..."
           options={selects.data?.services??[]} value={serviceId} onChange={setServiceId}
           loading={selects.isPending} disabled={selects.isError}/>
-        <select className={fieldClass} aria-label="فلتر أعمال التصميم" value={myDesignWork}
+        <select className={fieldClass} aria-label={uiMessages.production.designFilterLabel} value={myDesignWork}
           onChange={e=>setMyDesignWork(e.target.value as ProductionFilters["myDesignWork"])}>
-          <option value="">كل أعمال التصميم</option>
-          <option value="1">بدأتها أنا</option>
-          <option value="2">أنهيتها أنا</option>
+          <option value="">{uiMessages.production.allMyDesignWork}</option>
+          <option value="1">{uiMessages.production.designStartedByMe}</option>
+          <option value="2">{uiMessages.production.designCompletedByMe}</option>
         </select>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -205,10 +224,11 @@ export function ProductionPage() {
         <label className="flex items-center gap-2 text-sm">الترتيب
           <select className={fieldClass+" !h-9 min-w-36"} aria-label="ترتيب عناصر الإنتاج" value={sort}
             onChange={e=>setSort(e.target.value as ProductionFilters["sort"])}>
-            <option value="dueDate">الأقرب تسليمًا</option>
-            <option value="-dueDate">الأبعد تسليمًا</option>
-            <option value="-id">الأحدث</option>
-            <option value="id">الأقدم</option>
+            <option value="priority">{uiMessages.production.sortPriority}</option>
+            <option value="dueDate">{uiMessages.production.sortNearest}</option>
+            <option value="-dueDate">{uiMessages.production.sortFarthest}</option>
+            <option value="-id">{uiMessages.production.sortNewest}</option>
+            <option value="id">{uiMessages.production.sortOldest}</option>
           </select>
         </label>
         <Button variant="ghost" size="sm" onClick={reset}>مسح الفلاتر</Button>
@@ -218,19 +238,42 @@ export function ProductionPage() {
         <button className="mr-2 underline" type="button" onClick={()=>void selects.refetch()}>إعادة المحاولة</button>
       </div>}
     </section>
-    {can("production.summary.view") && summary.data && <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+    {can("production.summary.view") && summary.data && <section aria-label={uiMessages.production.summaryLabel}
+      className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
       {[
-        ["لم يبدأ",summary.data.notStartedCount],
-        ["تصميم جارٍ",summary.data.designInProgressCount],
-        ["تصميم مكتمل",summary.data.designCompletedCount],
-        ["في الطباعة",summary.data.printingCount],
-        ["جاهز للتسليم",summary.data.readyCount],
-        ["أوردرات متأخرة",summary.data.lateOrdersCount],
-      ].map(([label,n])=><div key={label} className="rounded-xl border border-[#e8eaf2] bg-white p-4 shadow-[0_3px_12px_#27396b07]">
+        [uiMessages.production.stageNotStarted,summary.data.notStartedCount],
+        [uiMessages.production.stagePrinting,summary.data.printingCount],
+        [uiMessages.production.stageReady,summary.data.readyCount],
+      ].slice(0,1).map(([label,n])=><div key={label} className="rounded-xl border border-[#e8eaf2] bg-white p-3.5 shadow-[0_3px_12px_#27396b07]">
         <p className="text-xs text-muted-foreground">{label}</p>
         <p className="mt-1 text-xl font-bold tabular-nums">{n}</p>
       </div>)}
-    </div>}
+      <div className="rounded-xl border border-[#e8eaf2] bg-white p-3.5 shadow-[0_3px_12px_#27396b07]">
+        <p className="text-xs text-muted-foreground">{uiMessages.production.stageDesign}</p>
+        <p className="mt-1 text-xl font-bold tabular-nums">{summary.data.designInProgressCount+summary.data.designCompletedCount}</p>
+        <p className="mt-1.5 text-[11px] text-muted-foreground">
+          {uiMessages.production.designInProgress}: <strong className="text-foreground">{summary.data.designInProgressCount}</strong>
+          <span className="mx-1">·</span>
+          {uiMessages.production.designCompleted}: <strong className="text-foreground">{summary.data.designCompletedCount}</strong>
+        </p>
+      </div>
+      {[
+        [uiMessages.production.stagePrinting,summary.data.printingCount],
+        [uiMessages.production.stageReady,summary.data.readyCount],
+      ].map(([label,n])=><div key={label} className="rounded-xl border border-[#e8eaf2] bg-white p-3.5 shadow-[0_3px_12px_#27396b07]">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="mt-1 text-xl font-bold tabular-nums">{n}</p>
+      </div>)}
+      <button type="button" aria-pressed={lateOnly} aria-label={uiMessages.production.filterOverdueAction}
+        onClick={()=>setLateOnly(true)}
+        className={`rounded-xl border p-3.5 text-right shadow-[0_3px_12px_#27396b07] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${lateOnly
+          ? "border-[#f0a6ad] bg-[#fff0f2]"
+          : "border-[#e8eaf2] bg-white hover:border-[#f0a6ad] hover:bg-[#fff8f9]"}`}>
+        <p className="text-xs text-muted-foreground">{uiMessages.production.overdueOrders}</p>
+        <p className="mt-1 text-xl font-bold tabular-nums">{summary.data.lateOrdersCount}</p>
+        <p className="mt-1 text-[11px] text-primary">{lateOnly ? uiMessages.production.filterApplied : uiMessages.production.viewOverdue}</p>
+      </button>
+    </section>}
     {can("production.summary.view") && summary.isError && <div className="rounded-lg border p-2">
       <ErrorState error={summary.error} retry={()=>void summary.refetch()}/>
     </div>}
