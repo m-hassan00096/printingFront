@@ -221,6 +221,8 @@ describe("Production board against Laravel API contracts",()=>{
     expect(within(readyGroup).getByRole("article",{name:"عنصر بوستر"})).toBeTruthy();
     const user=userEvent.setup();
     await user.click(within(printingGroup).getByRole("button",{name:"جاهز للتسليم"}));
+    const dialog=await screen.findByRole("dialog",{name:"إنهاء الطباعة وتجهيز العنصر"});
+    await user.click(within(dialog).getByRole("button",{name:"تأكيد العملية"}));
     await waitFor(()=>expect(calls.some(c=>c.url==="/production/items/104/mark-ready")).toBe(true));
     expect(calls.some(c=>c.url==="/production/items/105/mark-ready")).toBe(false);
     expect(items.find(x=>x.id===104)?.productionStage).toBe(4);
