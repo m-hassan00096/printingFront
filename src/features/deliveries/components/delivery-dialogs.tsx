@@ -208,28 +208,41 @@ export function DeliverOrderDialog({ orderId, onClose, onSuccess }: {
             </p>}
           </div>}
         </>}
-        {estimated !== null && paid !== null && <div className="rounded-lg border p-3 text-sm">
-          الرصيد التقديري بعد التحصيل: <strong>
-            {estimated < 0 ? "دائن" : estimated > 0 ? "مدين" : "متوازن"} ·
-            {" "}<MoneyAmount amount={centsToMoney(Math.abs(estimated))}/>
-          </strong>
-          <p className="mt-1 text-xs text-muted-foreground">تقديري فقط؛ النظام يعيد حساب الرصيد عند الحفظ.</p>
-        </div>}
-        {willCreateCredit && <label className="flex items-start gap-2 rounded-lg border border-amber-200 bg-[#fff4df] p-3 text-sm text-[#a46b0b]">
-          <input type="checkbox" checked={creditConfirmed} onChange={e=>setCreditConfirmed(e.target.checked)}
+        {estimated !== null && paid !== null && <section className="rounded-lg border border-[#e2e6f3] bg-[#f8f9ff] p-3.5"
+          aria-label={uiMessages.deliveries.summary}>
+          <h3 className="mb-3 text-sm font-bold">{uiMessages.deliveries.summary}</h3>
+          <div className="space-y-2 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-muted-foreground">{uiMessages.deliveries.currentBalance}</span>
+              <strong>{preview.data.customerBalance?.typeLabel} · <MoneyAmount amount={preview.data.customerBalance?.amount??"0.00"}/></strong>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-muted-foreground">{uiMessages.deliveries.amountNow}</span>
+              <strong><MoneyAmount amount={centsToMoney(paid)}/></strong>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-2">
+              <span className="font-semibold">{uiMessages.deliveries.afterBalance}</span>
+              <strong className="text-base">{estimated < 0 ? "دائن" : estimated > 0 ? "مدين" : "متوازن"} ·
+                {" "}<MoneyAmount amount={centsToMoney(Math.abs(estimated))}/></strong>
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">{uiMessages.deliveries.estimateWarning}</p>
+        </section>}
+        {willCreateCredit && <label data-delivery-field="confirmCreditBalance" className="flex scroll-mt-24 items-start gap-2 rounded-lg border border-amber-200 bg-[#fff4df] p-3 text-sm text-[#a46b0b]">
+          <input type="checkbox" checked={creditConfirmed} onChange={e=>{setCreditConfirmed(e.target.checked);clearField("confirmCreditBalance");}}
             aria-label="تأكيد الرصيد الدائن"/>
           أؤكد أن المبلغ سيُنشئ أو يزيد رصيدًا دائنًا لحساب العميل.
         </label>}
         {needsPayment && estimated === null && canCollect &&
-          <label className="flex items-start gap-2 rounded-lg border p-3 text-sm">
-            <input type="checkbox" checked={creditConfirmed} onChange={e=>setCreditConfirmed(e.target.checked)}
+          <label data-delivery-field="confirmCreditBalance" className="flex scroll-mt-24 items-start gap-2 rounded-lg border p-3 text-sm">
+            <input type="checkbox" checked={creditConfirmed} onChange={e=>{setCreditConfirmed(e.target.checked);clearField("confirmCreditBalance");}}
               aria-label="السماح بالرصيد الدائن"/>
             أوافق على إنشاء رصيد دائن إذا تجاوز المبلغ المستحق (قد يطلب النظام هذا التأكيد).
           </label>}
         <p className="text-xs text-muted-foreground">
           تاريخ التسليم يسجله السيرفر تلقائيًا. لن يتم تسجيل أي تحصيل إذا كان المبلغ صفرًا.
         </p>
-        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+        {error && <p role="alert" className="rounded-lg bg-destructive/10 p-2 text-sm text-destructive">{error}</p>}
         <div className="flex flex-wrap gap-2 border-t pt-4">
           <Button type="button" disabled={disabled} onClick={()=>void submit()}>
             {busy?"جاري التسليم...":"تأكيد التسليم"}
