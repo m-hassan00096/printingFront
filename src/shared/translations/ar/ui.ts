@@ -106,6 +106,7 @@ export const uiMessages = {
     morningAbbreviation: "ص",
     eveningAbbreviation: "م",
     clearCreatedFilter: "مسح التاريخ",
+    clearAllFilters: "مسح الفلاتر",
     invalidCreatedRange: "تاريخ البداية يجب أن يكون قبل أو مساويًا لتاريخ النهاية.",
     dueDateColumn: "موعد التسليم",
     noDueDate: "بدون موعد",
