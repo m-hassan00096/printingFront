@@ -339,7 +339,7 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
             أدخل مبلغًا صحيحًا برقمين عشريين كحد أقصى.
           </span>}
           {correctedCents===0&&<p role="alert" className="text-xs text-destructive">
-            لإلغاء الإيصال بالكامل، ارجع واختر «عكس التحصيل».
+            لإلغاء الإيصال بالكامل، ارجع واختر «عكس الإيصال بالكامل».
           </p>}
           {correctedCents!==null&&correctedCents===originalCents&&<p className="text-xs text-muted-foreground">غيّر المبلغ المسجل قبل الحفظ.</p>}
         </label>
