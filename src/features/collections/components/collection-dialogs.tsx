@@ -161,7 +161,7 @@ function ReceiptActionSummary({receipt}:{receipt:Collection}){
   return <div className="grid gap-x-4 gap-y-3 rounded-lg bg-muted/40 p-3 text-sm sm:grid-cols-2">
     <div>
       <p className="text-xs text-muted-foreground">رقم الإيصال</p>
-      <p dir="ltr" className="mt-1 font-semibold tabular-nums">{receipt.receiptNumber}</p>
+      <p className="mt-1 text-right font-semibold"><span dir="ltr" className="inline-block tabular-nums">{receipt.receiptNumber}</span></p>
     </div>
     <div>
       <p className="text-xs text-muted-foreground">المبلغ المسجل</p>
@@ -173,7 +173,7 @@ function ReceiptActionSummary({receipt}:{receipt:Collection}){
     </div>
     {receipt.source!==0&&receipt.orderNumber&&<div>
       <p className="text-xs text-muted-foreground">رقم الأوردر</p>
-      <p dir="ltr" className="mt-1 font-semibold tabular-nums">{receipt.orderNumber}</p>
+      <p className="mt-1 text-right font-semibold"><span dir="ltr" className="inline-block tabular-nums">{receipt.orderNumber}</span></p>
     </div>}
   </div>;
 }
@@ -267,7 +267,7 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
     <Button variant="outline" disabled={busy} onClick={goBack}>رجوع للتفاصيل</Button>
   </>:view==="reverse"?<>
     <Button variant="destructive" disabled={!validReversal} onClick={()=>void submitReversal()}>
-      {actions.reverse.isPending?"جاري العكس...":"تأكيد عكس التحصيل"}
+      {actions.reverse.isPending?"جاري العكس...":"تأكيد عكس الإيصال"}
     </Button>
     <Button variant="outline" disabled={busy} onClick={goBack}>رجوع للتفاصيل</Button>
   </>:<Button variant="outline" disabled={busy} onClick={onClose}>إغلاق</Button>;
@@ -285,7 +285,7 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
             ["الحالة",receipt.statusLabel],["جهة التحصيل",receipt.destinationLabel??"—"],
           ].map(([label,value])=><div key={label}>
             <p className="text-xs text-muted-foreground">{label}</p>
-            <p className="mt-1 break-words font-semibold text-foreground">{value}</p>
+            <p className="mt-1 break-words text-right font-semibold text-foreground">{label==="رقم الإيصال"||label==="رقم الأوردر"?<span dir="ltr" className="inline-block tabular-nums">{value}</span>:value}</p>
           </div>)}
           <div><p className="text-xs text-muted-foreground">المبلغ</p>
             <p className="mt-1 font-extrabold"><MoneyAmount amount={receipt.amount}/></p></div>
@@ -319,7 +319,7 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
             </div>}
             {reversible&&<div className="space-y-2 rounded-lg border p-3">
               <p className="text-xs text-muted-foreground">الإيصال كله اتسجل بالخطأ؟</p>
-              <Button variant="outline" className="w-full text-destructive" onClick={beginReversal}>عكس التحصيل</Button>
+              <Button variant="outline" className="w-full text-destructive" onClick={beginReversal}>عكس الإيصال بالكامل</Button>
             </div>}
           </div>
           <p className="text-xs text-muted-foreground">
@@ -330,8 +330,8 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
           className="inline-flex text-xs font-semibold text-primary underline">الانتقال لحساب العميل لرد رصيد</Link>}
       </div>:view==="correct"&&correctable?<div className="space-y-4">
         <ReceiptActionSummary receipt={receipt}/>
-        <label className="block space-y-1 text-sm font-semibold">
-          <span>المبلغ الصحيح الذي استُلم (ج.م) *</span>
+        <label className="block space-y-2 text-sm font-semibold">
+          <span className="block">المبلغ الصحيح الذي استُلم (ج.م) *</span>
           <input autoFocus dir="ltr" inputMode="decimal" className={fieldClass} value={amount}
             aria-invalid={correctedCents===null||correctedCents===0}
             onChange={e=>{setAmount(e.target.value);setError("");}}/>
@@ -343,8 +343,8 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
           </p>}
           {correctedCents!==null&&correctedCents===originalCents&&<p className="text-xs text-muted-foreground">غيّر المبلغ المسجل قبل الحفظ.</p>}
         </label>
-        <label className="block space-y-1 text-sm font-semibold">
-          <span>سبب التصحيح *</span>
+        <label className="block space-y-2 text-sm font-semibold">
+          <span className="block">سبب التصحيح *</span>
           <textarea className={fieldClass+" min-h-20 py-2"} maxLength={3000} value={correctionReason}
             onChange={e=>{setCorrectionReason(e.target.value);setError("");}}
             placeholder="مثال: العميل دفع 300 ج.م لكن تم تسجيل 500 ج.م"/>
@@ -352,14 +352,25 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
             السبب لازم يكون 3 أحرف على الأقل.
           </span>}
         </label>
-        <div className="rounded-lg border bg-muted/30 p-3 text-sm leading-6">
+        <section aria-label="النتيجة بعد التصحيح" className="space-y-2 rounded-lg border bg-muted/30 p-3 text-sm">
           <p className="font-semibold">النتيجة بعد التصحيح</p>
-          <p className="mt-1 text-muted-foreground">
-            الإيصال الحالي هيصبح معكوسًا، وهيتسجل إيصال جديد
-            {receipt.source!==0?" لنفس الأوردر":""} بنفس طريقة الدفع والمصدر.
-            وكل السجلات المالية هتفضل محفوظة.
+          {correctedCents!==null&&correctedCents>0&&amountChanged&&<div
+            aria-label="مقارنة المبلغ القديم والجديد"
+            className="grid grid-cols-2 gap-3 rounded-md border bg-card p-3">
+            <div>
+              <p className="text-xs text-muted-foreground">المبلغ القديم</p>
+              <p className="mt-1 font-semibold"><MoneyAmount amount={receipt.amount}/></p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">المبلغ الجديد</p>
+              <p className="mt-1 font-bold text-foreground"><MoneyAmount amount={centsToMoney(correctedCents)}/></p>
+            </div>
+          </div>}
+          <p className="text-xs leading-6 text-muted-foreground">
+            سيُعكس الإيصال القديم ويُسجل إيصال جديد
+            {receipt.source!==0?" لنفس الأوردر":""} بنفس طريقة الدفع والمصدر، مع الاحتفاظ بالسجل المالي.
           </p>
-        </div>
+        </section>
         {receipt.source===2&&<label className="flex items-start gap-2 rounded-lg border p-3 text-sm leading-6">
           <input type="checkbox" checked={confirmCredit} onChange={e=>setConfirmCredit(e.target.checked)}
             className="mt-1 accent-primary"/>
@@ -376,8 +387,8 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
             {" "}العملية لا ترد فلوسًا للعميل تلقائيًا.
           </span>
         </p>
-        <label className="block space-y-1 text-sm font-semibold">
-          <span>سبب العكس *</span>
+        <label className="block space-y-2 text-sm font-semibold">
+          <span className="block">سبب العكس *</span>
           <textarea autoFocus className={fieldClass+" min-h-20 py-2"} maxLength={3000} value={reversalReason}
             onChange={e=>{setReversalReason(e.target.value);setError("");}}
             placeholder="مثال: تم تسجيل الإيصال مرتين"/>
