@@ -39,7 +39,8 @@ const adapter:AxiosAdapter=async config=>{
     {label:"eWallets",options:[{value:4,label:"فودافون كاش"}]},
   ]);
   if(url==="/finance/customers/7/balance")return ok(config,{
-    customerId:7,amount:credit,type:2,typeLabel:"دائن",openingBalanceExists:true,
+    customerId:7,amount:credit,type:Number(credit)===0?0:2,
+    typeLabel:Number(credit)===0?"متوازن":"دائن",openingBalanceExists:true,
   });
   if(url==="/finance/customers/7/opening-balance-status")return ok(config,{
     customerId:7,openingBalanceExists:true,
@@ -59,6 +60,7 @@ const adapter:AxiosAdapter=async config=>{
   if(url==="/finance/refunds"&&method==="get"){
     let found=records;
     if(params.get("filter[paymentMethod]"))found=found.filter(x=>String(x.paymentMethod)===params.get("filter[paymentMethod]"));
+    if(params.get("filter[customerId]"))found=found.filter(x=>String(x.customerId)===params.get("filter[customerId]"));
     return ok(config,{refunds:found,pagination:{currentPage:1,lastPage:1,perPage:20,total:found.length}});
   }
   if(url==="/finance/refunds/91"&&method==="get")return ok(config,records[0]);
@@ -90,6 +92,8 @@ describe("Finance Refunds within the Accounts module",()=>{
     permissions=["finance.refunds.view"];visit("/finance");
     expect(await screen.findByText("REF-2026-00091")).toBeTruthy();
     expect(screen.getByText("26/10/2026")).toBeTruthy();
+    expect(screen.queryByRole("tab",{name:"حسابات العملاء"})).toBeNull();
+    expect(screen.getByRole("tab",{name:"سجل الردود العام"}).getAttribute("aria-selected")).toBe("true");
     expect(screen.queryByRole("button",{name:"رد رصيد دائن"})).toBeNull();
     expect(calls.some(c=>c.url==="/finance/customer-balances")).toBe(false);
     expect(calls.some(c=>c.url==="/selects")).toBe(false);
@@ -132,22 +136,83 @@ describe("Finance Refunds within the Accounts module",()=>{
       "finance.refunds.view","finance.refunds.create"];
     visit("/finance?customerId=7");
     const user=userEvent.setup();
-    expect(await screen.findByRole("button",{name:"رد رصيد دائن"})).toBeTruthy();
-    expect(screen.queryByRole("tablist")).toBeNull();
+    const selectedRefund=await screen.findByRole("button",{name:"رد رصيد للعميل"});
+    expect(await screen.findByText(/الرصيد الدائن المتاح للرد/)).toBeTruthy();
+    await waitFor(()=>expect(selectedRefund.hasAttribute("disabled")).toBe(false));
+    const tabs=screen.getByRole("tablist",{name:"أقسام حسابات العملاء"});
+    expect(within(tabs).getByRole("tab",{name:"حسابات العملاء"}).getAttribute("aria-selected")).toBe("true");
+    expect(within(tabs).getByRole("tab",{name:"سجل الردود العام"}).getAttribute("aria-selected")).toBe("false");
     expect(screen.queryByText("قائمة الحسابات")).toBeNull();
     expect(screen.getByRole("combobox",{name:"اختيار حساب العميل"})).toBeTruthy();
     expect(await screen.findByText("مسجل")).toBeTruthy();
     expect(screen.queryByRole("button",{name:"رصيد افتتاحي"})).toBeNull();
     expect(screen.queryByText("سجل المبالغ المرتجعة")).toBeNull();
-    const history=screen.getByRole("button",{name:"سجل رد الأرصدة"});
+    const history=screen.getByRole("button",{name:"عرض ردود رصيد العميل"});
     expect(history.getAttribute("aria-expanded")).toBe("false");
     await user.click(history);
     expect(history.getAttribute("aria-expanded")).toBe("true");
     expect(await screen.findByText("REF-2026-00091")).toBeTruthy();
-    await user.click(screen.getByRole("button",{name:"رد رصيد دائن"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/finance/refunds"&&c.params.get("filter[customerId]")==="7")).toBe(true));
+    await user.click(screen.getByRole("button",{name:"رد رصيد للعميل"}));
     const dialog=await screen.findByRole("dialog",{name:"رد رصيد دائن للعميل"});
     expect((within(dialog).getByRole("combobox",{name:"عميل رد الرصيد"}) as HTMLElement).getAttribute("aria-disabled")).not.toBe("true");
     expect(await within(dialog).findByText("الرصيد المتاح للرد حاليًا")).toBeTruthy();
+  });
+  it("keeps an authorized refund action visible but disabled when no credit is available",async()=>{
+    permissions=["finance.balances.view","finance.ledger.view","finance.refunds.create"];
+    credit="0.00";
+    visit("/finance?customerId=7");
+    const refund=await screen.findByRole("button",{name:"رد رصيد للعميل"});
+    await screen.findByText("لا يمكن رد رصيد: حساب العميل متوازن وليس له رصيد دائن.");
+    expect(refund.hasAttribute("disabled")).toBe(true);
+    const user=userEvent.setup();
+    await user.click(refund);
+    expect(screen.queryByRole("dialog",{name:"رد رصيد دائن للعميل"})).toBeNull();
+    expect(calls.some(c=>c.url==="/finance/refunds"&&c.method==="post")).toBe(false);
+  });
+  it("never renders refund action without refund permission",async()=>{
+    permissions=["finance.balances.view","finance.ledger.view","finance.refunds.view"];
+    visit("/finance?customerId=7");
+    await screen.findByRole("region",{name:"بيانات حساب العميل"});
+    expect(screen.queryByRole("button",{name:"رد رصيد للعميل"})).toBeNull();
+    expect(screen.getByRole("button",{name:"عرض ردود رصيد العميل"})).toBeTruthy();
+  });
+  it("separates per-customer refund statements from the global refund register",async()=>{
+    records=[...records,{...records[0],id:92,refundNumber:"REF-2026-00092",
+      customerId:8,customerName:"مؤسسة النور"}];
+    permissions=["finance.balances.view","finance.ledger.view","finance.refunds.view"];
+    visit("/finance?customerId=7");
+    const user=userEvent.setup();
+    const history=await screen.findByRole("button",{name:"عرض ردود رصيد العميل"});
+    await user.click(history);
+    expect(await screen.findByText("REF-2026-00091")).toBeTruthy();
+    expect(screen.queryByText("REF-2026-00092")).toBeNull();
+    const accountsTab=screen.getByRole("tab",{name:"حسابات العملاء"});
+    const globalTab=screen.getByRole("tab",{name:"سجل الردود العام"});
+    await user.click(globalTab);
+    expect(globalTab.getAttribute("aria-selected")).toBe("true");
+    expect(window.location.search).toContain("tab=refunds");
+    expect(window.location.search).toContain("customerId=7");
+    expect(await screen.findByText("REF-2026-00092")).toBeTruthy();
+    expect(calls.some(c=>c.url==="/finance/refunds"&&!c.params.has("filter[customerId]"))).toBe(true);
+    await user.click(accountsTab);
+    expect(accountsTab.getAttribute("aria-selected")).toBe("true");
+    expect(window.location.search).not.toContain("tab=refunds");
+    expect(window.location.search).toContain("customerId=7");
+    expect(await screen.findByText("REF-2026-00091")).toBeTruthy();
+    expect(screen.queryByText("REF-2026-00092")).toBeNull();
+  });
+  it("opens the global refunds tab from a deep link even when a customer was previously selected",async()=>{
+    permissions=["finance.balances.view","finance.ledger.view","finance.refunds.view"];
+    visit("/finance?customerId=7&tab=refunds");
+    const tab=await screen.findByRole("tab",{name:"سجل الردود العام"});
+    expect(tab.getAttribute("aria-selected")).toBe("true");
+    expect(await screen.findByText("REF-2026-00091")).toBeTruthy();
+    expect(screen.queryByRole("region",{name:"بيانات حساب العميل"})).toBeNull();
+    const user=userEvent.setup();
+    await user.click(screen.getByRole("tab",{name:"حسابات العملاء"}));
+    expect(await screen.findByRole("region",{name:"بيانات حساب العميل"})).toBeTruthy();
+    expect(window.location.search).toContain("customerId=7");
   });
   it("requires bank or wallet destination from Settings before recording refund",async()=>{
     visit();const user=userEvent.setup();

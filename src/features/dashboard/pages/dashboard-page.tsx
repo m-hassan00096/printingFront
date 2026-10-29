@@ -8,7 +8,7 @@ import { Button } from "@/shared/components/ui/button";
 import { uiMessages } from "@/shared/translations/ar/ui";
 import { SectionHeader, LoadingState, ErrorState } from "@/features/identity/components/identity-ui";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
-import { formatCollectionDate } from "@/features/collections/components/collection-date-field";
+import { formatCollectionDate } from "@/features/collections/lib/collection-date-format";
 import { dashboardKey,useDashboard } from "../hooks/use-dashboard";
 import type { DashboardData,DashboardOrder } from "../types/dashboard.types";
 

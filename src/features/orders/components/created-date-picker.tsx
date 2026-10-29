@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
-import { formatCollectionDate } from "@/features/collections/components/collection-date-field";
+import { formatCollectionDate } from "@/features/collections/lib/collection-date-format";
 
 const weekdays = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"];
 const iso = (year: number, month: number, day: number) =>
@@ -14,14 +14,6 @@ function dateParts(value: string) {
   const date = new Date(Date.UTC(year, month, day));
   if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month || date.getUTCDate() !== day) return null;
   return { year, month, day };
-}
-
-export function cairoTodayISO(): string {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Africa/Cairo", day: "2-digit", month: "2-digit", year: "numeric",
-  }).formatToParts(new Date());
-  const part = (type: string) => parts.find(item => item.type === type)?.value ?? "";
-  return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
 /** A theme-matched Gregorian calendar; never launches the browser-native date picker. */

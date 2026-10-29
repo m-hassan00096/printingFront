@@ -74,3 +74,35 @@ Backend PR #23 exercises customer-select permission boundaries, including inacti
 - Refunds global history remains an optional expandable section, not a tab.
 - Roles without Finance balance permission must not request arbitrary account balances or the removed overview endpoint.
 - Backend contracts, transaction locks and the one-time opening restriction have not changed.
+
+
+## Accounts UX revision (2026-10-29)
+
+- First visit to /finance with `finance.balances.view` shows a paginated table of **all customer balances** from the existing `GET /finance/customer-balances` endpoint. Filters: debounced name/phone search, debit/credit/zero status, sorting by highest debt, largest credit, latest or name. The overview is read-only.
+- Selecting an account updates `?customerId=` and opens the existing protected individual ledger. The selected-customer header is compact and shows debit/credit balance plus the actual opening balance amount/type when `finance.balances.view` is granted. Back to overview clears the customer.
+- The account statement shows backend-provided human-readable `orderNumber`, `receiptNumber` and `refundNumber` instead of raw IDs when present. Each reference links to its specific authorized order or collection receipt details, or opens a refund details dialog. Related order appears as a secondary link for order-related receipt entries.
+- Notes are expanded in a dialog, not clipped to an unusable single-line tooltip. Running balances remain computed server-side over the whole ledger history **before** date/type filters; do not treat filtered displayed entries as a recomputed account balance.
+- The **customer-specific refund history** is accessible beside the customer balance header, *not* after scrolling through the ledger. It uses `filter[customerId]` on `GET /finance/refunds` so refunds from other customers cannot appear in this view.
+- The **global refund history** is a separate screen state `/finance?tab=refunds`, controlled by an explicit top-level action. Refund-only permissions continue to get the global register and can create authorized refunds without seeing protected account data.
+- All account and refund date filters use the themed `CreatedDatePicker` calendar, identical to the collections and orders interface, retaining `DD/MM/YYYY` display and `YYYY-MM-DD` API values. No browser-native picker.
+- Critical permissions stay separate: balances overview requires `finance.balances.view`; ledger needs `finance.ledger.view`; refund documents require `finance.refunds.view`; collection/related order links only appear for users with respective view permissions.
+- Stacked changes depend on backend finance-accounts PR (opening breakdown, ledger refs, customer-specific refunds) and frontend PR #20. Do not merge before QA.
+
+
+## Account header / refund action discoverability refinement (2026-10-29)
+- On an individual customer account, the customer switcher, identity/phone, balance, opening balance and financial actions are consolidated into one compact card. The separate full-width customer selector card is no longer displayed for a selected account.
+- For users with `finance.refunds.create`, **رد رصيد للعميل** is always discoverable on a selected account. When current ledger/balance access confirms a debit or zero balance it is disabled, with an explicit contextual explanation shown beside the action. When credit is available, the amount is displayed beside the enabled action.
+- Refund action is never rendered for users without refund-create permission. Users authorized for refunds but without account balance/ledger permissions retain their separate refund-only workflow; the backend still validates the available refundable credit at submission.
+- **عرض ردود رصيد العميل** stays next to the refund action. The opening balance action appears in the same action row only when eligible.
+- Statement rows use denser vertical padding and a more compact primary receipt / secondary order-reference treatment, without hiding audit references or full movement notes.
+- Added frontend regression tests for a debtor's disabled refund action, available-credit action, permission hiding and compact account layout.
+
+
+## Accounts / global refunds navigation tabs (2026-10-29)
+
+- Replace the page-header toggle button with two RTL, accessible tabs: **حسابات العملاء** and **سجل الردود العام**.
+- `/finance` shows the account overview (or selected customer statement using `customerId`). `/finance?tab=refunds` opens the general refund register. If `customerId` is already present, switching tabs preserves it; switching back returns to the same customer's account and filters.
+- The refund register is global only in its own tab. The per-customer refund history remains an explicit action inside that customer's account, filtered by `filter[customerId]` and must not be confused with global records.
+- Tabs are permission-aware: account access requires account/ledger/opening permissions, general refund register requires `finance.refunds.view`. Users with only refund permissions cannot access account data; users without refund-read permission cannot see the global refunds tab. Refund-create-only user flow remains unchanged.
+- Tab controls use proper `tablist`, `tab`, `tabpanel`, `aria-selected` and directionally correct Arabic labels from translation files. The inactive panel does not fetch its protected records.
+- Tests cover selecting tabs, URL state and deep links, preserving selected customer, and refund-only access.

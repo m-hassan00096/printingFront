@@ -12,7 +12,8 @@ import { getApiErrorMessage } from "@/shared/api/http";
 import { ErrorState, LoadingState, fieldClass } from "@/features/identity/components/identity-ui";
 import { parseCents, centsToMoney } from "@/features/deliveries/lib/delivery-money";
 import { useCollection, useCollectionActions, useCollectionCustomers } from "../hooks/use-collections";
-import { CollectionDateField, formatCollectionDate } from "./collection-date-field";
+import { CollectionDateField } from "./collection-date-field";
+import { formatCollectionDate } from "../lib/collection-date-format";
 import type { Collection,CreateCollectionPayload,CorrectCollectionPayload,PaymentMethod } from "../types/collections.types";
 
 function Frame({title,busy,onClose,footer,children}:{title:string;busy:boolean;onClose:()=>void;footer?:React.ReactNode;children:React.ReactNode}) {

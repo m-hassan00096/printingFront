@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { MoneyAmount, formatEgp } from "@/shared/components/money-amount";
+import { MoneyAmount } from "@/shared/components/money-amount";
+import { formatEgp } from "@/shared/lib/format-egp";
 
 describe("EGP display formatting", () => {
   it("uses one consistent EGP position, separators and two decimal places", () => {
