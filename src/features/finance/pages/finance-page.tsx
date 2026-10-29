@@ -109,27 +109,50 @@ export function FinancePage() {
     ? openingStatus.data.openingBalanceExists
     : canBalance ? balance.data?.openingBalanceExists
     : canLedger ? ledger.data?.openingBalanceExists : undefined;
-  const globalRefunds = !customerId && (params.get("tab")==="refunds" || !canAccountDetails);
+  // Keep the selected customer in the URL when navigating the two top-level tabs.
+  // A refunds-only user never gets access to the account tab or account queries.
+  const globalRefunds = canRefundHistory && (!canAccountDetails || params.get("tab")==="refunds");
   const refundHistoryVisible = canRefundHistory && globalRefunds;
+  function selectFinanceTab(tab:"accounts"|"refunds"){
+    if((tab==="accounts"&&!canAccountDetails)||(tab==="refunds"&&!canRefundHistory))return;
+    setParams(previous=>{
+      const next=new URLSearchParams(previous);
+      if(tab==="refunds")next.set("tab","refunds");
+      else next.delete("tab");
+      return next;
+    });
+  }
 
   return <div className="space-y-4">
     <SectionHeader title="حسابات العملاء"
       detail="أرصدة العملاء وكشف الحساب، مع تسجيل الرصيد الافتتاحي ورد الرصيد الدائن."
-      actions={<div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" onClick={refresh}>
-          <RefreshCw className="size-4"/> تحديث
-        </Button>
-        {canRefundHistory&&canAccountDetails&&!customerId&&
-          <Button type="button" variant="outline" onClick={()=>setParams(p=>{
-            const next=new URLSearchParams(p);
-            if(globalRefunds)next.delete("tab");else next.set("tab","refunds");
-            return next;
-          })}>{globalRefunds?copy.allAccounts:copy.globalRefundsAction}</Button>}
-      </div>}/>
+      actions={<Button type="button" variant="outline" onClick={refresh}>
+        <RefreshCw className="size-4"/> تحديث
+      </Button>}/>
 
-    {canBalance&&!customerId&&!globalRefunds&&
-      <FinanceAccountsOverview onSelect={id=>chooseCustomer(String(id))}/>}
-    {canAccountDetails && !globalRefunds && <section className="space-y-3">
+    {(canAccountDetails||canRefundHistory)&&<div role="tablist" aria-label={copy.moduleTabs}
+      className="flex w-fit max-w-full flex-wrap items-center gap-1 rounded-xl border bg-card p-1">
+      {canAccountDetails&&<button type="button" role="tab" id="finance-accounts-tab"
+        aria-controls="finance-accounts-panel" aria-selected={!globalRefunds}
+        onClick={()=>selectFinanceTab("accounts")}
+        className={"rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 "+
+          (!globalRefunds?"bg-primary text-primary-foreground shadow-sm":"text-muted-foreground hover:bg-muted hover:text-foreground")}>
+        {copy.accountsTab}
+      </button>}
+      {canRefundHistory&&<button type="button" role="tab" id="finance-refunds-tab"
+        aria-controls="finance-refunds-panel" aria-selected={globalRefunds}
+        onClick={()=>selectFinanceTab("refunds")}
+        className={"rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 "+
+          (globalRefunds?"bg-primary text-primary-foreground shadow-sm":"text-muted-foreground hover:bg-muted hover:text-foreground")}>
+        {copy.globalRefundsTab}
+      </button>}
+    </div>}
+
+    {canAccountDetails&&<div role="tabpanel" id="finance-accounts-panel" aria-labelledby="finance-accounts-tab"
+      hidden={globalRefunds} className="space-y-3">
+      {!globalRefunds&&<>
+        {canBalance&&!customerId&&<FinanceAccountsOverview onSelect={id=>chooseCustomer(String(id))}/>}
+        <section className="space-y-3">
       {!customerId&&!canBalance&&<section aria-label="اختيار حساب العميل" className="rounded-lg border bg-card p-3">
         <div className="flex flex-wrap items-center gap-2">
           <UserRound className="size-4 text-primary"/>
@@ -331,7 +354,9 @@ export function FinancePage() {
           لا تملك صلاحية عرض الأرصدة أو كشف الحساب. يمكنك تنفيذ الإجراءات المالية المسموح بها فقط.
         </p>}
       </div>}
-    </section>}
+        </section>
+      </>}
+    </div>}
 
     {canRefund && !canAccountDetails && <section className="space-y-3 rounded-lg border bg-card p-4">
       <h2 className="text-sm font-extrabold">رد الأرصدة الدائنة</h2>
@@ -341,7 +366,10 @@ export function FinancePage() {
       <p className="text-xs text-foreground/65">يمكنك اختيار العميل داخل نموذج رد الرصيد.</p>
     </section>}
 
-    {refundHistoryVisible && <RefundsPanel key="global"/>}
+    {canRefundHistory&&<section role="tabpanel" id="finance-refunds-panel"
+      aria-labelledby="finance-refunds-tab" hidden={!globalRefunds}>
+      {refundHistoryVisible&&<RefundsPanel key="global"/>}
+    </section>}
 
     {selectedNote!==null&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-3"
       onMouseDown={e=>{if(e.target===e.currentTarget)setSelectedNote(null);}}>
