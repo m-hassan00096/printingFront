@@ -87,3 +87,12 @@ Backend PR #23 exercises customer-select permission boundaries, including inacti
 - All account and refund date filters use the themed `CreatedDatePicker` calendar, identical to the collections and orders interface, retaining `DD/MM/YYYY` display and `YYYY-MM-DD` API values. No browser-native picker.
 - Critical permissions stay separate: balances overview requires `finance.balances.view`; ledger needs `finance.ledger.view`; refund documents require `finance.refunds.view`; collection/related order links only appear for users with respective view permissions.
 - Stacked changes depend on backend finance-accounts PR (opening breakdown, ledger refs, customer-specific refunds) and frontend PR #20. Do not merge before QA.
+
+
+## Account header / refund action discoverability refinement (2026-10-29)
+- On an individual customer account, the customer switcher, identity/phone, balance, opening balance and financial actions are consolidated into one compact card. The separate full-width customer selector card is no longer displayed for a selected account.
+- For users with `finance.refunds.create`, **رد رصيد للعميل** is always discoverable on a selected account. When current ledger/balance access confirms a debit or zero balance it is disabled, with an explicit contextual explanation shown beside the action. When credit is available, the amount is displayed beside the enabled action.
+- Refund action is never rendered for users without refund-create permission. Users authorized for refunds but without account balance/ledger permissions retain their separate refund-only workflow; the backend still validates the available refundable credit at submission.
+- **عرض ردود رصيد العميل** stays next to the refund action. The opening balance action appears in the same action row only when eligible.
+- Statement rows use denser vertical padding and a more compact primary receipt / secondary order-reference treatment, without hiding audit references or full movement notes.
+- Added frontend regression tests for a debtor's disabled refund action, available-credit action, permission hiding and compact account layout.
