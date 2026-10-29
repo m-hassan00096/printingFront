@@ -1,4 +1,5 @@
 import { useEffect,useState } from "react";
+import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Eye, Plus, RefreshCw, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
@@ -18,6 +19,7 @@ export function CollectionsPage(){
   const permissions=session.data?.permissions??[];
   const canView=permissions.includes("finance.collections.view");
   const canCreate=permissions.includes("finance.collections.create");
+  const canViewOrders=permissions.includes("orders.view");
   const [filters,setFilters]=useState<CollectionFilters>(defaults);
   const [searchInput,setSearchInput]=useState("");
   const [advancedOpen,setAdvancedOpen]=useState(false);
@@ -134,9 +136,9 @@ export function CollectionsPage(){
           </span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1020px] text-right text-sm">
+          <table className="w-full min-w-[1160px] text-right text-sm">
             <thead className="bg-muted/60 text-xs text-muted-foreground">
-              <tr>{["الإيصال","العميل","الهاتف","المبلغ","طريقة الدفع","المصدر","تاريخ التحصيل","الحالة","الإجراء"].map((label,i)=>
+              <tr>{["الإيصال","العميل","الهاتف","المبلغ","طريقة الدفع","المصدر","رقم الأوردر","تاريخ التحصيل","الحالة","الإجراء"].map((label,i)=>
                 <th className="whitespace-nowrap px-3 py-2.5 font-bold text-foreground/75" key={i}>{label}</th>)}</tr>
             </thead>
             <tbody className="divide-y">
@@ -147,6 +149,11 @@ export function CollectionsPage(){
                 <td className="px-3 py-2.5"><MoneyAmount amount={c.amount} className={c.status===2?"font-semibold text-foreground/60":"font-bold text-foreground"}/></td>
                 <td className="px-3 py-2.5">{c.paymentMethodLabel}</td>
                 <td className="px-3 py-2.5">{c.sourceLabel}</td>
+                <td className="whitespace-nowrap px-3 py-2.5">
+                  {c.source!==0&&c.orderNumber ? (canViewOrders&&c.orderId ?
+                    <Link to={`/orders/${c.orderId}`} dir="ltr" className="inline-block font-semibold text-primary underline">{c.orderNumber}</Link> :
+                    <span dir="ltr" className="inline-block">{c.orderNumber}</span>) : "—"}
+                </td>
                 <td className="whitespace-nowrap px-3 py-2.5"><span dir="ltr" className="inline-block tabular-nums">{formatCollectionDate(c.collectedOn)}</span></td>
                 <td className="px-3 py-2.5"><span className={"rounded-full px-2 py-1 text-xs font-bold "+(c.status===1?
                   "bg-[#e5f7ee] text-[#147c58]":"bg-[#fff5df] text-[#a36a0d]")}>{c.statusLabel}</span></td>

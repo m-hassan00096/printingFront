@@ -1,6 +1,6 @@
 import { apiClient } from "@/shared/api/http";
 import type { ApiResponse } from "@/shared/api/api-types";
-import type { Collection, CollectionCreated, CollectionFilters, CollectionPage, CollectionSummary, CreateCollectionPayload, SelectOption } from "../types/collections.types";
+import type { Collection, CollectionCreated, CollectionFilters, CollectionPage, CollectionSummary, CreateCollectionPayload, CorrectCollectionPayload, CorrectCollectionResult, SelectOption } from "../types/collections.types";
 
 const root="/finance/collections";
 function filtersToParams(filters:CollectionFilters, page?:number, summary=false):URLSearchParams {
@@ -30,6 +30,10 @@ export async function addCollection(payload:CreateCollectionPayload,key:string):
 }
 export async function reverseCollection(id:number,reason:string,key:string):Promise<void>{
   await apiClient.post<ApiResponse<null>>(root+"/"+id+"/reverse",{reason},{headers:{"Idempotency-Key":key}});
+}
+export async function correctCollection(id:number,payload:CorrectCollectionPayload,key:string):Promise<CorrectCollectionResult>{
+  const {data}=await apiClient.post<ApiResponse<CorrectCollectionResult>>(root+"/"+id+"/correct",payload,{headers:{"Idempotency-Key":key}});
+  return data.data;
 }
 export async function getCollectionCustomers():Promise<SelectOption[]>{
   const {data}=await apiClient.get<ApiResponse<{label:string;options:SelectOption[]}[]>>("/selects",{params:{selects:"customers"}});
