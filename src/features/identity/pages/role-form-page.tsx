@@ -13,6 +13,7 @@ import { useCreateRole, usePermissionOptions, useRole, useUpdateRole } from "../
 import { parseIdentityId } from "../lib/identity-helpers";
 
 type GroupKey = keyof typeof uiMessages.roles.groupLabels;
+const EMPTY_PERMISSION_OPTIONS: PermissionOption[] = [];
 const groupOrder: GroupKey[] = [
   "orders", "production", "deliveries", "customers", "finance", "services", "identity", "other",
 ];
@@ -64,7 +65,7 @@ export function RoleFormPage() {
   }, [role.data, isNew]);
 
   const protectedAdmin = role.data?.key === "admin";
-  const options = permissions.data ?? [];
+  const options = permissions.data ?? EMPTY_PERMISSION_OPTIONS;
   const filtered = useMemo(() => options.filter(option =>
     option.label.toLocaleLowerCase("ar").includes(search.trim().toLocaleLowerCase("ar")) &&
     (!selectedOnly || selected.includes(option.value))

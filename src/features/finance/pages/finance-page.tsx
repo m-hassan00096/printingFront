@@ -7,7 +7,7 @@ import { MoneyAmount } from "@/shared/components/money-amount";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { SearchableSelect } from "@/features/orders/components/searchable-select";
 import { ErrorState, LoadingState, EmptyState, PaginationBar, SectionHeader, fieldClass } from "@/features/identity/components/identity-ui";
-import { formatCollectionDate } from "@/features/collections/components/collection-date-field";
+import { formatCollectionDate } from "@/features/collections/lib/collection-date-format";
 import { CreatedDatePicker } from "@/features/orders/components/created-date-picker";
 import { uiMessages } from "@/shared/translations/ar/ui";
 import { useFinanceCustomers, useFinanceBalance, useFinanceLedger, useFinanceOpeningStatus } from "../hooks/use-finance";

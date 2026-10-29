@@ -3,7 +3,7 @@ import { Eye, History } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
 import { EmptyState,ErrorState,LoadingState,PaginationBar } from "@/features/identity/components/identity-ui";
-import { formatCollectionDate } from "@/features/collections/components/collection-date-field";
+import { formatCollectionDate } from "@/features/collections/lib/collection-date-format";
 import { CreatedDatePicker } from "@/features/orders/components/created-date-picker";
 import { uiMessages } from "@/shared/translations/ar/ui";
 import { useRefundList } from "../hooks/use-refunds";

@@ -7,7 +7,7 @@ import { MoneyAmount } from "@/shared/components/money-amount";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { EmptyState,ErrorState,LoadingState,PaginationBar,SectionHeader } from "@/features/identity/components/identity-ui";
 import { CreateCollectionDialog,CollectionDetailsDialog } from "../components/collection-dialogs";
-import { formatCollectionDate } from "../components/collection-date-field";
+import { formatCollectionDate } from "../lib/collection-date-format";
 import { CreatedDatePicker } from "@/features/orders/components/created-date-picker";
 import { useCollections,useCollectionsSummary } from "../hooks/use-collections";
 import type { CollectionFilters } from "../types/collections.types";

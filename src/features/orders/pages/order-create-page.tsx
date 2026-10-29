@@ -17,7 +17,8 @@ import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { fieldClass } from "@/features/identity/components/identity-ui";
 import { getOrderCreateOptions, getOrderPaymentOptions } from "../api/order-options.api";
 import { SearchableSelect } from "../components/searchable-select";
-import { CreatedDatePicker, cairoTodayISO } from "../components/created-date-picker";
+import { CreatedDatePicker } from "../components/created-date-picker";
+import { cairoTodayISO } from "@/features/orders/lib/cairo-today";
 import { useOrderActions } from "../hooks/use-orders";
 import type { CreateOrderPayload } from "../types/orders.types";
 

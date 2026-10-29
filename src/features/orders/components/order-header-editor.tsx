@@ -8,7 +8,8 @@ import { getApiErrorMessage } from "@/shared/api/http";
 import { fieldClass } from "@/features/identity/components/identity-ui";
 import { getActiveOrderCustomers } from "../api/order-options.api";
 import { SearchableSelect } from "./searchable-select";
-import { CreatedDatePicker, cairoTodayISO } from "./created-date-picker";
+import { CreatedDatePicker } from "./created-date-picker";
+import { cairoTodayISO } from "@/features/orders/lib/cairo-today";
 import { useOrderActions, orderKeys } from "../hooks/use-orders";
 import type { Order } from "../types/orders.types";
 

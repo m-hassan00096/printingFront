@@ -8,7 +8,7 @@ import { uiMessages } from "@/shared/translations/ar/ui";
 import { MoneyAmount } from "@/shared/components/money-amount";
 import { getApiErrorMessage } from "@/shared/api/http";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
-import { formatCollectionDate } from "@/features/collections/components/collection-date-field";
+import { formatCollectionDate } from "@/features/collections/lib/collection-date-format";
 import { ConfirmDialog, EmptyState, ErrorState, LoadingState, PaginationBar, SearchField, SectionHeader, fieldClass } from "@/features/identity/components/identity-ui";
 import { useOrderActions, useOrders } from "../hooks/use-orders";
 import { CreatedDatePicker } from "../components/created-date-picker";
