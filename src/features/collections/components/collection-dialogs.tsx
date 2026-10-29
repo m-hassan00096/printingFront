@@ -153,8 +153,7 @@ export function CreateCollectionDialog({onClose,onSuccess}:{onClose:()=>void;onS
     </div>
   </Frame>;
 }
-function CorrectionForm({receipt,onCancel,onSuccess}:{receipt:Collection;onCancel:()=>void;onSuccess:()=>void}) {
-  const actions=useCollectionActions();
+function CorrectionForm({receipt,onCancel,onSuccess,actions}:{receipt:Collection;onCancel:()=>void;onSuccess:()=>void;actions:ReturnType<typeof useCollectionActions>}) {
   const [amount,setAmount]=useState(receipt.amount);
   const [reason,setReason]=useState("");
   const [confirmCredit,setConfirmCredit]=useState(false);
@@ -247,7 +246,7 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
       onSuccess();
     } catch(e:unknown) {setError(getApiErrorMessage(e,"تعذّر عكس التحصيل."));}
   }
-  return <Frame title="تفاصيل إيصال التحصيل" busy={actions.reverse.isPending} onClose={onClose}>
+  return <Frame title="تفاصيل إيصال التحصيل" busy={actions.reverse.isPending||actions.correct.isPending} onClose={onClose}>
     {query.isPending?<LoadingState/>:query.isError?
       <ErrorState error={query.error} retry={()=>void query.refetch()}/>:c&&
       <div className="space-y-4">
@@ -288,7 +287,7 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
           {reversable&&<Button variant="destructive" onClick={()=>setReversing(true)}>عكس التحصيل</Button>}
         </div>}
         {c.status===1&&canCorrect&&correcting&&<CorrectionForm receipt={c}
-          onCancel={()=>setCorrecting(false)} onSuccess={onSuccess}/>}
+          onCancel={()=>setCorrecting(false)} onSuccess={onSuccess} actions={actions}/>}
         {reversable&&reversing&&<div className="space-y-3 rounded-lg border border-destructive/30 p-4">
           <p className="flex items-center gap-2 text-sm font-bold text-destructive"><AlertTriangle className="size-4"/> عكس التحصيل</p>
           <p className="rounded-lg bg-[#fff4df] p-3 text-sm leading-6 text-[#a46b0b]">
