@@ -1,5 +1,5 @@
 import { useEffect,useState } from "react";
-import { Link } from "react-router-dom";
+import { Link,useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Eye, Plus, RefreshCw, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
@@ -16,6 +16,7 @@ const defaults:CollectionFilters={search:"",dateFrom:"",dateTo:"",paymentMethod:
 const compactFieldClass="h-9 w-full rounded-lg border border-input bg-card px-3 text-sm text-foreground outline-none transition-colors focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/20";
 export function CollectionsPage(){
   const qc=useQueryClient();
+  const [params,setParams]=useSearchParams();
   const session=useCurrentUser();
   const permissions=session.data?.permissions??[];
   const canView=permissions.includes("finance.collections.view");
@@ -27,6 +28,15 @@ export function CollectionsPage(){
   const [page,setPage]=useState(1);
   const [creating,setCreating]=useState(false);
   const [details,setDetails]=useState<number|null>(null);
+  const receiptParam=Number(params.get("receiptId"));
+  const linkedReceipt=Number.isSafeInteger(receiptParam)&&receiptParam>0?receiptParam:null;
+  const activeDetails=details??(canView?linkedReceipt:null);
+  function closeDetails(){
+    setDetails(null);
+    if(params.has("receiptId"))setParams(previous=>{
+      const next=new URLSearchParams(previous);next.delete("receiptId");return next;
+    },{replace:true});
+  }
   useEffect(()=>{const timer=setTimeout(()=>setFilters(p=>({...p,search:searchInput.trim()})),350);return()=>clearTimeout(timer);},[searchInput]);
   useEffect(()=>setPage(1),[filters]);
   const list=useCollections(filters,page,canView);
@@ -41,7 +51,7 @@ export function CollectionsPage(){
   const advancedCount=Number(Boolean(filters.source))+Number(Boolean(filters.status))+Number(filters.sort!=="-id");
   const hasFilters=Boolean(searchInput||filters.search||filters.dateFrom||filters.dateTo||filters.paymentMethod||advancedCount);
   function reset(){setSearchInput("");setFilters(defaults);setAdvancedOpen(false);}
-  function done(){setCreating(false);setDetails(null);void qc.invalidateQueries({queryKey:["collections"]});}
+  function done(){setCreating(false);closeDetails();void qc.invalidateQueries({queryKey:["collections"]});}
   return <div className="space-y-4">
     <SectionHeader title="التحصيلات" detail="إدارة إيصالات تحصيل العملاء ومراجعة العمليات المعتمدة والمعكوسة."
       actions={<div className="flex gap-2">
@@ -170,6 +180,6 @@ export function CollectionsPage(){
       <PaginationBar pagination={list.data.pagination} onPage={setPage}/></div>}
 
     {creating&&<CreateCollectionDialog onClose={()=>setCreating(false)} onSuccess={done}/>}
-    {details!==null&&<CollectionDetailsDialog key={details} id={details} onClose={()=>setDetails(null)} onSuccess={done}/>}
+    {activeDetails!==null&&<CollectionDetailsDialog key={activeDetails} id={activeDetails} onClose={closeDetails} onSuccess={done}/>}
   </div>;
 }
