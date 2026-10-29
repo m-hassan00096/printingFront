@@ -51,3 +51,11 @@ Deferred: source-specific order-linked general collection picker; employee name 
 - Reversal requires a reason and an acknowledgment and does not post a replacement receipt. Both actions explain that no actual money is refunded and do not cancel the order/delivery.
 - Correction of a delivery may create customer credit and keeps its explicit credit confirmation control.
 - Backend must be updated to the matching printingApi PR #30 version before deploying this frontend branch.
+
+
+## Themed collection date filters (October 29, 2026)
+- Reuse the existing themed Gregorian `CreatedDatePicker` used by Orders in both `من تاريخ التحصيل` and `إلى تاريخ التحصيل` fields. The filter UI no longer launches the browser-native date picker.
+- Keep consistent filter height (`h-9`), typography, border, focus styles and RTL alignment. The calendar opens above/below the trigger depending on viewport space, supports month navigation, Escape/outside close and explicit date clearing.
+- Range restrictions are inclusive: selecting the from date limits the end calendar's minimum, and selecting the end date limits the start calendar's maximum.
+- The visible date remains `DD/MM/YYYY`, while API filters continue to transmit `YYYY-MM-DD`. Existing create-collection date input is untouched.
+- Regression tests validate calendar selection, query serialization, min/max disabled days and clearing filters.
