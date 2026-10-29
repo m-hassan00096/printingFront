@@ -59,6 +59,7 @@ const adapter:AxiosAdapter=async config=>{
   if(url==="/finance/refunds"&&method==="get"){
     let found=records;
     if(params.get("filter[paymentMethod]"))found=found.filter(x=>String(x.paymentMethod)===params.get("filter[paymentMethod]"));
+    if(params.get("filter[customerId]"))found=found.filter(x=>String(x.customerId)===params.get("filter[customerId]"));
     return ok(config,{refunds:found,pagination:{currentPage:1,lastPage:1,perPage:20,total:found.length}});
   }
   if(url==="/finance/refunds/91"&&method==="get")return ok(config,records[0]);
@@ -139,15 +140,31 @@ describe("Finance Refunds within the Accounts module",()=>{
     expect(await screen.findByText("مسجل")).toBeTruthy();
     expect(screen.queryByRole("button",{name:"رصيد افتتاحي"})).toBeNull();
     expect(screen.queryByText("سجل المبالغ المرتجعة")).toBeNull();
-    const history=screen.getByRole("button",{name:"سجل رد الأرصدة"});
+    const history=screen.getByRole("button",{name:"عرض ردود رصيد العميل"});
     expect(history.getAttribute("aria-expanded")).toBe("false");
     await user.click(history);
     expect(history.getAttribute("aria-expanded")).toBe("true");
     expect(await screen.findByText("REF-2026-00091")).toBeTruthy();
+    await waitFor(()=>expect(calls.some(c=>c.url==="/finance/refunds"&&c.params.get("filter[customerId]")==="7")).toBe(true));
     await user.click(screen.getByRole("button",{name:"رد رصيد دائن"}));
     const dialog=await screen.findByRole("dialog",{name:"رد رصيد دائن للعميل"});
     expect((within(dialog).getByRole("combobox",{name:"عميل رد الرصيد"}) as HTMLElement).getAttribute("aria-disabled")).not.toBe("true");
     expect(await within(dialog).findByText("الرصيد المتاح للرد حاليًا")).toBeTruthy();
+  });
+  it("separates per-customer refund statements from the global refund register",async()=>{
+    records=[...records,{...records[0],id:92,refundNumber:"REF-2026-00092",
+      customerId:8,customerName:"مؤسسة النور"}];
+    permissions=["finance.balances.view","finance.ledger.view","finance.refunds.view"];
+    visit("/finance?customerId=7");
+    const user=userEvent.setup();
+    const history=await screen.findByRole("button",{name:"عرض ردود رصيد العميل"});
+    await user.click(history);
+    expect(await screen.findByText("REF-2026-00091")).toBeTruthy();
+    expect(screen.queryByText("REF-2026-00092")).toBeNull();
+    await user.click(screen.getByRole("button",{name:"العودة إلى الحسابات"}));
+    await user.click(screen.getByRole("button",{name:"سجل الردود العام"}));
+    expect(await screen.findByText("REF-2026-00092")).toBeTruthy();
+    expect(calls.some(c=>c.url==="/finance/refunds"&&!c.params.has("filter[customerId]"))).toBe(true);
   });
   it("requires bank or wallet destination from Settings before recording refund",async()=>{
     visit();const user=userEvent.setup();
