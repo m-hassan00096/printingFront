@@ -114,8 +114,8 @@ describe("Finance account page against Laravel existing contracts",()=>{
   it("lists financial accounts with search, debit/credit filters, sorting and opens selected statement",async()=>{
     visit("");const user=userEvent.setup();
     const section=await screen.findByRole("region",{name:"قائمة حسابات العملاء"});
-    expect(within(section).getByText("أحمد خالد")).toBeTruthy();
-    expect(within(section).getByText("مؤسسة النور")).toBeTruthy();
+    expect(await within(section).findByText("أحمد خالد")).toBeTruthy();
+    expect(await within(section).findByText("مؤسسة النور")).toBeTruthy();
     expect(screen.queryByRole("combobox",{name:"اختيار حساب العميل"})).toBeNull();
     expect(calls.some(c=>c.url==="/finance/customer-balances")).toBe(true);
     await user.selectOptions(within(section).getByRole("combobox",{name:"حالة الرصيد"}),"2");
@@ -134,7 +134,7 @@ describe("Finance account page against Laravel existing contracts",()=>{
   it("navigates back to the account list and allows switching customers",async()=>{
     visit("");const user=userEvent.setup();
     const section=await screen.findByRole("region",{name:"قائمة حسابات العملاء"});
-    await user.click(within(section).getAllByRole("button",{name:"كشف الحساب"})[0]);
+    await user.click((await within(section).findAllByRole("button",{name:"كشف الحساب"}))[0]);
     await screen.findByText("سداد دين");
     await user.click(screen.getByRole("combobox",{name:"اختيار حساب العميل"}));
     expect(await screen.findByRole("option",{name:/مؤسسة النور/})).toBeTruthy();
