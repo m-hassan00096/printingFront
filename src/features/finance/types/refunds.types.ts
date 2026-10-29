@@ -9,7 +9,7 @@ export type RefundRecord={
 };
 export type RefundList={refunds:RefundRecord[];pagination:Pagination};
 export type RefundFilters={
-  page:number;search:string;dateFrom:string;dateTo:string;paymentMethod:""|"0"|"1"|"2";
+  page:number;search:string;dateFrom:string;dateTo:string;paymentMethod:""|"0"|"1"|"2";customerId?:number;
 };
 export type RefundCreditPreview={customerId:number;availableCredit:string;canRefund:boolean};
 export type RefundPayload={customerId:number;amount:string;paymentMethod:RefundPaymentMethod;

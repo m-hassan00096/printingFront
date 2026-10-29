@@ -3,15 +3,18 @@ import { Eye, History } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
 import { EmptyState,ErrorState,LoadingState,PaginationBar } from "@/features/identity/components/identity-ui";
-import { CollectionDateField,formatCollectionDate } from "@/features/collections/components/collection-date-field";
+import { formatCollectionDate } from "@/features/collections/components/collection-date-field";
+import { CreatedDatePicker } from "@/features/orders/components/created-date-picker";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { useRefundList } from "../hooks/use-refunds";
 import { RefundDetailsDialog } from "./refund-dialogs";
 import type { RefundFilters } from "../types/refunds.types";
 
 const initial:RefundFilters={page:1,search:"",dateFrom:"",dateTo:"",paymentMethod:""};
 const fieldClass="h-9 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/30";
-export function RefundsPanel(){
-  const [filters,setFilters]=useState<RefundFilters>(initial);
+export function RefundsPanel({customerId}:{customerId?:number}){
+  const copy=uiMessages.financeAccounts;
+  const [filters,setFilters]=useState<RefundFilters>({...initial,customerId});
   const [searchInput,setSearchInput]=useState("");
   const [details,setDetails]=useState<number|null>(null);
   useEffect(()=>{
@@ -30,16 +33,16 @@ export function RefundsPanel(){
   return <section className="space-y-3" aria-label="رد الأرصدة الدائنة">
     <div className="flex items-center gap-2">
       <History className="size-4 text-primary"/>
-      <h2 className="text-sm font-bold">سجل رد الأرصدة الدائنة</h2>
+      <h2 className="text-sm font-bold">{customerId?copy.customerRefundsTitle:copy.globalRefundsTitle}</h2>
     </div>
     <div className="grid gap-2.5 rounded-lg border bg-card p-3 sm:grid-cols-2 xl:grid-cols-4">
-      <label className="space-y-1 text-xs font-semibold"><span>بحث بالعميل أو رقم المستند أو الهاتف</span>
+      {!customerId&&<label className="space-y-1 text-xs font-semibold"><span>بحث بالعميل أو رقم المستند أو الهاتف</span>
         <input className={fieldClass} aria-label="بحث في المبالغ المرتجعة" value={searchInput} maxLength={200}
           onChange={e=>setSearchInput(e.target.value)} placeholder="بحث..."/>
-      </label>
-      <CollectionDateField label="من تاريخ رد الرصيد" value={filters.dateFrom} max={filters.dateTo||undefined}
+      </label>}
+      <CreatedDatePicker label="من تاريخ رد الرصيد" value={filters.dateFrom} max={filters.dateTo||undefined}
         onChange={dateFrom=>change("dateFrom",dateFrom)}/>
-      <CollectionDateField label="إلى تاريخ رد الرصيد" value={filters.dateTo} min={filters.dateFrom||undefined}
+      <CreatedDatePicker label="إلى تاريخ رد الرصيد" value={filters.dateTo} min={filters.dateFrom||undefined}
         onChange={dateTo=>change("dateTo",dateTo)}/>
       <label className="space-y-1 text-xs font-semibold"><span>طريقة رد الأموال</span>
         <select className={fieldClass} aria-label="فلتر طريقة رد الأموال" value={filters.paymentMethod}

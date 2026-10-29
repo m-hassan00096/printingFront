@@ -1,9 +1,10 @@
 import { useMutation,useQuery,useQueryClient } from "@tanstack/react-query";
-import { financeCustomers,financeBalance,financeLedger,financeOpening,financeOpeningStatus } from "../api/finance.api";
-import type { AccountFilters,OpeningBalanceInput } from "../types/finance.types";
+import { financeCustomers,financeBalance,financeLedger,financeOpening,financeOpeningStatus,financeAccounts } from "../api/finance.api";
+import type { AccountFilters,AccountListFilters,OpeningBalanceInput } from "../types/finance.types";
 
 export const financeKeys={
   customers:["finance","customers"] as const,
+  overview:["finance","overview"] as const,
   balance:(id:number)=>["finance","balance",id] as const,
   ledger:(id:number)=>["finance","ledger",id] as const,
   opening:(id:number)=>["finance","opening-status",id] as const,
@@ -35,4 +36,8 @@ export function useOpeningBalance(){
       ]);
     },
   });
+}
+
+export function useFinanceAccounts(filters:AccountListFilters,enabled:boolean){
+  return useQuery({queryKey:[...financeKeys.overview,filters],queryFn:()=>financeAccounts(filters),enabled});
 }
