@@ -7,7 +7,8 @@ import { MoneyAmount } from "@/shared/components/money-amount";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { EmptyState,ErrorState,LoadingState,PaginationBar,SectionHeader } from "@/features/identity/components/identity-ui";
 import { CreateCollectionDialog,CollectionDetailsDialog } from "../components/collection-dialogs";
-import { CollectionDateField, formatCollectionDate } from "../components/collection-date-field";
+import { formatCollectionDate } from "../components/collection-date-field";
+import { CreatedDatePicker } from "@/features/orders/components/created-date-picker";
 import { useCollections,useCollectionsSummary } from "../hooks/use-collections";
 import type { CollectionFilters } from "../types/collections.types";
 
@@ -87,9 +88,9 @@ export function CollectionsPage(){
           <input className={compactFieldClass} maxLength={200} value={searchInput} onChange={e=>setSearchInput(e.target.value)}
             aria-label="البحث في التحصيلات" placeholder="إيصال، عميل، هاتف، رقم أوردر..."/>
         </label>
-        <CollectionDateField label="من تاريخ التحصيل" value={filters.dateFrom}
+        <CreatedDatePicker label="من تاريخ التحصيل" value={filters.dateFrom}
           max={filters.dateTo||undefined} onChange={value=>change("dateFrom",value)}/>
-        <CollectionDateField label="إلى تاريخ التحصيل" value={filters.dateTo}
+        <CreatedDatePicker label="إلى تاريخ التحصيل" value={filters.dateTo}
           min={filters.dateFrom||undefined} onChange={value=>change("dateTo",value)}/>
         <label className="block min-w-0 space-y-1 text-xs font-semibold">
           <span className="text-foreground/80">طريقة الدفع</span>
