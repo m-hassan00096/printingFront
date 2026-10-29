@@ -74,3 +74,16 @@ Backend PR #23 exercises customer-select permission boundaries, including inacti
 - Refunds global history remains an optional expandable section, not a tab.
 - Roles without Finance balance permission must not request arbitrary account balances or the removed overview endpoint.
 - Backend contracts, transaction locks and the one-time opening restriction have not changed.
+
+
+## Accounts UX revision (2026-10-29)
+
+- First visit to /finance with `finance.balances.view` shows a paginated table of **all customer balances** from the existing `GET /finance/customer-balances` endpoint. Filters: debounced name/phone search, debit/credit/zero status, sorting by highest debt, largest credit, latest or name. The overview is read-only.
+- Selecting an account updates `?customerId=` and opens the existing protected individual ledger. The selected-customer header is compact and shows debit/credit balance plus the actual opening balance amount/type when `finance.balances.view` is granted. Back to overview clears the customer.
+- The account statement shows backend-provided human-readable `orderNumber`, `receiptNumber` and `refundNumber` instead of raw IDs when present. Each reference links to its specific authorized order or collection receipt details, or opens a refund details dialog. Related order appears as a secondary link for order-related receipt entries.
+- Notes are expanded in a dialog, not clipped to an unusable single-line tooltip. Running balances remain computed server-side over the whole ledger history **before** date/type filters; do not treat filtered displayed entries as a recomputed account balance.
+- The **customer-specific refund history** is accessible beside the customer balance header, *not* after scrolling through the ledger. It uses `filter[customerId]` on `GET /finance/refunds` so refunds from other customers cannot appear in this view.
+- The **global refund history** is a separate screen state `/finance?tab=refunds`, controlled by an explicit top-level action. Refund-only permissions continue to get the global register and can create authorized refunds without seeing protected account data.
+- All account and refund date filters use the themed `CreatedDatePicker` calendar, identical to the collections and orders interface, retaining `DD/MM/YYYY` display and `YYYY-MM-DD` API values. No browser-native picker.
+- Critical permissions stay separate: balances overview requires `finance.balances.view`; ledger needs `finance.ledger.view`; refund documents require `finance.refunds.view`; collection/related order links only appear for users with respective view permissions.
+- Stacked changes depend on backend finance-accounts PR (opening breakdown, ledger refs, customer-specific refunds) and frontend PR #20. Do not merge before QA.
