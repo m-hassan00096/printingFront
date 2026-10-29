@@ -12,7 +12,7 @@ let balance={customerId:7,amount:"250.00",type:1,typeLabel:"مدين"};
 let hasOpening=false;
 const ledgerEntries=[{
   id:100,type:2,typeLabel:"تحصيل",amount:"50.00",signedAmount:"-50.00",
-  orderId:null,collectionId:12,refundId:null,effectiveDate:"2026-10-26",
+  orderId:4,orderNumber:"ORD-261026004",collectionId:12,receiptNumber:"COL-2026-00012",refundId:null,refundNumber:null,effectiveDate:"2026-10-26",
   note:"سداد دين",createdAt:"2026-10-26T10:00:00+03:00",
   runningBalance:{amount:"250.00",type:1,typeLabel:"مدين"},
 }];
@@ -47,7 +47,8 @@ const adapter:AxiosAdapter=async config=>{
   }
   if(url==="/finance/customers/7/opening-balance-status"&&method==="get")
     return ok(config,{customerId:7,openingBalanceExists:hasOpening});
-  if(url==="/finance/customers/7/balance"&&method==="get")return ok(config,{...balance,openingBalanceExists:hasOpening});
+  if(url==="/finance/customers/7/balance"&&method==="get")return ok(config,{...balance,openingBalanceExists:hasOpening,
+    openingBalance:hasOpening?{amount:"500.00",type:1,typeLabel:"مدين"}:null});
   if(url==="/finance/customers/7/ledger"&&method==="get")return ok(config,{
     entries:params.get("filter[type]")==="6"?[]:ledgerEntries,
     balance:{amount:balance.amount,type:balance.type,typeLabel:balance.typeLabel},
@@ -110,42 +111,52 @@ describe("Finance account page against Laravel existing contracts",()=>{
     expect(calls.find(c=>c.url==="/finance/customers/7/opening-balance"&&c.method==="post")?.body)
       .toEqual({type:2,amount:"150.50"});
   });
-  it("shows only a searchable customer selector, without fetching account tables or sort filters",async()=>{
-    visit("");
-    expect(await screen.findByRole("combobox",{name:"اختيار حساب العميل"})).toBeTruthy();
-    expect(screen.queryByText("قائمة الحسابات")).toBeNull();
-    expect(screen.queryByRole("combobox",{name:"فلتر نوع الرصيد"})).toBeNull();
-    expect(screen.queryByRole("combobox",{name:"ترتيب حسابات العملاء"})).toBeNull();
-    expect(calls.some(c=>c.url==="/finance/customer-balances")).toBe(false);
-    expect(calls.some(c=>c.url==="/finance/customers/7/balance")).toBe(false);
-    const user=userEvent.setup();
-    await user.click(screen.getByRole("combobox",{name:"اختيار حساب العميل"}));
-    await user.click(await screen.findByRole("option",{name:/أحمد خالد/}));
+  it("lists financial accounts with search, debit/credit filters, sorting and opens selected statement",async()=>{
+    visit("");const user=userEvent.setup();
+    const section=await screen.findByRole("region",{name:"قائمة حسابات العملاء"});
+    expect(within(section).getByText("أحمد خالد")).toBeTruthy();
+    expect(within(section).getByText("مؤسسة النور")).toBeTruthy();
+    expect(screen.queryByRole("combobox",{name:"اختيار حساب العميل"})).toBeNull();
+    expect(calls.some(c=>c.url==="/finance/customer-balances")).toBe(true);
+    await user.selectOptions(within(section).getByRole("combobox",{name:"حالة الرصيد"}),"2");
+    await waitFor(()=>expect(calls.some(c=>c.url==="/finance/customer-balances"&&c.params.get("filter[type]")==="2")).toBe(true));
+    expect(within(section).queryByText("أحمد خالد")).toBeNull();
+    await user.selectOptions(within(section).getByRole("combobox",{name:"حالة الرصيد"}),"");
+    await user.selectOptions(within(section).getByRole("combobox",{name:"الترتيب"}),"balance");
+    await waitFor(()=>expect(calls.some(c=>c.url==="/finance/customer-balances"&&c.params.get("sort")==="balance")).toBe(true));
+    await user.type(within(section).getByRole("textbox",{name:"ابحث باسم العميل أو رقم الهاتف"}),"أحمد");
+    await waitFor(()=>expect(calls.some(c=>c.url==="/finance/customer-balances"&&c.params.get("filter[search]")==="أحمد")).toBe(true));
+    await user.click(within(section).getByRole("button",{name:"كشف الحساب"}));
     expect(await screen.findByText("سداد دين")).toBeTruthy();
-    expect(screen.getByText("أحمد خالد")).toBeTruthy();
-    expect(screen.getByText("01012345678")).toBeTruthy();
-    expect(screen.getByText("الرصيد الحالي")).toBeTruthy();
-    expect(calls.some(c=>c.url==="/finance/customer-balances")).toBe(false);
+    expect(screen.getByRole("button",{name:"العودة إلى الحسابات"})).toBeTruthy();
+    expect(screen.getByRole("combobox",{name:"اختيار حساب العميل"})).toBeTruthy();
   });
-  it("changes customers from the same selector without redundant tables or tabs",async()=>{
-    visit("");
-    const user=userEvent.setup();
-    const selector=await screen.findByRole("combobox",{name:"اختيار حساب العميل"});
-    await user.click(selector);
-    await user.click(await screen.findByRole("option",{name:/أحمد خالد/}));
-    expect(await screen.findByText("سداد دين")).toBeTruthy();
-    expect(screen.queryByRole("tablist")).toBeNull();
-    expect(screen.queryByRole("button",{name:"العودة لقائمة الحسابات"})).toBeNull();
-    expect(screen.queryByRole("button",{name:"إخفاء قائمة العملاء"})).toBeNull();
+  it("navigates back to the account list and allows switching customers",async()=>{
+    visit("");const user=userEvent.setup();
+    const section=await screen.findByRole("region",{name:"قائمة حسابات العملاء"});
+    await user.click(within(section).getAllByRole("button",{name:"كشف الحساب"})[0]);
+    await screen.findByText("سداد دين");
     await user.click(screen.getByRole("combobox",{name:"اختيار حساب العميل"}));
     expect(await screen.findByRole("option",{name:/مؤسسة النور/})).toBeTruthy();
+    await user.click(screen.getByRole("button",{name:"العودة إلى الحسابات"}));
+    expect(await screen.findByRole("region",{name:"قائمة حسابات العملاء"})).toBeTruthy();
   });
   it("hides a previously registered opening balance, without relying on a disabled submit",async()=>{
     hasOpening=true;
     visit();
-    expect(await screen.findByText("مسجل")).toBeTruthy();
+    expect(await screen.findByText("500.00 ج.م")).toBeTruthy();
     expect(screen.queryByRole("button",{name:"رصيد افتتاحي"})).toBeNull();
     expect(calls.some(c=>c.url==="/finance/customers/7/opening-balance-status")).toBe(true);
+  });
+  it("links ledger movements to real receipt and linked order and opens complete notes",async()=>{
+    permissions=["finance.balances.view","finance.ledger.view","finance.collections.view","orders.view"];
+    visit();const user=userEvent.setup();
+    await screen.findByText("سداد دين");
+    const receipt=screen.getByRole("link",{name:"COL-2026-00012"});
+    expect(receipt.getAttribute("href")).toBe("/collections?receiptId=12");
+    expect(screen.getByRole("link",{name:/ORD-261026004/}).getAttribute("href")).toBe("/orders/4");
+    await user.click(screen.getByRole("button",{name:"عرض الملاحظة كاملة"}));
+    expect(within(screen.getByRole("dialog",{name:"تفاصيل الحركة المالية"})).getByText("سداد دين")).toBeTruthy();
   });
   it("shows server-calculated running balances rather than summing filtered rows",async()=>{
     visit();
