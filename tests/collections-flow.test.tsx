@@ -10,6 +10,7 @@ import type { Collection } from "@/features/collections/types/collections.types"
 const originalAdapter=apiClient.defaults.adapter;
 let permissions=["finance.collections.view","finance.collections.create","finance.collections.reverse","customers.selects.view"];
 let records:Collection[]=[];
+let simulateConcurrentReversal=false;
 let calls:{url:string;method:string;query:URLSearchParams;body:Record<string,unknown>;key:string|null}[]=[];
 const general:Collection={
   id:51,receiptNumber:"COL-2026-00051",customerId:7,customerName:"مؤسسة الريادة",
@@ -71,6 +72,12 @@ const adapter:AxiosAdapter=async config=>{
   const reversed=url.match(/^\/finance\/collections\/(\d+)\/reverse$/);
   if(reversed&&method==="post"){
     const id=Number(reversed[1]);
+    if(simulateConcurrentReversal){
+      simulateConcurrentReversal=false;
+      records=records.map(c=>c.id===id?{...c,status:2,statusLabel:"معكوس",
+        reversalReason:"تم عكسه من مستخدم آخر",reversedAt:"2026-10-29T10:00:00Z"}:c);
+      throw Object.assign(new Error("Already reversed"),{response:{status:409,data:{message:"الإيصال معكوس بالفعل"}}});
+    }
     if(!records.some(c=>c.id===id&&c.status===1))throw Error("Receipt already reversed or absent");
     records=records.map(c=>c.id===id?{...c,status:2,statusLabel:"معكوس",
       reversalReason:String(body.reason),reversedAt:"2026-10-28T12:00:00Z"}:c);
@@ -79,7 +86,7 @@ const adapter:AxiosAdapter=async config=>{
   throw Error("Unexpected call: "+method+" "+url);
 };
 function visit(){window.history.replaceState({},"","/collections");return render(<App/>);}
-beforeEach(()=>{apiClient.defaults.adapter=adapter;records=[general,fromDelivery];calls=[];permissions=[
+beforeEach(()=>{apiClient.defaults.adapter=adapter;records=[general,fromDelivery];calls=[];simulateConcurrentReversal=false;permissions=[
   "finance.collections.view","finance.collections.create","finance.collections.reverse","customers.selects.view",
 ];});
 afterEach(()=>{apiClient.defaults.adapter=originalAdapter;});
@@ -241,6 +248,42 @@ describe("Collections frontend against Laravel Finance API",()=>{
     expect(within(dialog).getByText("سبب العكس: عربون تم تسجيله بالخطأ")).toBeTruthy();
     expect(within(dialog).getByText(/تاريخ العكس/)).toBeTruthy();
     expect(within(dialog).queryByRole("button",{name:"عكس التحصيل"})).toBeNull();
+  });
+  it("confirms the selected receipt, validates the reason, and resets a cancelled reversal",async()=>{
+    visit();const user=userEvent.setup();
+    await screen.findByText("COL-2026-00051");
+    await user.click(screen.getAllByRole("button",{name:"التفاصيل"})[0]);
+    const dialog=await screen.findByRole("dialog",{name:"تفاصيل إيصال التحصيل"});
+    await user.click(within(dialog).getByRole("button",{name:"عكس التحصيل"}));
+    expect(within(dialog).getByText("الإيصال المطلوب عكسه")).toBeTruthy();
+    expect(within(dialog).getByText("المبلغ المسجل")).toBeTruthy();
+    expect(within(dialog).getAllByText("COL-2026-00051").length).toBeGreaterThan(0);
+    const reason=within(dialog).getByRole("textbox",{name:/سبب العكس/}) as HTMLTextAreaElement;
+    expect(document.activeElement).toBe(reason);
+    await user.type(reason,"أ");
+    expect(within(dialog).getByText(/3 أحرف على الأقل/)).toBeTruthy();
+    await user.click(within(dialog).getByRole("checkbox",{name:"تأكيد أثر عكس التحصيل"}));
+    expect(within(dialog).getByRole("button",{name:"تأكيد عكس التحصيل"}).hasAttribute("disabled")).toBe(true);
+    await user.click(within(dialog).getByRole("button",{name:"رجوع"}));
+    await user.click(within(dialog).getByRole("button",{name:"عكس التحصيل"}));
+    expect((within(dialog).getByRole("textbox",{name:/سبب العكس/}) as HTMLTextAreaElement).value).toBe("");
+    expect((within(dialog).getByRole("checkbox",{name:"تأكيد أثر عكس التحصيل"}) as HTMLInputElement).checked).toBe(false);
+    expect(calls.some(c=>c.url.endsWith("/reverse")&&c.method==="post")).toBe(false);
+  });
+  it("refreshes an externally reversed receipt after a 409 without posting a second reversal",async()=>{
+    simulateConcurrentReversal=true;
+    visit();const user=userEvent.setup();
+    await screen.findByText("COL-2026-00051");
+    await user.click(screen.getAllByRole("button",{name:"التفاصيل"})[0]);
+    const dialog=await screen.findByRole("dialog",{name:"تفاصيل إيصال التحصيل"});
+    await user.click(within(dialog).getByRole("button",{name:"عكس التحصيل"}));
+    await user.type(within(dialog).getByRole("textbox",{name:/سبب العكس/}),"إيصال مكرر");
+    await user.click(within(dialog).getByRole("checkbox",{name:"تأكيد أثر عكس التحصيل"}));
+    await user.click(within(dialog).getByRole("button",{name:"تأكيد عكس التحصيل"}));
+    expect(await within(dialog).findByText(/تحصيل معكوس —/)).toBeTruthy();
+    expect(within(dialog).getByText("سبب العكس: تم عكسه من مستخدم آخر")).toBeTruthy();
+    expect(within(dialog).queryByRole("button",{name:"تأكيد عكس التحصيل"})).toBeNull();
+    expect(calls.filter(c=>c.url==="/finance/collections/51/reverse")).toHaveLength(1);
   });
   it("allows create-only collectors without fetching protected financial history",async()=>{
     permissions=["finance.collections.create"];
