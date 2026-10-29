@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
@@ -15,7 +15,7 @@ import { useCollection, useCollectionActions, useCollectionCustomers } from "../
 import { CollectionDateField, formatCollectionDate } from "./collection-date-field";
 import type { Collection,CreateCollectionPayload,CorrectCollectionPayload,PaymentMethod } from "../types/collections.types";
 
-function Frame({title,busy,onClose,children}:{title:string;busy:boolean;onClose:()=>void;children:React.ReactNode}) {
+function Frame({title,busy,onClose,footer,children}:{title:string;busy:boolean;onClose:()=>void;footer?:React.ReactNode;children:React.ReactNode}) {
   const titleId=useId();
   const closeRef=useRef<HTMLButtonElement>(null);
   useEffect(()=>{
@@ -34,6 +34,7 @@ function Frame({title,busy,onClose,children}:{title:string;busy:boolean;onClose:
         <Button ref={closeRef} type="button" variant="ghost" size="icon-sm" disabled={busy} aria-label="إغلاق" onClick={onClose}><X className="size-4"/></Button>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">{children}</div>
+      {footer&&<footer className="flex shrink-0 flex-wrap items-center gap-2 border-t bg-card px-4 py-3 sm:px-5">{footer}</footer>}
     </section>
   </div>;
 }
@@ -153,166 +154,252 @@ export function CreateCollectionDialog({onClose,onSuccess}:{onClose:()=>void;onS
     </div>
   </Frame>;
 }
-function CorrectionForm({receipt,onCancel,onSuccess,actions}:{receipt:Collection;onCancel:()=>void;onSuccess:()=>void;actions:ReturnType<typeof useCollectionActions>}) {
-  const [amount,setAmount]=useState(receipt.amount);
-  const [reason,setReason]=useState("");
-  const [confirmCredit,setConfirmCredit]=useState(false);
-  const [error,setError]=useState("");
-  const cents=parseCents(amount);
-  const original=parseCents(receipt.amount);
-  const valid=cents!==null&&cents>=0&&original!==null&&cents!==original&&
-    reason.trim().length>=3&&!actions.correct.isPending;
-  async function submit(){
-    if(!valid)return;
-    const payload:CorrectCollectionPayload={
-      amount:centsToMoney(cents!),reason:reason.trim(),
-    };
-    if(receipt.source===2)payload.confirmCreditBalance=confirmCredit;
-    setError("");
-    try {
-      const result=await actions.correct.mutateAsync({id:receipt.id,payload});
-      toast.success(result.receiptNumber
-        ?"تم تصحيح مبلغ التحصيل وإنشاء الإيصال "+result.receiptNumber
-        :"تم عكس التحصيل بالكامل دون إنشاء إيصال بديل.");
-      onSuccess();
-    } catch(e:unknown){
-      setError(getApiErrorMessage(e,"تعذّر تصحيح مبلغ التحصيل."));
-    }
-  }
-  return <section aria-label="تصحيح مبلغ التحصيل" className="space-y-3 rounded-lg border p-4">
-    <h3 className="text-sm font-bold">تصحيح مبلغ التحصيل</h3>
-    <div className="grid gap-3 rounded-lg bg-muted/40 p-3 text-sm sm:grid-cols-2">
-      <div><p className="text-xs text-muted-foreground">الإيصال الأصلي</p>
-        <p dir="ltr" className="mt-1 font-semibold">{receipt.receiptNumber}</p></div>
-      <div><p className="text-xs text-muted-foreground">المبلغ المسجل</p>
-        <p className="mt-1 font-bold"><MoneyAmount amount={receipt.amount}/></p></div>
-      {receipt.orderNumber&&<div><p className="text-xs text-muted-foreground">الأوردر المرتبط</p>
-        <p dir="ltr" className="mt-1 font-semibold">{receipt.orderNumber}</p></div>}
+
+type ReceiptView="details"|"correct"|"reverse";
+
+function ReceiptActionSummary({receipt}:{receipt:Collection}){
+  return <div className="grid gap-x-4 gap-y-3 rounded-lg bg-muted/40 p-3 text-sm sm:grid-cols-2">
+    <div>
+      <p className="text-xs text-muted-foreground">رقم الإيصال</p>
+      <p dir="ltr" className="mt-1 font-semibold tabular-nums">{receipt.receiptNumber}</p>
     </div>
-    <label className="block space-y-1 text-sm font-semibold">
-      <span>المبلغ الصحيح (ج.م) *</span>
-      <input autoFocus dir="ltr" inputMode="decimal" className={fieldClass} value={amount}
-        aria-invalid={cents===null}
-        onChange={e=>{setAmount(e.target.value);setError("");}}/>
-      {cents===null&&<span role="alert" className="text-xs text-destructive">أدخل مبلغًا صحيحًا برقمين عشريين كحد أقصى.</span>}
-      {cents!==null&&cents===original&&<span className="text-xs text-muted-foreground">غيّر المبلغ المسجل قبل الحفظ.</span>}
-      {cents===0&&<span className="text-xs text-muted-foreground">المبلغ صفر: سيُعكس الإيصال دون إنشاء إيصال بديل.</span>}
-    </label>
-    <label className="block space-y-1 text-sm font-semibold">
-      <span>سبب التصحيح *</span>
-      <textarea className={fieldClass+" min-h-20 py-2"} maxLength={3000} value={reason}
-        onChange={e=>{setReason(e.target.value);setError("");}} placeholder="لماذا كان المبلغ المسجل غير صحيح؟"/>
-      {reason.length>0&&reason.trim().length<3&&<span role="alert" className="text-xs text-destructive">سبب التصحيح يجب أن يكون 3 أحرف على الأقل.</span>}
-    </label>
-    <p className="text-xs leading-6 text-muted-foreground">
-      سيتم عكس الإيصال القديم وتسجيل إيصال بديل بنفس المصدر وطريقة الدفع
-      {receipt.orderNumber?" ونفس الأوردر":""} في عملية واحدة، مع الاحتفاظ بالسجل المالي الأصلي.
-      التصحيح لا يرد أموالًا فعلية للعميل.
-    </p>
-    {receipt.source===2&&cents!==null&&cents>0&&<label className="flex items-start gap-2 rounded-lg border p-3 text-sm">
-      <input type="checkbox" className="mt-1 accent-primary" checked={confirmCredit}
-        onChange={e=>setConfirmCredit(e.target.checked)}/>
-      أوافق على الرصيد الدائن إذا نتج عن تصحيح تحصيل التسليم.
-    </label>}
-    {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}
-    <div className="flex flex-wrap gap-2">
-      <Button disabled={!valid} onClick={()=>void submit()}>{actions.correct.isPending?"جاري التصحيح...":"تأكيد تصحيح المبلغ"}</Button>
-      <Button variant="outline" disabled={actions.correct.isPending} onClick={onCancel}>رجوع</Button>
+    <div>
+      <p className="text-xs text-muted-foreground">المبلغ المسجل</p>
+      <p className="mt-1 font-bold"><MoneyAmount amount={receipt.amount}/></p>
     </div>
-  </section>;
+    <div>
+      <p className="text-xs text-muted-foreground">العميل</p>
+      <p className="mt-1 font-semibold">{receipt.customerName}</p>
+    </div>
+    {receipt.source!==0&&receipt.orderNumber&&<div>
+      <p className="text-xs text-muted-foreground">رقم الأوردر</p>
+      <p dir="ltr" className="mt-1 font-semibold tabular-nums">{receipt.orderNumber}</p>
+    </div>}
+  </div>;
 }
 
 export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClose:()=>void;onSuccess:()=>void}) {
   const query=useCollection(id);
+  const qc=useQueryClient();
   const session=useCurrentUser();
   const canReverse=session.data?.permissions.includes("finance.collections.reverse")??false;
   const canCorrect=session.data?.permissions.includes("finance.collections.correct")??false;
   const canViewOrders=session.data?.permissions.includes("orders.view")??false;
   const canRefund=session.data?.permissions.includes("finance.refunds.create")??false;
   const actions=useCollectionActions();
-  const [reversing,setReversing]=useState(false);
-  const [correcting,setCorrecting]=useState(false);
-  const [reason,setReason]=useState("");
+  const [view,setView]=useState<ReceiptView>("details");
+  const [amount,setAmount]=useState("");
+  const [correctionReason,setCorrectionReason]=useState("");
+  const [confirmCredit,setConfirmCredit]=useState(false);
+  const [reversalReason,setReversalReason]=useState("");
   const [acknowledged,setAcknowledged]=useState(false);
   const [error,setError]=useState("");
-  const c=query.data;
-  const reversable=c?.status===1&&canReverse;
-  async function confirm(){
-    if(!reversable||reason.trim().length<3||!acknowledged||actions.reverse.isPending)return;
+  const receipt=query.data;
+  const busy=actions.reverse.isPending||actions.correct.isPending;
+  const isPosted=receipt?.status===1;
+  const correctable=Boolean(isPosted&&canCorrect);
+  const reversible=Boolean(isPosted&&canReverse);
+  const correctedCents=parseCents(amount);
+  const originalCents=receipt?parseCents(receipt.amount):null;
+  const amountChanged=correctedCents!==null&&originalCents!==null&&correctedCents!==originalCents;
+  const validCorrection=correctable&&correctedCents!==null&&correctedCents>0&&amountChanged&&
+    correctionReason.trim().length>=3&&!busy;
+  const validReversal=reversible&&reversalReason.trim().length>=3&&acknowledged&&!busy;
+
+  function goBack(){
+    if(busy)return;
+    setView("details");
     setError("");
-    try {
-      await actions.reverse.mutateAsync({id,reason:reason.trim()});
+    setAmount("");
+    setCorrectionReason("");
+    setConfirmCredit(false);
+    setReversalReason("");
+    setAcknowledged(false);
+  }
+  function beginCorrection(){
+    if(!correctable||!receipt)return;
+    setAmount(receipt.amount);
+    setCorrectionReason("");
+    setConfirmCredit(false);
+    setError("");
+    setView("correct");
+  }
+  function beginReversal(){
+    if(!reversible)return;
+    setReversalReason("");
+    setAcknowledged(false);
+    setError("");
+    setView("reverse");
+  }
+  async function refreshOnConflict(e:unknown){
+    if((e as {response?:{status?:number}}).response?.status===409){
+      await qc.invalidateQueries({queryKey:["collections"]});
+      goBack();
+    }
+  }
+  async function submitCorrection(){
+    if(!validCorrection||!receipt)return;
+    const payload:CorrectCollectionPayload={
+      amount:centsToMoney(correctedCents!),reason:correctionReason.trim(),
+    };
+    if(receipt.source===2)payload.confirmCreditBalance=confirmCredit;
+    setError("");
+    try{
+      const result=await actions.correct.mutateAsync({id,payload});
+      toast.success(result.receiptNumber
+        ?"تم تصحيح التحصيل وإنشاء الإيصال البديل "+result.receiptNumber
+        :"تم تصحيح التحصيل بنجاح.");
+      onSuccess();
+    }catch(e:unknown){
+      setError(getApiErrorMessage(e,"تعذّر تصحيح مبلغ التحصيل."));
+      await refreshOnConflict(e);
+    }
+  }
+  async function submitReversal(){
+    if(!validReversal)return;
+    setError("");
+    try{
+      await actions.reverse.mutateAsync({id,reason:reversalReason.trim()});
       toast.success("تم عكس التحصيل محاسبيًا بنجاح.");
       onSuccess();
-    } catch(e:unknown) {setError(getApiErrorMessage(e,"تعذّر عكس التحصيل."));}
+    }catch(e:unknown){
+      setError(getApiErrorMessage(e,"تعذّر عكس التحصيل."));
+      await refreshOnConflict(e);
+    }
   }
-  return <Frame title="تفاصيل إيصال التحصيل" busy={actions.reverse.isPending||actions.correct.isPending} onClose={onClose}>
+
+  const title=view==="correct"?"تصحيح مبلغ التحصيل":view==="reverse"?"عكس الإيصال بالكامل":"تفاصيل إيصال التحصيل";
+  const footer=view==="correct"?<>
+    <Button disabled={!validCorrection} onClick={()=>void submitCorrection()}>
+      {actions.correct.isPending?"جاري التصحيح...":"تأكيد تصحيح المبلغ"}
+    </Button>
+    <Button variant="outline" disabled={busy} onClick={goBack}>رجوع للتفاصيل</Button>
+  </>:view==="reverse"?<>
+    <Button variant="destructive" disabled={!validReversal} onClick={()=>void submitReversal()}>
+      {actions.reverse.isPending?"جاري العكس...":"تأكيد عكس التحصيل"}
+    </Button>
+    <Button variant="outline" disabled={busy} onClick={goBack}>رجوع للتفاصيل</Button>
+  </>:<Button variant="outline" disabled={busy} onClick={onClose}>إغلاق</Button>;
+
+  return <Frame title={title} busy={busy} onClose={onClose} footer={footer}>
     {query.isPending?<LoadingState/>:query.isError?
-      <ErrorState error={query.error} retry={()=>void query.refetch()}/>:c&&
-      <div className="space-y-4">
+      <ErrorState error={query.error} retry={()=>void query.refetch()}/>:receipt&&
+      (view==="details"?<div className="space-y-4">
         <div className="grid gap-4 rounded-lg bg-muted/40 p-4 text-sm sm:grid-cols-2">
           {[
-            ["رقم الإيصال",c.receiptNumber],["العميل",c.customerName],
-            ["رقم الهاتف",c.customerPhone],["تاريخ التحصيل",formatCollectionDate(c.collectedOn)],
-            ...(c.source!==0&&c.orderNumber?[["رقم الأوردر",c.orderNumber]]:[]),
-            ["طريقة التحصيل",c.paymentMethodLabel],["مصدر التحصيل",c.sourceLabel],
-            ["الحالة",c.statusLabel],["جهة التحصيل",c.destinationLabel??"—"],
+            ["رقم الإيصال",receipt.receiptNumber],["العميل",receipt.customerName],
+            ["رقم الهاتف",receipt.customerPhone],["تاريخ التحصيل",formatCollectionDate(receipt.collectedOn)],
+            ...(receipt.source!==0&&receipt.orderNumber?[["رقم الأوردر",receipt.orderNumber]]:[]),
+            ["طريقة التحصيل",receipt.paymentMethodLabel],["مصدر التحصيل",receipt.sourceLabel],
+            ["الحالة",receipt.statusLabel],["جهة التحصيل",receipt.destinationLabel??"—"],
           ].map(([label,value])=><div key={label}>
             <p className="text-xs text-muted-foreground">{label}</p>
             <p className="mt-1 break-words font-semibold text-foreground">{value}</p>
           </div>)}
           <div><p className="text-xs text-muted-foreground">المبلغ</p>
-            <p className="mt-1 font-extrabold"><MoneyAmount amount={c.amount}/></p></div>
+            <p className="mt-1 font-extrabold"><MoneyAmount amount={receipt.amount}/></p></div>
         </div>
-        {c.correctedFromId&&<p className="text-xs text-muted-foreground">هذا الإيصال بديل لتصحيح إيصال رقم #{c.correctedFromId}.</p>}
-        {c.correctedToId&&<p className="text-xs text-muted-foreground">تم تصحيح المبلغ بإيصال بديل رقم #{c.correctedToId}.</p>}
-        {c.note&&<p className="whitespace-pre-wrap rounded-lg border p-3 text-sm">ملاحظات: {c.note}</p>}
-        {c.orderId&&canViewOrders&&<Link to={`/orders/${c.orderId}`} className="text-sm font-semibold text-primary underline">فتح الأوردر المرتبط</Link>}
-        {c.status===1&&<p className="flex items-center gap-2 text-sm font-semibold text-[#14815b]"><CheckCircle2 className="size-4"/> إيصال معتمد ومسجل في حساب العميل.</p>}
-        {c.status===2&&<div className="rounded-lg border border-amber-200 bg-amber-50/40 p-3 text-sm">
-          <p className="font-bold text-amber-800">تحصيل معكوس — تم إلغاء أثره المالي مع الاحتفاظ بالإيصال.</p>
-          <p className="mt-1">سبب العكس: {c.reversalReason??"—"}</p>
-          {c.reversedAt&&<p className="mt-1 text-xs text-muted-foreground">
-            تاريخ العكس: {new Intl.DateTimeFormat("ar-EG",{dateStyle:"medium",timeStyle:"short",timeZone:"Africa/Cairo"}).format(new Date(c.reversedAt))}
+        {receipt.correctedFromId&&<p className="text-xs text-muted-foreground">
+          هذا الإيصال بديل لإيصال سابق رقم #{receipt.correctedFromId}.
+        </p>}
+        {receipt.correctedToId&&<p className="text-xs text-muted-foreground">
+          تم تصحيح المبلغ، والإيصال البديل رقم #{receipt.correctedToId}.
+        </p>}
+        {receipt.note&&<p className="whitespace-pre-wrap rounded-lg border p-3 text-sm">ملاحظات: {receipt.note}</p>}
+        {receipt.orderId&&canViewOrders&&<Link to={`/orders/${receipt.orderId}`} className="text-sm font-semibold text-primary underline">فتح الأوردر المرتبط</Link>}
+        {receipt.status===1&&<p className="flex items-center gap-2 text-sm font-semibold text-[#14815b]">
+          <CheckCircle2 className="size-4"/> إيصال معتمد ومسجل في حساب العميل.
+        </p>}
+        {receipt.status===2&&<div className="rounded-lg border border-amber-200 bg-amber-50/40 p-3 text-sm">
+          <p className="font-bold text-amber-800">
+            {receipt.correctedToId?"تم تصحيح الإيصال — الإيصال الأصلي معكوس ومُحتفظ به.":"تحصيل معكوس — تم إلغاء أثره المالي مع الاحتفاظ بالإيصال."}
+          </p>
+          <p className="mt-1">سبب العكس: {receipt.reversalReason??"—"}</p>
+          {receipt.reversedAt&&<p className="mt-1 text-xs text-muted-foreground">
+            تاريخ العكس: {new Intl.DateTimeFormat("ar-EG",{dateStyle:"medium",timeStyle:"short",timeZone:"Africa/Cairo"}).format(new Date(receipt.reversedAt))}
           </p>}
         </div>}
-        {c.status===1&&<p className="text-xs leading-6 text-muted-foreground">
-          عكس التحصيل لتصحيح إيصال مسجل بالخطأ، ولا يلغي الأوردر أو التسليم المرتبط به.
-          إذا استُلمت الأموال فعلًا وتريد ردها للعميل، استخدم «رد رصيد» من حسابات العملاء.
-        </p>}
-        {c.status===1&&canRefund&&<Link to={`/finance?customerId=${c.customerId}`}
-          className="inline-flex text-xs font-semibold text-primary underline">الانتقال لحساب العميل لرد رصيد</Link>}
-        {c.status===1&&!reversing&&!correcting&&<div className="flex flex-wrap gap-2">
-          {canCorrect&&<Button onClick={()=>setCorrecting(true)}>تصحيح المبلغ</Button>}
-          {reversable&&<Button variant="destructive" onClick={()=>setReversing(true)}>عكس التحصيل</Button>}
-        </div>}
-        {c.status===1&&canCorrect&&correcting&&<CorrectionForm receipt={c}
-          onCancel={()=>setCorrecting(false)} onSuccess={onSuccess} actions={actions}/>}
-        {reversable&&reversing&&<div className="space-y-3 rounded-lg border border-destructive/30 p-4">
-          <p className="flex items-center gap-2 text-sm font-bold text-destructive"><AlertTriangle className="size-4"/> عكس التحصيل</p>
-          <p className="rounded-lg bg-[#fff4df] p-3 text-sm leading-6 text-[#a46b0b]">
-            سيتم إلغاء أثر هذا التحصيل على رصيد العميل بحركة عكسية مع الاحتفاظ بالإيصال وسجل العملية.
-            {c.source!==0&&" لن يتم إلغاء الأوردر أو التسليم نفسه."}
-            {" "}هذه العملية لا ترد أموالًا للعميل تلقائيًا؛ لرد أموال مدفوعة فعلًا استخدم «رد رصيد» من حساب العميل.
-          </p>
-          <label className="block space-y-1 text-sm font-semibold">
-            <span>سبب العكس *</span>
-            <textarea className={fieldClass+" min-h-24 py-2"} value={reason} maxLength={3000}
-              onChange={e=>setReason(e.target.value)} placeholder="أدخل سببًا واضحًا..."/>
-          </label>
-          <label className="flex items-start gap-2 rounded-lg border p-3 text-sm leading-6">
-            <input type="checkbox" checked={acknowledged} onChange={e=>setAcknowledged(e.target.checked)}
-              aria-label="تأكيد أثر عكس التحصيل" className="mt-1 accent-primary"/>
-            أؤكد فهمي أن عكس التحصيل يعدّل رصيد العميل محاسبيًا، ولا يُعد إثباتًا لرد الأموال فعليًا.
-          </label>
-          {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}
-          <div className="flex flex-wrap gap-2">
-            <Button variant="destructive" disabled={reason.trim().length<3||!acknowledged||actions.reverse.isPending}
-              onClick={()=>void confirm()}>{actions.reverse.isPending?"جاري العكس...":"تأكيد عكس التحصيل"}</Button>
-            <Button variant="outline" disabled={actions.reverse.isPending} onClick={()=>setReversing(false)}>رجوع</Button>
+        {receipt.status===1&&(correctable||reversible)&&<section className="space-y-2 border-t pt-3" aria-label="إجراءات الإيصال">
+          <p className="text-sm font-semibold">هل المبلغ المسجل صحيح؟</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {correctable&&<div className="space-y-2 rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">استلمت مبلغًا مختلفًا عن المسجل؟</p>
+              <Button className="w-full" onClick={beginCorrection}>تصحيح المبلغ</Button>
+            </div>}
+            {reversible&&<div className="space-y-2 rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">الإيصال كله اتسجل بالخطأ؟</p>
+              <Button variant="outline" className="w-full text-destructive" onClick={beginReversal}>عكس التحصيل</Button>
+            </div>}
           </div>
-        </div>}
-        <div className="border-t pt-3"><Button variant="outline" onClick={onClose}>إغلاق</Button></div>
-      </div>}
+          <p className="text-xs text-muted-foreground">
+            كلا الإجراءين يغيّر حساب العميل محاسبيًا، ولا يرد أموالًا فعلية.
+          </p>
+        </section>}
+        {receipt.status===1&&canRefund&&<Link to={`/finance?customerId=${receipt.customerId}`}
+          className="inline-flex text-xs font-semibold text-primary underline">الانتقال لحساب العميل لرد رصيد</Link>}
+      </div>:view==="correct"&&correctable?<div className="space-y-4">
+        <ReceiptActionSummary receipt={receipt}/>
+        <label className="block space-y-1 text-sm font-semibold">
+          <span>المبلغ الصحيح الذي استُلم (ج.م) *</span>
+          <input autoFocus dir="ltr" inputMode="decimal" className={fieldClass} value={amount}
+            aria-invalid={correctedCents===null||correctedCents===0}
+            onChange={e=>{setAmount(e.target.value);setError("");}}/>
+          {correctedCents===null&&<span role="alert" className="text-xs text-destructive">
+            أدخل مبلغًا صحيحًا برقمين عشريين كحد أقصى.
+          </span>}
+          {correctedCents===0&&<p role="alert" className="text-xs text-destructive">
+            لإلغاء الإيصال بالكامل، ارجع واختر «عكس التحصيل».
+          </p>}
+          {correctedCents!==null&&correctedCents===originalCents&&<p className="text-xs text-muted-foreground">غيّر المبلغ المسجل قبل الحفظ.</p>}
+        </label>
+        <label className="block space-y-1 text-sm font-semibold">
+          <span>سبب التصحيح *</span>
+          <textarea className={fieldClass+" min-h-20 py-2"} maxLength={3000} value={correctionReason}
+            onChange={e=>{setCorrectionReason(e.target.value);setError("");}}
+            placeholder="مثال: العميل دفع 300 ج.م لكن تم تسجيل 500 ج.م"/>
+          {correctionReason.length>0&&correctionReason.trim().length<3&&<span role="alert" className="text-xs text-destructive">
+            السبب لازم يكون 3 أحرف على الأقل.
+          </span>}
+        </label>
+        <div className="rounded-lg border bg-muted/30 p-3 text-sm leading-6">
+          <p className="font-semibold">النتيجة بعد التصحيح</p>
+          <p className="mt-1 text-muted-foreground">
+            الإيصال الحالي هيصبح معكوسًا، وهيتسجل إيصال جديد
+            {receipt.source!==0?" لنفس الأوردر":""} بنفس طريقة الدفع والمصدر.
+            وكل السجلات المالية هتفضل محفوظة.
+          </p>
+        </div>
+        {receipt.source===2&&<label className="flex items-start gap-2 rounded-lg border p-3 text-sm leading-6">
+          <input type="checkbox" checked={confirmCredit} onChange={e=>setConfirmCredit(e.target.checked)}
+            className="mt-1 accent-primary"/>
+          أوافق على الرصيد الدائن إذا نتج عن تصحيح تحصيل التسليم.
+        </label>}
+        {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}
+      </div>:view==="reverse"&&reversible?<div className="space-y-4">
+        <ReceiptActionSummary receipt={receipt}/>
+        <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-900">
+          <AlertTriangle className="mt-1 size-4 shrink-0"/>
+          <span>
+            سيتم إلغاء الأثر المالي للإيصال بالكامل، مع الاحتفاظ به في السجل.
+            {receipt.source!==0?" لن يتم إلغاء الأوردر أو التسليم.":""}
+            {" "}العملية لا ترد فلوسًا للعميل تلقائيًا.
+          </span>
+        </p>
+        <label className="block space-y-1 text-sm font-semibold">
+          <span>سبب العكس *</span>
+          <textarea autoFocus className={fieldClass+" min-h-20 py-2"} maxLength={3000} value={reversalReason}
+            onChange={e=>{setReversalReason(e.target.value);setError("");}}
+            placeholder="مثال: تم تسجيل الإيصال مرتين"/>
+          {reversalReason.length>0&&reversalReason.trim().length<3&&<p role="alert" className="text-xs text-destructive">
+            السبب لازم يكون 3 أحرف على الأقل.
+          </p>}
+        </label>
+        <label className="flex items-start gap-2 rounded-lg border p-3 text-sm leading-6">
+          <input type="checkbox" checked={acknowledged} onChange={e=>setAcknowledged(e.target.checked)}
+            aria-label="تأكيد أثر عكس التحصيل" className="mt-1 accent-primary"/>
+          أؤكد أنني أريد إلغاء أثر هذا الإيصال ماليًا.
+        </label>
+        {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}
+      </div>:<p className="text-sm text-muted-foreground">هذا الإيصال غير متاح للإجراء المطلوب.</p>)}
   </Frame>;
 }
