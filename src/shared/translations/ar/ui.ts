@@ -2,6 +2,9 @@
 export const uiMessages = {
 
   financeAccounts: {
+    moduleTabs: "أقسام حسابات العملاء",
+    accountsTab: "حسابات العملاء",
+    globalRefundsTab: "سجل الردود العام",
     accountsTitle: "قائمة حسابات العملاء",
     accountsHint: "تابع الأرصدة وافتح كشف حساب أي عميل.",
     accountsSearch: "ابحث باسم العميل أو رقم الهاتف",
