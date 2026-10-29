@@ -111,6 +111,18 @@ describe("Finance account page against Laravel existing contracts",()=>{
     expect(calls.find(c=>c.url==="/finance/customers/7/opening-balance"&&c.method==="post")?.body)
       .toEqual({type:2,amount:"150.50"});
   });
+  it("combines customer selection and account summary while explaining why debit customers cannot receive refunds",async()=>{
+    permissions=["finance.balances.view","finance.ledger.view","finance.refunds.create"];
+    visit();
+    const card=await screen.findByRole("region",{name:"بيانات حساب العميل"});
+    expect(within(card).getByRole("combobox",{name:"اختيار حساب العميل"})).toBeTruthy();
+    expect(screen.queryByRole("region",{name:"اختيار حساب العميل"})).toBeNull();
+    const button=within(card).getByRole("button",{name:"رد رصيد للعميل"});
+    await within(card).findByText("لا يمكن رد رصيد: العميل عليه مديونية حاليًا.");
+    expect(button.hasAttribute("disabled")).toBe(true);
+    expect(within(card).getByText("أحمد خالد")).toBeTruthy();
+    expect(calls.some(c=>c.url==="/finance/refunds"&&c.method==="post")).toBe(false);
+  });
   it("lists financial accounts with search, debit/credit filters, sorting and opens selected statement",async()=>{
     visit("");const user=userEvent.setup();
     const section=await screen.findByRole("region",{name:"قائمة حسابات العملاء"});
