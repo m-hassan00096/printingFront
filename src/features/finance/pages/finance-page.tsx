@@ -166,11 +166,11 @@ export function FinancePage() {
               </Button>}
               {canRefundSelected && <Button size="sm" type="button" onClick={() => setRefunding(true)}>
                 <RotateCcw className="size-4"/> رد رصيد دائن
-              </Button>
+              </Button>}
               {canRefundHistory&&<Button size="sm" type="button" variant="outline"
                 aria-expanded={historyExpanded} onClick={()=>setHistoryExpanded(v=>!v)}>
                 <History className="size-4"/> {historyExpanded?copy.ledgerTitle:copy.customerRefundsAction}
-              </Button>}}
+              </Button>}
             </div>
           </div>
 
