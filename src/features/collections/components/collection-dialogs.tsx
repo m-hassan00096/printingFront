@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
@@ -155,6 +155,7 @@ export function CreateCollectionDialog({onClose,onSuccess}:{onClose:()=>void;onS
 }
 export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClose:()=>void;onSuccess:()=>void}) {
   const query=useCollection(id);
+  const queryClient=useQueryClient();
   const session=useCurrentUser();
   const canReverse=session.data?.permissions.includes("finance.collections.reverse")??false;
   const canViewOrders=session.data?.permissions.includes("orders.view")??false;
@@ -166,6 +167,13 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
   const [error,setError]=useState("");
   const c=query.data;
   const reversable=c?.status===1&&canReverse;
+  const reasonTooShort=reason.trim().length>0&&reason.trim().length<3;
+  function cancelReversal(){
+    setReversing(false);
+    setReason("");
+    setAcknowledged(false);
+    setError("");
+  }
   async function confirm(){
     if(!reversable||reason.trim().length<3||!acknowledged||actions.reverse.isPending)return;
     setError("");
@@ -173,7 +181,13 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
       await actions.reverse.mutateAsync({id,reason:reason.trim()});
       toast.success("تم عكس التحصيل محاسبيًا بنجاح.");
       onSuccess();
-    } catch(e:unknown) {setError(getApiErrorMessage(e,"تعذّر عكس التحصيل."));}
+    } catch(e:unknown) {
+      setError(getApiErrorMessage(e,"تعذّر عكس التحصيل."));
+      // Another operator may have reversed this receipt. Refresh its state, rather than leaving an active reverse action.
+      if((e as {response?:{status?:number}}).response?.status===409){
+        await queryClient.invalidateQueries({queryKey:["collections"]});
+      }
+    }
   }
   return <Frame title="تفاصيل إيصال التحصيل" busy={actions.reverse.isPending} onClose={onClose}>
     {query.isPending?<LoadingState/>:query.isError?
@@ -211,6 +225,16 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
         {reversable&&!reversing&&<Button variant="destructive" onClick={()=>setReversing(true)}>عكس التحصيل</Button>}
         {reversable&&reversing&&<div className="space-y-3 rounded-lg border border-destructive/30 p-4">
           <p className="flex items-center gap-2 text-sm font-bold text-destructive"><AlertTriangle className="size-4"/> عكس التحصيل</p>
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/30 p-3 text-sm">
+            <div>
+              <p className="text-xs text-muted-foreground">الإيصال المطلوب عكسه</p>
+              <p dir="ltr" className="mt-1 font-semibold tabular-nums">{c.receiptNumber}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">المبلغ المسجل</p>
+              <p className="mt-1 font-bold"><MoneyAmount amount={c.amount}/></p>
+            </div>
+          </div>
           <p className="rounded-lg bg-[#fff4df] p-3 text-sm leading-6 text-[#a46b0b]">
             سيتم إلغاء أثر هذا التحصيل على رصيد العميل بحركة عكسية مع الاحتفاظ بالإيصال وسجل العملية.
             {c.source!==0&&" لن يتم إلغاء الأوردر أو التسليم نفسه."}
@@ -218,8 +242,10 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
           </p>
           <label className="block space-y-1 text-sm font-semibold">
             <span>سبب العكس *</span>
-            <textarea className={fieldClass+" min-h-24 py-2"} value={reason} maxLength={3000}
-              onChange={e=>setReason(e.target.value)} placeholder="أدخل سببًا واضحًا..."/>
+            <textarea autoFocus className={fieldClass+" min-h-24 py-2"} value={reason} maxLength={3000}
+              aria-invalid={reasonTooShort}
+              onChange={e=>{setReason(e.target.value);setError("");}} placeholder="أدخل سببًا واضحًا..."/>
+            {reasonTooShort&&<span role="alert" className="text-xs text-destructive">سبب العكس يجب أن يكون 3 أحرف على الأقل.</span>}
           </label>
           <label className="flex items-start gap-2 rounded-lg border p-3 text-sm leading-6">
             <input type="checkbox" checked={acknowledged} onChange={e=>setAcknowledged(e.target.checked)}
@@ -230,7 +256,7 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
           <div className="flex flex-wrap gap-2">
             <Button variant="destructive" disabled={reason.trim().length<3||!acknowledged||actions.reverse.isPending}
               onClick={()=>void confirm()}>{actions.reverse.isPending?"جاري العكس...":"تأكيد عكس التحصيل"}</Button>
-            <Button variant="outline" disabled={actions.reverse.isPending} onClick={()=>setReversing(false)}>رجوع</Button>
+            <Button variant="outline" disabled={actions.reverse.isPending} onClick={cancelReversal}>رجوع</Button>
           </div>
         </div>}
         <div className="border-t pt-3"><Button variant="outline" onClick={onClose}>إغلاق</Button></div>
