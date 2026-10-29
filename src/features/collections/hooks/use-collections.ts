@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { useMutation,useQuery,useQueryClient } from "@tanstack/react-query";
 import * as api from "../api/collections.api";
-import type { CollectionFilters,CreateCollectionPayload } from "../types/collections.types";
+import type { CollectionFilters,CreateCollectionPayload,CorrectCollectionPayload } from "../types/collections.types";
 
 export const collectionKeys={
   root:["collections"] as const,
@@ -46,5 +46,9 @@ export function useCollectionActions(){
     const fingerprint="reverse:"+id+":"+reason;
     await api.reverseCollection(id,reason,keyFor(fingerprint));keys.current.delete(fingerprint);
   },onSuccess:refresh});
-  return {create,reverse};
+  const correct=useMutation({mutationFn:async({id,payload}:{id:number;payload:CorrectCollectionPayload})=>{
+    const fingerprint="correct:"+id+":"+JSON.stringify(payload);
+    const result=await api.correctCollection(id,payload,keyFor(fingerprint));keys.current.delete(fingerprint);return result;
+  },onSuccess:refresh});
+  return {create,reverse,correct};
 }

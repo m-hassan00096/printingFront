@@ -31,3 +31,31 @@ Deferred: source-specific order-linked general collection picker; employee name 
 - Cairo UI dates are displayed in `DD/MM/YYYY` with a native date picker. API request/response values remain `YYYY-MM-DD`. Format changes are presentation-only, including the create form and receipt details.
 - Secondary text contrast and compact form heights have been tuned; no new backend endpoints are needed.
 - Tests cover advanced filters, summary-status independence, ISO-backed localized dates, result count, permissions and existing finance flows.
+
+
+## Atomic amount correction UI (October 29, 2026)
+
+- Adds **رقم الأوردر** immediately after the source column for deposit and delivery receipts, showing the true order number; only users with `orders.view` get a clickable link. General collections show a dash.
+- Details preserve the established two-column layout and show order number when the receipt has a linked deposit/delivery source.
+- Authorized users with `finance.collections.correct` see **تصحيح المبلغ** on posted receipts. Input is the corrected absolute amount and mandatory reason. Same-amount replacements are blocked; `0.00` reverses without replacement.
+- Correction submits one idempotent `POST /finance/collections/{id}/correct` with `amount`, `reason`, and optional delivery-credit acknowledgment. The backend preserves source/method/order/delivery, creates the audit chain, and validates conflict/credit cases.
+- Existing independent **عكس التحصيل** and refund flows are unchanged. Correction does not transfer funds; a separate refund is required if money was actually returned.
+- Required backend: printingApi PR #30, migration and finance permission seeder. Do not deploy frontend alone. Run frontend CI and manual real-API regression before merging.
+
+## Reversal vs correction UX refinement (October 29, 2026)
+- The details dialog remains an immutable two-column grid with the original payment and audit information.
+- **تصحيح المبلغ** and **عكس التحصيل** now open short, mutually exclusive steps inside the same modal rather than appending a form below the entire receipt.
+- A compact receipt summary identifies receipt, amount, customer, and linked order; the dialog header displays the selected action.
+- The confirm/back controls live in a fixed footer and stay visible while the body scrolls. Returning to details discards unsaved inputs.
+- The correction action requires a new **positive** amount different from the original plus a reason (min 3 chars). Zero is never a valid correction: to void the receipt entirely the user returns to details and chooses reversal. The backend validates the same invariant.
+- Reversal requires a reason and an acknowledgment and does not post a replacement receipt. Both actions explain that no actual money is refunded and do not cancel the order/delivery.
+- Correction of a delivery may create customer credit and keeps its explicit credit confirmation control.
+- Backend must be updated to the matching printingApi PR #30 version before deploying this frontend branch.
+
+
+## Themed collection date filters (October 29, 2026)
+- Reuse the existing themed Gregorian `CreatedDatePicker` used by Orders in both `من تاريخ التحصيل` and `إلى تاريخ التحصيل` fields. The filter UI no longer launches the browser-native date picker.
+- Keep consistent filter height (`h-9`), typography, border, focus styles and RTL alignment. The calendar opens above/below the trigger depending on viewport space, supports month navigation, Escape/outside close and explicit date clearing.
+- Range restrictions are inclusive: selecting the from date limits the end calendar's minimum, and selecting the end date limits the start calendar's maximum.
+- The visible date remains `DD/MM/YYYY`, while API filters continue to transmit `YYYY-MM-DD`. Existing create-collection date input is untouched.
+- Regression tests validate calendar selection, query serialization, min/max disabled days and clearing filters.
