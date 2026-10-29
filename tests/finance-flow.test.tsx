@@ -77,7 +77,7 @@ afterEach(()=>{apiClient.defaults.adapter=original;});
 describe("Finance account page against Laravel existing contracts",()=>{
   it("shows current debit balance and paginated ledger with signed debit/credit distinction",async()=>{
     visit();
-    expect(await screen.findByText("حسابات العملاء")).toBeTruthy();
+    expect(await screen.findByRole("tab",{name:"حسابات العملاء"})).toBeTruthy();
     expect(await screen.findByText("سداد دين")).toBeTruthy();
     expect(screen.getAllByText("250.00 ج.م").length).toBeGreaterThan(0);
     expect(screen.getByText("50.00 ج.م")).toBeTruthy();
