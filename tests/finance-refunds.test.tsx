@@ -39,7 +39,8 @@ const adapter:AxiosAdapter=async config=>{
     {label:"eWallets",options:[{value:4,label:"فودافون كاش"}]},
   ]);
   if(url==="/finance/customers/7/balance")return ok(config,{
-    customerId:7,amount:credit,type:2,typeLabel:"دائن",openingBalanceExists:true,
+    customerId:7,amount:credit,type:Number(credit)===0?0:2,
+    typeLabel:Number(credit)===0?"متوازن":"دائن",openingBalanceExists:true,
   });
   if(url==="/finance/customers/7/opening-balance-status")return ok(config,{
     customerId:7,openingBalanceExists:true,
@@ -134,8 +135,8 @@ describe("Finance Refunds within the Accounts module",()=>{
     visit("/finance?customerId=7");
     const user=userEvent.setup();
     const selectedRefund=await screen.findByRole("button",{name:"رد رصيد للعميل"});
-    expect(selectedRefund.hasAttribute("disabled")).toBe(false);
     expect(await screen.findByText(/الرصيد الدائن المتاح للرد/)).toBeTruthy();
+    await waitFor(()=>expect(selectedRefund.hasAttribute("disabled")).toBe(false));
     expect(screen.queryByRole("tablist")).toBeNull();
     expect(screen.queryByText("قائمة الحسابات")).toBeNull();
     expect(screen.getByRole("combobox",{name:"اختيار حساب العميل"})).toBeTruthy();
