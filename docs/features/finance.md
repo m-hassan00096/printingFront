@@ -96,3 +96,13 @@ Backend PR #23 exercises customer-select permission boundaries, including inacti
 - **عرض ردود رصيد العميل** stays next to the refund action. The opening balance action appears in the same action row only when eligible.
 - Statement rows use denser vertical padding and a more compact primary receipt / secondary order-reference treatment, without hiding audit references or full movement notes.
 - Added frontend regression tests for a debtor's disabled refund action, available-credit action, permission hiding and compact account layout.
+
+
+## Accounts / global refunds navigation tabs (2026-10-29)
+
+- Replace the page-header toggle button with two RTL, accessible tabs: **حسابات العملاء** and **سجل الردود العام**.
+- `/finance` shows the account overview (or selected customer statement using `customerId`). `/finance?tab=refunds` opens the general refund register. If `customerId` is already present, switching tabs preserves it; switching back returns to the same customer's account and filters.
+- The refund register is global only in its own tab. The per-customer refund history remains an explicit action inside that customer's account, filtered by `filter[customerId]` and must not be confused with global records.
+- Tabs are permission-aware: account access requires account/ledger/opening permissions, general refund register requires `finance.refunds.view`. Users with only refund permissions cannot access account data; users without refund-read permission cannot see the global refunds tab. Refund-create-only user flow remains unchanged.
+- Tab controls use proper `tablist`, `tab`, `tabpanel`, `aria-selected` and directionally correct Arabic labels from translation files. The inactive panel does not fetch its protected records.
+- Tests cover selecting tabs, URL state and deep links, preserving selected customer, and refund-only access.
