@@ -31,3 +31,13 @@ Deferred: source-specific order-linked general collection picker; employee name 
 - Cairo UI dates are displayed in `DD/MM/YYYY` with a native date picker. API request/response values remain `YYYY-MM-DD`. Format changes are presentation-only, including the create form and receipt details.
 - Secondary text contrast and compact form heights have been tuned; no new backend endpoints are needed.
 - Tests cover advanced filters, summary-status independence, ISO-backed localized dates, result count, permissions and existing finance flows.
+
+
+## Atomic amount correction UI (October 29, 2026)
+
+- Adds **رقم الأوردر** immediately after the source column for deposit and delivery receipts, showing the true order number; only users with `orders.view` get a clickable link. General collections show a dash.
+- Details preserve the established two-column layout and show order number when the receipt has a linked deposit/delivery source.
+- Authorized users with `finance.collections.correct` see **تصحيح المبلغ** on posted receipts. Input is the corrected absolute amount and mandatory reason. Same-amount replacements are blocked; `0.00` reverses without replacement.
+- Correction submits one idempotent `POST /finance/collections/{id}/correct` with `amount`, `reason`, and optional delivery-credit acknowledgment. The backend preserves source/method/order/delivery, creates the audit chain, and validates conflict/credit cases.
+- Existing independent **عكس التحصيل** and refund flows are unchanged. Correction does not transfer funds; a separate refund is required if money was actually returned.
+- Required backend: printingApi PR #30, migration and finance permission seeder. Do not deploy frontend alone. Run frontend CI and manual real-API regression before merging.
