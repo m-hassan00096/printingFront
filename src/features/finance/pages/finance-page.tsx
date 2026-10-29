@@ -97,8 +97,14 @@ export function FinancePage() {
   }
 
   const hasOpening = openingStatus.isSuccess && openingStatus.data.openingBalanceExists;
+  // Refund action remains discoverable for permitted users, but never enabled for known debit/zero balances.
+  // Refund-only staff without balance/ledger access can still open the server-validated refund dialog.
   const canRefundSelected = canRefund && customerId > 0 &&
     ((!canBalance && !canLedger) || (balanceReady && actualBalance?.type === 2));
+  const refundUnavailableReason = !canRefund || !customerId || canRefundSelected ? "" :
+    !balanceReady ? (balance.isError || ledger.isError ? copy.refundBalanceError : copy.refundBalanceLoading) :
+    actualBalance?.type === 1 ? copy.refundDebitHint :
+    actualBalance?.type === 0 ? copy.refundZeroHint : copy.refundNoCreditHint;
   const openingAlreadyRegistered = canOpening && openingStatus.isSuccess
     ? openingStatus.data.openingBalanceExists
     : canBalance ? balance.data?.openingBalanceExists
@@ -124,7 +130,7 @@ export function FinancePage() {
     {canBalance&&!customerId&&!globalRefunds&&
       <FinanceAccountsOverview onSelect={id=>chooseCustomer(String(id))}/>}
     {canAccountDetails && !globalRefunds && <section className="space-y-3">
-      {(customerId>0||!canBalance)&&<section aria-label="اختيار حساب العميل" className="rounded-lg border bg-card p-3">
+      {!customerId&&!canBalance&&<section aria-label="اختيار حساب العميل" className="rounded-lg border bg-card p-3">
         <div className="flex flex-wrap items-center gap-2">
           <UserRound className="size-4 text-primary"/>
           <h2 className="text-sm font-extrabold">{copy.selectCustomer}</h2>
@@ -150,37 +156,37 @@ export function FinancePage() {
 
       {customerId > 0 && <div className="space-y-3">
         <section aria-label="بيانات حساب العميل" className="rounded-lg border bg-card p-3 sm:p-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="grid items-start gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(260px,360px)]">
             <div className="min-w-0 space-y-1">
-              <p className="text-xs font-semibold text-foreground/65">العميل المحدد</p>
+              <p className="text-xs font-semibold text-foreground/65">{copy.selectedCustomer}</p>
               <h2 className="break-words text-base font-extrabold">{customerName}</h2>
-              {canCustomerProfile && <Link to={`/customers/${customerId}`}
+              <p className="text-xs font-medium text-muted-foreground">
+                {copy.phone}: <span dir="ltr" className="inline-block tabular-nums">{customerPhone??copy.notAvailable}</span>
+              </p>
+              {canCustomerProfile&&<Link to={`/customers/${customerId}`}
                 className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
-                ملف العميل <ArrowUpLeft className="size-3.5"/>
+                {copy.customerRecord} <ArrowUpLeft className="size-3.5"/>
               </Link>}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {canOpening && openingStatus.isSuccess && !hasOpening && <Button size="sm" type="button"
-                variant="outline" onClick={() => setOpening(true)}>
-                <Plus className="size-4"/> رصيد افتتاحي
-              </Button>}
-              {canRefundSelected && <Button size="sm" type="button" onClick={() => setRefunding(true)}>
-                <RotateCcw className="size-4"/> رد رصيد دائن
-              </Button>}
-              {canRefundHistory&&<Button size="sm" type="button" variant="outline"
-                aria-expanded={historyExpanded} onClick={()=>setHistoryExpanded(v=>!v)}>
-                <History className="size-4"/> {historyExpanded?copy.ledgerTitle:copy.customerRefundsAction}
-              </Button>}
+            <div className="min-w-0 space-y-1">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-semibold">{copy.changeCustomer}</span>
+                {canBalance&&<Button size="sm" variant="ghost" onClick={()=>chooseCustomer("")}>
+                  {copy.backToAccounts}
+                </Button>}
+              </div>
+              <SearchableSelect label="اختيار حساب العميل"
+                placeholder={copy.accountsSearch} value={rawId}
+                options={customers.data??[]} onChange={chooseCustomer}
+                loading={customers.isPending} disabled={customers.isError}/>
+              {customers.isError&&<ErrorState error={customers.error}
+                retry={()=>void customers.refetch()}/>}
             </div>
           </div>
 
-          <div className="mt-3 grid gap-3 border-t pt-3 sm:grid-cols-3">
+          <div className="mt-3 grid gap-3 border-t pt-3 sm:grid-cols-2">
             <div className="space-y-1">
-              <p className="text-xs font-semibold text-foreground/65">الهاتف</p>
-              <p dir="ltr" className="w-fit font-semibold tabular-nums">{customerPhone ?? "—"}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs font-semibold text-foreground/65">الرصيد الحالي</p>
+              <p className="text-xs font-semibold text-foreground/65">{copy.currentBalance}</p>
               {((canBalance && balance.isPending) || (!canBalance && canLedger && ledger.isPending))
                 ? <p className="text-sm text-foreground/65">جاري تحميل الرصيد...</p>
                 : actualBalance && balanceReady
@@ -195,7 +201,7 @@ export function FinancePage() {
                     </p>}
             </div>
             <div className="space-y-1">
-              <p className="text-xs font-semibold text-foreground/65">الرصيد الافتتاحي</p>
+              <p className="text-xs font-semibold text-foreground/65">{copy.opening}</p>
               {canBalance&&balance.isSuccess&&balance.data.openingBalance ?
                   <p className="font-semibold">{balance.data.openingBalance.typeLabel} · <MoneyAmount amount={balance.data.openingBalance.amount}/></p> :
                 openingAlreadyRegistered===undefined?
@@ -206,6 +212,28 @@ export function FinancePage() {
             </div>
           </div>
           <p className="mt-2 text-xs text-foreground/60">{copy.balanceSource}</p>
+          {(canRefund||canRefundHistory||(canOpening&&openingStatus.isSuccess&&!hasOpening))&&
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3" aria-label={copy.accountActions}>
+              {canRefund&&<Button size="sm" type="button" disabled={!canRefundSelected}
+                title={refundUnavailableReason||undefined}
+                onClick={()=>setRefunding(true)}>
+                <RotateCcw className="size-4"/> {copy.refundAction}
+              </Button>}
+              {canRefundHistory&&<Button size="sm" type="button" variant="outline"
+                aria-expanded={historyExpanded} onClick={()=>setHistoryExpanded(v=>!v)}>
+                <History className="size-4"/>
+                {historyExpanded?copy.backToLedger:copy.customerRefundsAction}
+              </Button>}
+              {canOpening&&openingStatus.isSuccess&&!hasOpening&&<Button size="sm" type="button"
+                variant="outline" onClick={()=>setOpening(true)}>
+                <Plus className="size-4"/> {copy.openingAction}
+              </Button>}
+              {canRefund&&<p role="status" className="basis-full text-xs text-muted-foreground">
+                {canRefundSelected&&actualBalance?.type===2
+                  ? <>{copy.refundableAmount}: <MoneyAmount amount={actualBalance.amount}/></>
+                  : refundUnavailableReason || copy.refundValidatedByServer}
+              </p>}
+            </div>}
         </section>
 
         {canOpening && openingStatus.isError &&
@@ -260,16 +288,16 @@ export function FinancePage() {
                       ? entry.receiptNumber : entry.refundId&&entry.refundNumber
                       ? entry.refundNumber : entry.orderNumber ?? null;
                     return <tr key={entry.id} className="hover:bg-muted/30">
-                      <td className="whitespace-nowrap px-3 py-3 tabular-nums"><span dir="ltr" className="inline-block">{formatCollectionDate(entry.effectiveDate)}</span></td>
-                      <td className="px-3 py-3 font-semibold">{entry.typeLabel}</td>
-                      <td className="px-3 py-3 font-semibold">{!credit ? <MoneyAmount amount={entry.amount}/> : "—"}</td>
-                      <td className="px-3 py-3 font-semibold">{credit ? <MoneyAmount amount={entry.amount}/> : "—"}</td>
-                      <td className={"whitespace-nowrap px-3 py-3 font-bold tabular-nums " +
+                      <td className="whitespace-nowrap px-3 py-2.5 tabular-nums"><span dir="ltr" className="inline-block">{formatCollectionDate(entry.effectiveDate)}</span></td>
+                      <td className="px-3 py-2.5 font-semibold">{entry.typeLabel}</td>
+                      <td className="px-3 py-2.5 font-semibold">{!credit ? <MoneyAmount amount={entry.amount}/> : "—"}</td>
+                      <td className="px-3 py-2.5 font-semibold">{credit ? <MoneyAmount amount={entry.amount}/> : "—"}</td>
+                      <td className={"whitespace-nowrap px-3 py-2.5 font-bold tabular-nums " +
                         (entry.runningBalance.type === 1 ? "text-[#c8384a]" : entry.runningBalance.type === 2 ? "text-[#147c58]" : "text-foreground")}>
                         {entry.runningBalance.typeLabel} · <MoneyAmount amount={entry.runningBalance.amount}/>
                       </td>
-                      <td className="px-3 py-3">
-                        {reference ? <div className="space-y-1">
+                      <td className="px-3 py-2.5">
+                        {reference ? <div className="space-y-0.5 leading-5">
                           <div>{entry.collectionId&&canViewCollections ?
                             <Link to={`/collections?receiptId=${entry.collectionId}`}
                               className="font-semibold text-primary underline"><span dir="ltr" className="inline-block">{reference}</span></Link>:
@@ -281,12 +309,12 @@ export function FinancePage() {
                                 <span dir="ltr" className="inline-block">{reference}</span></Link>:
                               <span dir="ltr" className="inline-block tabular-nums">{reference}</span>}</div>
                           {entry.collectionId&&entry.orderId&&entry.orderNumber&&canViewOrders&&
-                            <Link to={`/orders/${entry.orderId}`} className="text-xs text-muted-foreground underline">
+                            <Link to={`/orders/${entry.orderId}`} className="inline-flex flex-wrap items-center gap-1 text-xs leading-4 text-muted-foreground underline">
                               {copy.relatedOrder}: <span dir="ltr" className="inline-block">{entry.orderNumber}</span>
                             </Link>}
                         </div>:"—"}
                       </td>
-                      <td className="max-w-56 px-3 py-3 text-foreground/70">{entry.note ?
+                      <td className="max-w-56 px-3 py-2.5 text-foreground/70">{entry.note ?
                         <button type="button" className="block max-w-44 truncate text-right hover:text-primary hover:underline"
                           onClick={()=>setSelectedNote(entry.note)} aria-label={copy.showNote} title={copy.showNote}>{entry.note}</button>:"—"}</td>
                     </tr>;
