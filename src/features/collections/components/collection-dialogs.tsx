@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
@@ -180,7 +180,6 @@ function ReceiptActionSummary({receipt}:{receipt:Collection}){
 
 export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClose:()=>void;onSuccess:()=>void}) {
   const query=useCollection(id);
-  const qc=useQueryClient();
   const session=useCurrentUser();
   const canReverse=session.data?.permissions.includes("finance.collections.reverse")??false;
   const canCorrect=session.data?.permissions.includes("finance.collections.correct")??false;
@@ -231,12 +230,6 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
     setError("");
     setView("reverse");
   }
-  async function refreshOnConflict(e:unknown){
-    if((e as {response?:{status?:number}}).response?.status===409){
-      await qc.invalidateQueries({queryKey:["collections"]});
-      goBack();
-    }
-  }
   async function submitCorrection(){
     if(!validCorrection||!receipt)return;
     const payload:CorrectCollectionPayload={
@@ -252,7 +245,6 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
       onSuccess();
     }catch(e:unknown){
       setError(getApiErrorMessage(e,"تعذّر تصحيح مبلغ التحصيل."));
-      await refreshOnConflict(e);
     }
   }
   async function submitReversal(){
@@ -264,7 +256,6 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
       onSuccess();
     }catch(e:unknown){
       setError(getApiErrorMessage(e,"تعذّر عكس التحصيل."));
-      await refreshOnConflict(e);
     }
   }
 
