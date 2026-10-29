@@ -13,16 +13,16 @@ let records:Collection[]=[];
 let calls:{url:string;method:string;query:URLSearchParams;body:Record<string,unknown>;key:string|null}[]=[];
 const general:Collection={
   id:51,receiptNumber:"COL-2026-00051",customerId:7,customerName:"مؤسسة الريادة",
-  customerPhone:"01012345678",orderId:null,amount:"100.00",
+  customerPhone:"01012345678",orderId:null,orderNumber:null,correctedFromId:null,correctedToId:null,amount:"100.00",
   paymentMethod:0,paymentMethodLabel:"نقدي",paymentDestinationId:null,destinationLabel:null,
   source:0,sourceLabel:"تحصيل عام",status:1,statusLabel:"معتمد",
   collectedOn:"2026-10-25",note:"سداد جزء من المديونية",createdBy:3,createdAt:"2026-10-25T10:00:00+03:00",
   reversedAt:null,reversalReason:null,
 };
 const fromDelivery:Collection={...general,id:52,receiptNumber:"COL-2026-00052",source:2,
-  sourceLabel:"عند التسليم",orderId:10,paymentMethod:1,paymentMethodLabel:"تحويل بنكي"};
+  sourceLabel:"عند التسليم",orderId:10,orderNumber:"ORD-261029010",paymentMethod:1,paymentMethodLabel:"تحويل بنكي"};
 const deposit:Collection={...general,id:53,receiptNumber:"COL-2026-00053",source:1,
-  sourceLabel:"عربون أوردر",orderId:12};
+  sourceLabel:"عربون أوردر",orderId:12,orderNumber:"ORD-261029012"};
 function ok(config:InternalAxiosRequestConfig,data:unknown,status=200):AxiosResponse{
   return {config,status,statusText:String(status),headers:{},data:{success:true,message:"",data}};
 }
@@ -67,6 +67,20 @@ const adapter:AxiosAdapter=async config=>{
     const c=records.find(c=>c.id===Number(m[1]));
     if(!c)throw Error("Unknown collection");
     return ok(config,c);
+  }
+  const correction=url.match(/^\/finance\/collections\/(\d+)\/correct$/);
+  if(correction&&method==="post"){
+    const id=Number(correction[1]);
+    const old=records.find(c=>c.id===id&&c.status===1);
+    if(!old)throw Error("Cannot correct reversed receipt");
+    const newAmount=String(body.amount);
+    const replacementId=newAmount==="0.00"?null:90+id;
+    records=records.map(c=>c.id!==id?c:{...c,status:2,statusLabel:"معكوس",
+      reversalReason:String(body.reason),reversedAt:"2026-10-29T12:00:00Z",correctedToId:replacementId});
+    if(replacementId!==null)records.unshift({...old,id:replacementId,amount:newAmount,
+      receiptNumber:"COL-2026-"+String(replacementId).padStart(5,"0"),
+      correctedFromId:id,correctedToId:null});
+    return ok(config,{id:replacementId,receiptNumber:replacementId===null?null:"COL-2026-"+String(replacementId).padStart(5,"0")});
   }
   const reversed=url.match(/^\/finance\/collections\/(\d+)\/reverse$/);
   if(reversed&&method==="post"){
@@ -241,6 +255,53 @@ describe("Collections frontend against Laravel Finance API",()=>{
     expect(within(dialog).getByText("سبب العكس: عربون تم تسجيله بالخطأ")).toBeTruthy();
     expect(within(dialog).getByText(/تاريخ العكس/)).toBeTruthy();
     expect(within(dialog).queryByRole("button",{name:"عكس التحصيل"})).toBeNull();
+    expect(within(dialog).queryByRole("button",{name:"تصحيح المبلغ"})).toBeNull();
+  });
+  it("shows order number for deposit and delivery but not general receipts",async()=>{
+    records=[...records,deposit];permissions=[...permissions,"orders.view"];
+    visit();
+    const depositRow=(await screen.findByText("COL-2026-00053")).closest("tr")!;
+    const deliveryRow=screen.getByText("COL-2026-00052").closest("tr")!;
+    const generalRow=screen.getByText("COL-2026-00051").closest("tr")!;
+    expect(within(depositRow).getByRole("link",{name:"ORD-261029012"}).getAttribute("href")).toBe("/orders/12");
+    expect(within(deliveryRow).getByRole("link",{name:"ORD-261029010"}).getAttribute("href")).toBe("/orders/10");
+    expect(within(generalRow).getByText("—")).toBeTruthy();
+  });
+  it("corrects a linked deposit preserving order source, shows audit and prevents repeated correction",async()=>{
+    records=[...records,deposit];permissions=[...permissions,"finance.collections.correct"];
+    visit();const user=userEvent.setup();
+    const row=(await screen.findByText("COL-2026-00053")).closest("tr")!;
+    await user.click(within(row).getByRole("button",{name:"التفاصيل"}));
+    const dialog=await screen.findByRole("dialog",{name:"تفاصيل إيصال التحصيل"});
+    await user.click(within(dialog).getByRole("button",{name:"تصحيح المبلغ"}));
+    expect(within(dialog).getByText("الأوردر المرتبط")).toBeTruthy();
+    const amount=within(dialog).getByRole("textbox",{name:/المبلغ الصحيح/});
+    await user.clear(amount);await user.type(amount,"30.00");
+    await user.type(within(dialog).getByRole("textbox",{name:/سبب التصحيح/}),"عربون مسجل بالخطأ");
+    await user.click(within(dialog).getByRole("button",{name:"تأكيد تصحيح المبلغ"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/finance/collections/53/correct")).toBe(true));
+    expect(calls.find(c=>c.url==="/finance/collections/53/correct")?.body).toEqual({amount:"30.00",reason:"عربون مسجل بالخطأ"});
+    expect(records.find(c=>c.id===53)?.status).toBe(2);
+    expect(records.find(c=>c.id===143)?.source).toBe(1);
+    expect(records.find(c=>c.id===143)?.orderId).toBe(12);
+    expect(records.find(c=>c.id===143)?.correctedFromId).toBe(53);
+    expect(calls.filter(c=>c.url.endsWith("/reverse")||c.url.startsWith("/deliveries/")&&c.method==="post")).toHaveLength(0);
+  });
+  it("can correct to zero without a replacement and enforces permission",async()=>{
+    permissions=[...permissions,"finance.collections.correct"];
+    visit();const user=userEvent.setup();
+    await screen.findByText("COL-2026-00051");
+    await user.click(screen.getAllByRole("button",{name:"التفاصيل"})[0]);
+    const dialog=await screen.findByRole("dialog",{name:"تفاصيل إيصال التحصيل"});
+    await user.click(within(dialog).getByRole("button",{name:"تصحيح المبلغ"}));
+    const amount=within(dialog).getByRole("textbox",{name:/المبلغ الصحيح/});
+    await user.clear(amount);await user.type(amount,"0.00");
+    expect(within(dialog).getByText(/دون إنشاء إيصال بديل/)).toBeTruthy();
+    await user.type(within(dialog).getByRole("textbox",{name:/سبب التصحيح/}),"لم يتم استلام المبلغ");
+    await user.click(within(dialog).getByRole("button",{name:"تأكيد تصحيح المبلغ"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/finance/collections/51/correct")).toBe(true));
+    expect(records).toHaveLength(2);
+    expect(records.find(c=>c.id===51)?.status).toBe(2);
   });
   it("allows create-only collectors without fetching protected financial history",async()=>{
     permissions=["finance.collections.create"];
