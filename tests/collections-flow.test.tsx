@@ -1,5 +1,5 @@
 import { afterEach,beforeEach,describe,expect,it } from "vitest";
-import { fireEvent,render,screen,waitFor,within } from "@testing-library/react";
+import { render,screen,waitFor,within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { AxiosAdapter,AxiosResponse,InternalAxiosRequestConfig } from "axios";
 import { App } from "@/App";
@@ -114,22 +114,60 @@ describe("Collections frontend against Laravel Finance API",()=>{
     await user.selectOptions(screen.getByRole("combobox",{name:"فلتر طريقة الدفع"}),"0");
     await waitFor(()=>expect(calls.some(c=>c.url==="/finance/collections"&&c.query.get("filter[paymentMethod]")==="0")).toBe(true));
   });
-  it("shows compact filters, localized ISO-backed dates and a readable results count",async()=>{
-    visit();
+  it("uses the themed calendar for filters while retaining Egyptian display and ISO query dates",async()=>{
+    visit();const user=userEvent.setup();
     expect(await screen.findByText("COL-2026-00051")).toBeTruthy();
     expect(screen.getByText(/^[0-9٠-٩]+\sإيصال$/)).toBeTruthy();
     expect(screen.getAllByText("25/10/2026").length).toBeGreaterThan(0);
-    const date=screen.getByLabelText("من تاريخ التحصيل") as HTMLInputElement;
-    fireEvent.change(date,{target:{value:"2026-10-25"}});
-    expect(date.value).toBe("2026-10-25");
-    await waitFor(()=>expect(date.parentElement?.textContent).toContain("25/10/2026"));
+    expect(document.querySelectorAll('input[type="date"]')).toHaveLength(0);
+    const calendarButton=screen.getByRole("button",{name:"من تاريخ التحصيل"});
+    const parts=new Intl.DateTimeFormat("en-GB",{timeZone:"Africa/Cairo",year:"numeric",month:"2-digit"})
+      .formatToParts(new Date());
+    const year=parts.find(x=>x.type==="year")!.value;
+    const month=parts.find(x=>x.type==="month")!.value;
+    const selected=year+"-"+month+"-15";
+    await user.click(calendarButton);
+    const calendar=screen.getByRole("dialog",{name:"اختيار من تاريخ التحصيل"});
+    expect(within(calendar).getByRole("grid")).toBeTruthy();
+    await user.click(within(calendar).getByRole("gridcell",{name:selected}));
+    expect(screen.queryByRole("dialog",{name:"اختيار من تاريخ التحصيل"})).toBeNull();
+    expect(calendarButton.textContent).toContain("15/"+month+"/"+year);
     await waitFor(()=>expect(calls.some(c=>
-      c.url==="/finance/collections"&&c.query.get("filter[dateFrom]")==="2026-10-25"
+      c.url==="/finance/collections"&&c.query.get("filter[dateFrom]")===selected
     )).toBe(true));
-    const user=userEvent.setup();
+    await user.click(calendarButton);
+    await user.click(within(screen.getByRole("dialog",{name:"اختيار من تاريخ التحصيل"}))
+      .getByRole("button",{name:"مسح التاريخ"}));
+    expect(calendarButton.textContent).toContain("يوم/شهر/سنة");
     await user.click(screen.getByRole("button",{name:"مسح الفلاتر"}));
-    expect(date.value).toBe("");
     expect(screen.getAllByText("يوم/شهر/سنة")).toHaveLength(2);
+  });
+  it("constrains inclusive start/end calendar days and clears all active date filters",async()=>{
+    visit();const user=userEvent.setup();
+    await screen.findByText("COL-2026-00051");
+    const parts=new Intl.DateTimeFormat("en-GB",{timeZone:"Africa/Cairo",year:"numeric",month:"2-digit"})
+      .formatToParts(new Date());
+    const year=parts.find(x=>x.type==="year")!.value;
+    const month=parts.find(x=>x.type==="month")!.value;
+    const date=(day:string)=>year+"-"+month+"-"+day;
+    const from=screen.getByRole("button",{name:"من تاريخ التحصيل"});
+    const to=screen.getByRole("button",{name:"إلى تاريخ التحصيل"});
+    await user.click(from);
+    await user.click(within(screen.getByRole("dialog",{name:"اختيار من تاريخ التحصيل"}))
+      .getByRole("gridcell",{name:date("15")}));
+    await user.click(to);
+    const toCalendar=screen.getByRole("dialog",{name:"اختيار إلى تاريخ التحصيل"});
+    expect(within(toCalendar).getByRole("gridcell",{name:date("14")}).hasAttribute("disabled")).toBe(true);
+    await user.click(within(toCalendar).getByRole("gridcell",{name:date("18")}));
+    await user.click(from);
+    const fromCalendar=screen.getByRole("dialog",{name:"اختيار من تاريخ التحصيل"});
+    expect(within(fromCalendar).getByRole("gridcell",{name:date("19")}).hasAttribute("disabled")).toBe(true);
+    await user.click(within(fromCalendar).getByRole("button",{name:"إغلاق"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/finance/collections"
+      &&c.query.get("filter[dateFrom]")===date("15")&&c.query.get("filter[dateTo]")===date("18"))).toBe(true));
+    await user.click(screen.getByRole("button",{name:"مسح الفلاتر"}));
+    expect(from.textContent).toContain("يوم/شهر/سنة");
+    expect(to.textContent).toContain("يوم/شهر/سنة");
   });
   it("keeps advanced filter state visible, then clears it without changing posted-only totals",async()=>{
     visit();const user=userEvent.setup();
