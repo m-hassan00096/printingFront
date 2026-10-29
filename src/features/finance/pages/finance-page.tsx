@@ -1,20 +1,24 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowUpLeft, ChevronDown, ChevronUp, History, Plus, RefreshCw, RotateCcw, UserRound } from "lucide-react";
+import { ArrowUpLeft, ChevronDown, ChevronUp, History, Plus, RefreshCw, RotateCcw, UserRound, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { SearchableSelect } from "@/features/orders/components/searchable-select";
 import { ErrorState, LoadingState, EmptyState, PaginationBar, SectionHeader, fieldClass } from "@/features/identity/components/identity-ui";
-import { CollectionDateField, formatCollectionDate } from "@/features/collections/components/collection-date-field";
+import { formatCollectionDate } from "@/features/collections/components/collection-date-field";
+import { CreatedDatePicker } from "@/features/orders/components/created-date-picker";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { useFinanceCustomers, useFinanceBalance, useFinanceLedger, useFinanceOpeningStatus } from "../hooks/use-finance";
 import { RefundsPanel } from "../components/refunds-panel";
-import { CreateRefundDialog } from "../components/refund-dialogs";
+import { FinanceAccountsOverview } from "../components/finance-accounts-overview";
+import { CreateRefundDialog, RefundDetailsDialog } from "../components/refund-dialogs";
 import { OpeningBalanceDialog } from "../components/opening-balance-dialog";
 import type { AccountFilters } from "../types/finance.types";
 
 const defaultFilters: AccountFilters = { page: 1, dateFrom: "", dateTo: "", type: "" };
+const copy = uiMessages.financeAccounts;
 const movementTypes = [
   { value: "", label: "كل الحركات" },
   { value: "1", label: "مديونية أوردر" },
@@ -34,6 +38,7 @@ export function FinancePage() {
   const canRefundHistory = permissions.includes("finance.refunds.view");
   const canCustomerProfile = permissions.includes("customers.view");
   const canViewOrders = permissions.includes("orders.view");
+  const canViewCollections = permissions.includes("finance.collections.view");
   const canAccountDetails = canBalance || canLedger || canOpening;
 
   const [params, setParams] = useSearchParams();
@@ -51,6 +56,8 @@ export function FinancePage() {
   const [opening, setOpening] = useState(false);
   const [refunding, setRefunding] = useState(false);
   const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [refundDetailsId,setRefundDetailsId] = useState<number|null>(null);
+  const [selectedNote,setSelectedNote] = useState<string|null>(null);
   const qc = useQueryClient();
 
   const balance = useFinanceBalance(customerId, canBalance);
@@ -95,21 +102,34 @@ export function FinancePage() {
     ? openingStatus.data.openingBalanceExists
     : canBalance ? balance.data?.openingBalanceExists
     : canLedger ? ledger.data?.openingBalanceExists : undefined;
-  const refundHistoryVisible = canRefundHistory && (historyExpanded || !canAccountDetails);
+  const globalRefunds = !customerId && (params.get("tab")==="refunds" || !canAccountDetails);
+  const refundHistoryVisible = canRefundHistory && (globalRefunds || (customerId>0 && historyExpanded));
 
   return <div className="space-y-4">
     <SectionHeader title="حسابات العملاء"
       detail="أرصدة العملاء وكشف الحساب، مع تسجيل الرصيد الافتتاحي ورد الرصيد الدائن."
-      actions={<Button type="button" variant="outline" onClick={refresh}>
-        <RefreshCw className="size-4"/> تحديث
-      </Button>}/>
+      actions={<div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" onClick={refresh}>
+          <RefreshCw className="size-4"/> تحديث
+        </Button>
+        {canRefundHistory&&canAccountDetails&&!customerId&&
+          <Button type="button" variant="outline" onClick={()=>setParams(p=>{
+            const next=new URLSearchParams(p);
+            if(globalRefunds)next.delete("tab");else next.set("tab","refunds");
+            return next;
+          })}>{globalRefunds?copy.allAccounts:copy.globalRefundsAction}</Button>}
+      </div>}/>
 
-    {canAccountDetails && <section className="space-y-3">
-      <section aria-label="اختيار حساب العميل" className="rounded-lg border bg-card p-3 sm:p-4">
+    {canBalance&&!customerId&&!globalRefunds&&
+      <FinanceAccountsOverview onSelect={id=>chooseCustomer(String(id))}/>}
+    {canAccountDetails && !globalRefunds && <section className="space-y-3">
+      {(customerId>0||!canBalance)&&<section aria-label="اختيار حساب العميل" className="rounded-lg border bg-card p-3">
         <div className="flex flex-wrap items-center gap-2">
           <UserRound className="size-4 text-primary"/>
-          <h2 className="text-sm font-extrabold">اختيار العميل</h2>
-          <span className="text-xs text-foreground/65">ابحث بالاسم أو رقم الهاتف لعرض حسابه</span>
+          <h2 className="text-sm font-extrabold">{copy.selectCustomer}</h2>
+          {canBalance&&customerId>0&&<Button size="sm" variant="ghost" onClick={()=>chooseCustomer("")}>
+            {copy.backToAccounts}
+          </Button>}
         </div>
         <div className="mt-2 max-w-xl">
           <SearchableSelect label="اختيار حساب العميل" placeholder="ابحث باسم العميل أو رقم هاتفه..."
@@ -119,9 +139,9 @@ export function FinancePage() {
         {customers.isError && <ErrorState error={customers.error} retry={() => void customers.refetch()}/>}
         {customers.isSuccess && customers.data.length === 0 &&
           <p className="mt-2 text-sm text-foreground/70">لا يوجد عملاء مسجلون.</p>}
-      </section>
+      </section>}
 
-      {!customerId && <div className="rounded-xl border border-dashed bg-card p-6 text-center">
+      {!customerId&&!canBalance && <div className="rounded-xl border border-dashed bg-card p-6 text-center">
         <UserRound className="mx-auto mb-2 size-6 text-primary"/>
         <p className="font-semibold">اختَر عميلًا لعرض بيانات حسابه</p>
         <p className="mt-1 text-sm text-foreground/65">بيانات العميل والرصيد وكشف الحساب ستظهر هنا مباشرةً.</p>
@@ -171,14 +191,16 @@ export function FinancePage() {
             </div>
             <div className="space-y-1">
               <p className="text-xs font-semibold text-foreground/65">الرصيد الافتتاحي</p>
-              {openingAlreadyRegistered === undefined
-                ? <p className="text-sm text-foreground/65">غير متاح</p>
-                : <p className="text-sm font-semibold text-foreground/80">
-                    {openingAlreadyRegistered ? "مسجل" : "لم يُسجّل"}
+              {canBalance&&balance.isSuccess&&balance.data.openingBalance ?
+                  <p className="font-semibold">{balance.data.openingBalance.typeLabel} · <MoneyAmount amount={balance.data.openingBalance.amount}/></p> :
+                openingAlreadyRegistered===undefined?
+                  <p className="text-sm text-foreground/65">غير متاح</p>:
+                  <p className="text-sm font-semibold text-foreground/80">
+                    {openingAlreadyRegistered?copy.openingRecorded:copy.openingNotRecorded}
                   </p>}
             </div>
           </div>
-          <p className="mt-2 text-xs text-foreground/60">الرصيد محسوب من دفتر الأستاذ ولا يُعدّل مباشرةً.</p>
+          <p className="mt-2 text-xs text-foreground/60">{copy.balanceSource}</p>
         </section>
 
         {canOpening && openingStatus.isError &&
@@ -192,13 +214,13 @@ export function FinancePage() {
             <History className="size-4 text-primary"/>
             <h2 className="text-sm font-extrabold">كشف الحساب</h2>
             <span className="text-xs text-foreground/65">
-              الرصيد التراكمي محسوب من جميع الحركات السابقة حتى خارج الفلاتر
+              {copy.ledgerHint}
             </span>
           </div>
           <div className="grid gap-2 rounded-xl border bg-card p-3 md:grid-cols-3">
-            <CollectionDateField label="من تاريخ" value={filters.dateFrom} max={filters.dateTo || undefined}
+            <CreatedDatePicker label="من تاريخ" value={filters.dateFrom} max={filters.dateTo || undefined}
               onChange={value => changeFilter("dateFrom", value)}/>
-            <CollectionDateField label="إلى تاريخ" value={filters.dateTo} min={filters.dateFrom || undefined}
+            <CreatedDatePicker label="إلى تاريخ" value={filters.dateTo} min={filters.dateFrom || undefined}
               onChange={value => changeFilter("dateTo", value)}/>
             <label className="block space-y-1 text-xs font-semibold">
               <span>نوع الحركة</span>
@@ -228,6 +250,9 @@ export function FinancePage() {
                 <tbody className="divide-y">
                   {ledger.data.entries.map(entry => {
                     const credit = entry.signedAmount.startsWith("-");
+                    const reference = entry.collectionId&&entry.receiptNumber
+                      ? entry.receiptNumber : entry.refundId&&entry.refundNumber
+                      ? entry.refundNumber : entry.orderNumber ?? null;
                     return <tr key={entry.id} className="hover:bg-muted/30">
                       <td className="whitespace-nowrap px-3 py-3 tabular-nums"><span dir="ltr" className="inline-block">{formatCollectionDate(entry.effectiveDate)}</span></td>
                       <td className="px-3 py-3 font-semibold">{entry.typeLabel}</td>
@@ -237,11 +262,27 @@ export function FinancePage() {
                         (entry.runningBalance.type === 1 ? "text-[#c8384a]" : entry.runningBalance.type === 2 ? "text-[#147c58]" : "text-foreground")}>
                         {entry.runningBalance.typeLabel} · <MoneyAmount amount={entry.runningBalance.amount}/>
                       </td>
-                      <td className="px-3 py-3">{entry.orderId && canViewOrders ?
-                        <Link className="font-semibold text-primary underline" to={`/orders/${entry.orderId}`}>أوردر #{entry.orderId}</Link> :
-                        entry.orderId ? `أوردر #${entry.orderId}` : entry.collectionId ? `تحصيل #${entry.collectionId}` :
-                          entry.refundId ? `رد رصيد #${entry.refundId}` : "—"}</td>
-                      <td className="max-w-56 truncate px-3 py-3 text-foreground/70" title={entry.note ?? undefined}>{entry.note ?? "—"}</td>
+                      <td className="px-3 py-3">
+                        {reference ? <div className="space-y-1">
+                          <div>{entry.collectionId&&canViewCollections ?
+                            <Link to={`/collections?receiptId=${entry.collectionId}`}
+                              className="font-semibold text-primary underline"><span dir="ltr" className="inline-block">{reference}</span></Link>:
+                            entry.refundId&&canRefundHistory ?
+                              <button type="button" className="font-semibold text-primary underline"
+                                onClick={()=>setRefundDetailsId(entry.refundId)}><span dir="ltr" className="inline-block">{reference}</span></button>:
+                            entry.orderId&&canViewOrders ?
+                              <Link to={`/orders/${entry.orderId}`} className="font-semibold text-primary underline">
+                                <span dir="ltr" className="inline-block">{reference}</span></Link>:
+                              <span dir="ltr" className="inline-block tabular-nums">{reference}</span>}</div>
+                          {entry.collectionId&&entry.orderId&&entry.orderNumber&&canViewOrders&&
+                            <Link to={`/orders/${entry.orderId}`} className="text-xs text-muted-foreground underline">
+                              {copy.relatedOrder}: <span dir="ltr" className="inline-block">{entry.orderNumber}</span>
+                            </Link>}
+                        </div>:"—"}
+                      </td>
+                      <td className="max-w-56 px-3 py-3 text-foreground/70">{entry.note ?
+                        <button type="button" className="block max-w-44 truncate text-right hover:text-primary hover:underline"
+                          onClick={()=>setSelectedNote(entry.note)} aria-label={copy.showNote} title={copy.showNote}>{entry.note}</button>:"—"}</td>
                     </tr>;
                   })}
                 </tbody>
@@ -267,14 +308,26 @@ export function FinancePage() {
     </section>}
 
     {canRefundHistory && <section aria-label="سجل رد الأرصدة" className="space-y-2">
-      {canAccountDetails && <Button type="button" variant="outline" aria-expanded={historyExpanded}
+      {canAccountDetails&&customerId>0 && <Button type="button" variant="outline" aria-expanded={historyExpanded}
         onClick={() => setHistoryExpanded(value => !value)}>
-        <History className="size-4"/> سجل رد الأرصدة
+        <History className="size-4"/> {copy.customerRefundsAction}
         {historyExpanded ? <ChevronUp className="size-4"/> : <ChevronDown className="size-4"/>}
       </Button>}
-      {refundHistoryVisible && <RefundsPanel/>}
+      {refundHistoryVisible && <RefundsPanel key={customerId||"global"} customerId={customerId||undefined}/>}
     </section>}
 
+    {selectedNote!==null&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-3"
+      onMouseDown={e=>{if(e.target===e.currentTarget)setSelectedNote(null);}}>
+      <section role="dialog" aria-modal="true" aria-label={copy.noteDialog} dir="rtl" className="w-full max-w-md rounded-xl bg-card p-4 shadow-2xl">
+        <div className="mb-3 flex items-center justify-between border-b pb-2">
+          <h3 className="font-semibold">{copy.noteDialog}</h3>
+          <Button variant="ghost" size="icon-sm" aria-label={copy.returnAccount} onClick={()=>setSelectedNote(null)}><X className="size-4"/></Button>
+        </div>
+        <p className="whitespace-pre-wrap break-words text-sm">{selectedNote}</p>
+      </section>
+    </div>}
+    {refundDetailsId!==null&&canRefundHistory&&
+      <RefundDetailsDialog id={refundDetailsId} onClose={()=>setRefundDetailsId(null)}/>}
     {opening && customerId > 0 && canOpening && openingStatus.isSuccess && !hasOpening &&
       <OpeningBalanceDialog key={customerId} customerId={customerId}
         customerName={customerName}
