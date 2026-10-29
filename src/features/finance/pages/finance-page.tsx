@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowUpLeft, ChevronDown, ChevronUp, History, Plus, RefreshCw, RotateCcw, UserRound, X } from "lucide-react";
+import { ArrowUpLeft, History, Plus, RefreshCw, RotateCcw, UserRound, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
@@ -45,7 +45,7 @@ export function FinancePage() {
   const rawId = params.get("customerId") ?? "";
   const parsedId = Number(rawId);
   const customerId = Number.isSafeInteger(parsedId) && parsedId > 0 ? parsedId : 0;
-  const customers = useFinanceCustomers(canAccountDetails);
+  const customers = useFinanceCustomers(canAccountDetails && (customerId > 0 || !canBalance));
   const selected = customers.data?.find(item => item.value === customerId);
   // Customer selects currently expose a "name - phone" label, not separate profile fields.
   const selectedParts = selected?.label.match(/^(.*)\s[-–]\s(\+?\d+)$/);
@@ -84,6 +84,7 @@ export function FinancePage() {
     });
     setOpening(false);
     setRefunding(false);
+    setHistoryExpanded(false);
   }
   function changeFilter<K extends keyof AccountFilters>(key: K, value: AccountFilters[K]) {
     setFilters(previous => ({ ...previous, [key]: value, page: 1 }));
@@ -103,7 +104,7 @@ export function FinancePage() {
     : canBalance ? balance.data?.openingBalanceExists
     : canLedger ? ledger.data?.openingBalanceExists : undefined;
   const globalRefunds = !customerId && (params.get("tab")==="refunds" || !canAccountDetails);
-  const refundHistoryVisible = canRefundHistory && (globalRefunds || (customerId>0 && historyExpanded));
+  const refundHistoryVisible = canRefundHistory && globalRefunds;
 
   return <div className="space-y-4">
     <SectionHeader title="حسابات العملاء"
@@ -165,7 +166,11 @@ export function FinancePage() {
               </Button>}
               {canRefundSelected && <Button size="sm" type="button" onClick={() => setRefunding(true)}>
                 <RotateCcw className="size-4"/> رد رصيد دائن
-              </Button>}
+              </Button>
+              {canRefundHistory&&<Button size="sm" type="button" variant="outline"
+                aria-expanded={historyExpanded} onClick={()=>setHistoryExpanded(v=>!v)}>
+                <History className="size-4"/> {historyExpanded?copy.ledgerTitle:copy.customerRefundsAction}
+              </Button>}}
             </div>
           </div>
 
@@ -209,7 +214,8 @@ export function FinancePage() {
           <ErrorState error={balance.error} retry={() => void balance.refetch()}/>}
         {!canBalance && canLedger && ledger.isError &&
           <ErrorState error={ledger.error} retry={() => void ledger.refetch()}/>}
-        {canLedger && <section aria-label="كشف حساب العميل" className="space-y-3">
+        {canRefundHistory&&historyExpanded&&<RefundsPanel key={customerId} customerId={customerId}/>}
+        {canLedger && !historyExpanded && <section aria-label="كشف حساب العميل" className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <History className="size-4 text-primary"/>
             <h2 className="text-sm font-extrabold">كشف الحساب</h2>
@@ -307,14 +313,7 @@ export function FinancePage() {
       <p className="text-xs text-foreground/65">يمكنك اختيار العميل داخل نموذج رد الرصيد.</p>
     </section>}
 
-    {canRefundHistory && <section aria-label="سجل رد الأرصدة" className="space-y-2">
-      {canAccountDetails&&customerId>0 && <Button type="button" variant="outline" aria-expanded={historyExpanded}
-        onClick={() => setHistoryExpanded(value => !value)}>
-        <History className="size-4"/> {copy.customerRefundsAction}
-        {historyExpanded ? <ChevronUp className="size-4"/> : <ChevronDown className="size-4"/>}
-      </Button>}
-      {refundHistoryVisible && <RefundsPanel key={customerId||"global"} customerId={customerId||undefined}/>}
-    </section>}
+    {refundHistoryVisible && <RefundsPanel key="global"/>}
 
     {selectedNote!==null&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-3"
       onMouseDown={e=>{if(e.target===e.currentTarget)setSelectedNote(null);}}>
