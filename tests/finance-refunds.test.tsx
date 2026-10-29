@@ -205,7 +205,7 @@ describe("Finance Refunds within the Accounts module",()=>{
   it("opens the global refunds tab from a deep link even when a customer was previously selected",async()=>{
     permissions=["finance.balances.view","finance.ledger.view","finance.refunds.view"];
     visit("/finance?customerId=7&tab=refunds");
-    const tab=screen.getByRole("tab",{name:"سجل الردود العام"});
+    const tab=await screen.findByRole("tab",{name:"سجل الردود العام"});
     expect(tab.getAttribute("aria-selected")).toBe("true");
     expect(await screen.findByText("REF-2026-00091")).toBeTruthy();
     expect(screen.queryByRole("region",{name:"بيانات حساب العميل"})).toBeNull();
