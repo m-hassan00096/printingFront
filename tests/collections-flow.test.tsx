@@ -222,9 +222,9 @@ describe("Collections frontend against Laravel Finance API",()=>{
     const dialog=await screen.findByRole("dialog",{name:"تفاصيل إيصال التحصيل"});
     expect(within(dialog).getByText("رقم الإيصال")).toBeTruthy();
     expect(within(dialog).getByText("مصدر التحصيل")).toBeTruthy();
-    expect(within(dialog).getByText(/عكس التحصيل لتصحيح إيصال مسجل بالخطأ/)).toBeTruthy();
+    expect(within(dialog).getByText("هل المبلغ المسجل صحيح؟")).toBeTruthy();
     await user.click(within(dialog).getByRole("button",{name:"عكس التحصيل"}));
-    expect(within(dialog).getByText(/لن يتم إلغاء الأوردر أو التسليم نفسه/)).toBeTruthy();
+    expect(within(dialog).getByText(/لن يتم إلغاء الأوردر أو التسليم/)).toBeTruthy();
     await user.type(within(dialog).getByRole("textbox",{name:/سبب العكس/}),"تسجيل إيصال عن طريق الخطأ");
     await user.click(within(dialog).getByRole("checkbox",{name:"تأكيد أثر عكس التحصيل"}));
     await user.click(within(dialog).getByRole("button",{name:"تأكيد عكس التحصيل"}));
@@ -274,7 +274,7 @@ describe("Collections frontend against Laravel Finance API",()=>{
     await user.click(within(row).getByRole("button",{name:"التفاصيل"}));
     const dialog=await screen.findByRole("dialog",{name:"تفاصيل إيصال التحصيل"});
     await user.click(within(dialog).getByRole("button",{name:"تصحيح المبلغ"}));
-    expect(within(dialog).getByText("الأوردر المرتبط")).toBeTruthy();
+    expect(within(dialog).getByText("رقم الأوردر")).toBeTruthy();
     const amount=within(dialog).getByRole("textbox",{name:/المبلغ الصحيح/});
     await user.clear(amount);await user.type(amount,"30.00");
     await user.type(within(dialog).getByRole("textbox",{name:/سبب التصحيح/}),"عربون مسجل بالخطأ");
@@ -287,21 +287,51 @@ describe("Collections frontend against Laravel Finance API",()=>{
     expect(records.find(c=>c.id===143)?.correctedFromId).toBe(53);
     expect(calls.filter(c=>c.url.endsWith("/reverse")||c.url.startsWith("/deliveries/")&&c.method==="post")).toHaveLength(0);
   });
-  it("can correct to zero without a replacement and enforces permission",async()=>{
+  it("keeps correction and full reversal distinct and does not send a zero correction",async()=>{
     permissions=[...permissions,"finance.collections.correct"];
     visit();const user=userEvent.setup();
     await screen.findByText("COL-2026-00051");
     await user.click(screen.getAllByRole("button",{name:"التفاصيل"})[0]);
     const dialog=await screen.findByRole("dialog",{name:"تفاصيل إيصال التحصيل"});
     await user.click(within(dialog).getByRole("button",{name:"تصحيح المبلغ"}));
+    expect(within(dialog).getByText("المبلغ المسجل")).toBeTruthy();
+    expect(screen.getByRole("dialog",{name:"تصحيح مبلغ التحصيل"})).toBeTruthy();
+    expect(within(dialog).queryByText("رقم الهاتف")).toBeNull();
     const amount=within(dialog).getByRole("textbox",{name:/المبلغ الصحيح/});
     await user.clear(amount);await user.type(amount,"0.00");
-    expect(within(dialog).getByText(/دون إنشاء إيصال بديل/)).toBeTruthy();
+    expect(within(dialog).getByText(/لإلغاء الإيصال بالكامل/)).toBeTruthy();
     await user.type(within(dialog).getByRole("textbox",{name:/سبب التصحيح/}),"لم يتم استلام المبلغ");
-    await user.click(within(dialog).getByRole("button",{name:"تأكيد تصحيح المبلغ"}));
-    await waitFor(()=>expect(calls.some(c=>c.url==="/finance/collections/51/correct")).toBe(true));
-    expect(records).toHaveLength(2);
+    expect(within(dialog).getByRole("button",{name:"تأكيد تصحيح المبلغ"}).hasAttribute("disabled")).toBe(true);
+    expect(calls.some(c=>c.url==="/finance/collections/51/correct")).toBe(false);
+    await user.click(within(dialog).getByRole("button",{name:"رجوع للتفاصيل"}));
+    expect(screen.getByRole("dialog",{name:"تفاصيل إيصال التحصيل"})).toBeTruthy();
+    await user.click(within(dialog).getByRole("button",{name:"عكس التحصيل"}));
+    expect(screen.getByRole("dialog",{name:"عكس الإيصال بالكامل"})).toBeTruthy();
+    expect(within(dialog).queryByRole("textbox",{name:/المبلغ الصحيح/})).toBeNull();
+    await user.type(within(dialog).getByRole("textbox",{name:/سبب العكس/}),"إيصال مسجل دون دفع");
+    await user.click(within(dialog).getByRole("checkbox",{name:"تأكيد أثر عكس التحصيل"}));
+    await user.click(within(dialog).getByRole("button",{name:"تأكيد عكس التحصيل"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/finance/collections/51/reverse")).toBe(true));
+    expect(calls.some(c=>c.url==="/finance/collections/51/correct")).toBe(false);
     expect(records.find(c=>c.id===51)?.status).toBe(2);
+  });
+  it("keeps action controls in a fixed dialog footer and clears unsaved correction on back",async()=>{
+    permissions=[...permissions,"finance.collections.correct"];
+    visit();const user=userEvent.setup();
+    await screen.findByText("COL-2026-00051");
+    await user.click(screen.getAllByRole("button",{name:"التفاصيل"})[0]);
+    const dialog=screen.getByRole("dialog",{name:"تفاصيل إيصال التحصيل"});
+    await user.click(within(dialog).getByRole("button",{name:"تصحيح المبلغ"}));
+    const footer=within(dialog).getByRole("button",{name:"تأكيد تصحيح المبلغ"}).closest("footer");
+    expect(footer?.className).toContain("shrink-0");
+    const amount=within(dialog).getByRole("textbox",{name:/المبلغ الصحيح/});
+    await user.clear(amount);await user.type(amount,"40.00");
+    await user.type(within(dialog).getByRole("textbox",{name:/سبب التصحيح/}),"اختبار تعديل");
+    await user.click(within(dialog).getByRole("button",{name:"رجوع للتفاصيل"}));
+    await user.click(within(dialog).getByRole("button",{name:"تصحيح المبلغ"}));
+    expect((within(dialog).getByRole("textbox",{name:/المبلغ الصحيح/}) as HTMLInputElement).value).toBe("100.00");
+    expect((within(dialog).getByRole("textbox",{name:/سبب التصحيح/}) as HTMLTextAreaElement).value).toBe("");
+    expect(calls.filter(c=>c.url.endsWith("/correct"))).toHaveLength(0);
   });
   it("allows create-only collectors without fetching protected financial history",async()=>{
     permissions=["finance.collections.create"];
@@ -318,5 +348,6 @@ describe("Collections frontend against Laravel Finance API",()=>{
     const user=userEvent.setup();await user.click(screen.getAllByRole("button",{name:"التفاصيل"})[0]);
     const dialog=await screen.findByRole("dialog",{name:"تفاصيل إيصال التحصيل"});
     expect(within(dialog).queryByRole("button",{name:"عكس التحصيل"})).toBeNull();
+    expect(within(dialog).queryByRole("button",{name:"تصحيح المبلغ"})).toBeNull();
   });
 });
