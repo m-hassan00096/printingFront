@@ -45,7 +45,9 @@ export function FinancePage() {
   const rawId = params.get("customerId") ?? "";
   const parsedId = Number(rawId);
   const customerId = Number.isSafeInteger(parsedId) && parsedId > 0 ? parsedId : 0;
-  const customers = useFinanceCustomers(canAccountDetails && (customerId > 0 || !canBalance));
+  // The active tab is URL-backed and permission-gated; its inactive data is not requested.
+  const globalRefunds = canRefundHistory && (!canAccountDetails || params.get("tab")==="refunds");
+  const customers = useFinanceCustomers(canAccountDetails && !globalRefunds && (customerId > 0 || !canBalance));
   const selected = customers.data?.find(item => item.value === customerId);
   // Customer selects currently expose a "name - phone" label, not separate profile fields.
   const selectedParts = selected?.label.match(/^(.*)\s[-–]\s(\+?\d+)$/);
@@ -60,9 +62,9 @@ export function FinancePage() {
   const [selectedNote,setSelectedNote] = useState<string|null>(null);
   const qc = useQueryClient();
 
-  const balance = useFinanceBalance(customerId, canBalance);
-  const ledger = useFinanceLedger(customerId, filters, canLedger);
-  const openingStatus = useFinanceOpeningStatus(customerId, canOpening);
+  const balance = useFinanceBalance(customerId, canBalance && !globalRefunds);
+  const ledger = useFinanceLedger(customerId, filters, canLedger && !globalRefunds);
+  const openingStatus = useFinanceOpeningStatus(customerId, canOpening && !globalRefunds);
   const actualBalance = canBalance ? balance.data : canLedger ? ledger.data?.balance : null;
   const balanceReady = canBalance ? balance.isSuccess : canLedger ? ledger.isSuccess : false;
 
@@ -111,7 +113,6 @@ export function FinancePage() {
     : canLedger ? ledger.data?.openingBalanceExists : undefined;
   // Keep the selected customer in the URL when navigating the two top-level tabs.
   // A refunds-only user never gets access to the account tab or account queries.
-  const globalRefunds = canRefundHistory && (!canAccountDetails || params.get("tab")==="refunds");
   const refundHistoryVisible = canRefundHistory && globalRefunds;
   function selectFinanceTab(tab:"accounts"|"refunds"){
     if((tab==="accounts"&&!canAccountDetails)||(tab==="refunds"&&!canRefundHistory))return;
