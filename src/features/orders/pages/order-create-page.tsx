@@ -23,13 +23,13 @@ import { useOrderActions } from "../hooks/use-orders";
 import type { CreateOrderPayload } from "../types/orders.types";
 
 type ItemDraft = {
-  key: number; serviceId: string; quantity: string; agreedTotal: string;
+  key: number; serviceId: string; quantity: string; agreedTotal: string; widthCm: string; heightCm: string;
   specifications: string; expanded: boolean;
 };
 type Errors = Record<string, string>;
 type Mode = "draft" | "confirm";
 const blank = (key: number): ItemDraft => ({
-  key, serviceId: "", quantity: "1", agreedTotal: "", specifications: "", expanded: false,
+  key, serviceId: "", quantity: "1", agreedTotal: "", widthCm: "", heightCm: "", specifications: "", expanded: false,
 });
 const moneyPattern = /^(?:0|[1-9][0-9]{0,9})(?:\.[0-9]{1,2})?$/;
 function cents(value: string): number | null {
@@ -135,7 +135,7 @@ export function OrderCreatePage() {
   function changeItem(key: number, field: keyof Omit<ItemDraft, "key" | "expanded">, value: string) {
     setItems((old) => old.map((item) => item.key === key ? { ...item, [field]: value } : item));
     clear("items." + key + "." + field);
-    if (field === "serviceId" || field === "quantity") {
+    if (field === "serviceId" || field === "quantity" || field === "widthCm" || field === "heightCm") {
       setConfirmPriceKey(null);
       previewEpoch.current += 1;
       setSuggestions((old) => {const updated = { ...old };delete updated[key];return updated;});
@@ -156,6 +156,7 @@ export function OrderCreatePage() {
   async function preview(key: number) {
     const row = items.find((item) => item.key === key);
     const quantity = Number(row?.quantity);
+    const method = services.find((service) => service.value === Number(row?.serviceId))?.pricingMethod ?? "quantity";
     if (!row?.serviceId || !/^\d+$/.test(row.quantity) || !Number.isSafeInteger(quantity) || quantity < 1) {
       setPreviewError((old) => ({ ...old, [key]: "اختر الخدمة وأدخل كمية صحيحة أولًا." })); return;
     }
@@ -171,6 +172,7 @@ export function OrderCreatePage() {
         serviceId: Number(row.serviceId),
         customerTypeId: selectedCustomer?.customerTypeId ?? null,
         quantity,
+        ...(method !== "quantity" ? {widthCm: row.widthCm, heightCm: row.heightCm} : {}),
       });
       if (version !== previewEpoch.current) return;
       if (result.requiresManualTotal || result.suggestedTotal === null)
@@ -200,6 +202,11 @@ export function OrderCreatePage() {
     if (!customerId) issues.customerId = "اختر عميلًا مسجلًا.";
     for (const item of items) {
       if (!item.serviceId) issues["items." + item.key + ".serviceId"] = "اختر خدمة الطباعة.";
+      const method = services.find((service) => service.value === Number(item.serviceId))?.pricingMethod ?? "quantity";
+      if (method !== "quantity") {
+        if (!/^(?:0|[1-9][0-9]{0,7})(?:\.[0-9]{1,4})?$/.test(item.widthCm) || Number(item.widthCm) <= 0) issues["items." + item.key + ".widthCm"] = "العرض مطلوب بالسنتيمتر وأكبر من صفر.";
+        if (!/^(?:0|[1-9][0-9]{0,7})(?:\.[0-9]{1,4})?$/.test(item.heightCm) || Number(item.heightCm) <= 0) issues["items." + item.key + ".heightCm"] = "الطول مطلوب بالسنتيمتر وأكبر من صفر.";
+      }
       if (!/^\d+$/.test(item.quantity) || !Number.isSafeInteger(Number(item.quantity)) ||
           Number(item.quantity) < 1 || Number(item.quantity) > 1_000_000)
         issues["items." + item.key + ".quantity"] = "الكمية من 1 إلى 1,000,000.";
@@ -231,6 +238,7 @@ export function OrderCreatePage() {
       items: items.map((item) => ({
         serviceId: Number(item.serviceId), quantity: Number(item.quantity),
         specifications: item.specifications.trim() || null, agreedTotal: item.agreedTotal,
+        ...(services.find((service) => service.value === Number(item.serviceId))?.pricingMethod !== "quantity" ? {widthCm: item.widthCm, heightCm: item.heightCm} : {}),
       })),
     };
     if (mode === "draft" && canConfirm) {
@@ -365,6 +373,19 @@ export function OrderCreatePage() {
                 {message("items." + item.key + ".agreedTotal")}
               </label>
             </div>
+            {services.find((service) => service.value === Number(item.serviceId))?.pricingMethod !== undefined &&
+              services.find((service) => service.value === Number(item.serviceId))?.pricingMethod !== "quantity" && <div className="mt-3 grid grid-cols-2 gap-3">
+                <label className="block text-xs font-semibold">العرض (سم) *
+                  <input aria-label={"عرض العنصر " + (index + 1)} type="number" min="0.0001" step="any" className={fieldClass + " mt-2"} value={item.widthCm} disabled={busy}
+                    onChange={(e) => changeItem(item.key, "widthCm", e.target.value)} />
+                  {message("items." + item.key + ".widthCm")}
+                </label>
+                <label className="block text-xs font-semibold">الطول (سم) *
+                  <input aria-label={"طول العنصر " + (index + 1)} type="number" min="0.0001" step="any" className={fieldClass + " mt-2"} value={item.heightCm} disabled={busy}
+                    onChange={(e) => changeItem(item.key, "heightCm", e.target.value)} />
+                  {message("items." + item.key + ".heightCm")}
+                </label>
+              </div>}
             {agreedUnit(item) !== null && <p className="mt-2 text-xs text-muted-foreground">
               {uiMessages.orders.agreedUnitPrice}: <span dir="ltr" className="inline-block font-semibold tabular-nums">{agreedUnit(item)} ج.م</span>
               <span className="mx-1">×</span> {item.quantity} {uiMessages.orders.pieces}

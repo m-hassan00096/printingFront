@@ -22,6 +22,8 @@ export function OrderItemEditor({ order, item, canPricePreview, onClose }: {
   const actions = useOrderActions();
   const [serviceId, setServiceId] = useState(String(item?.serviceId ?? ""));
   const [quantity, setQuantity] = useState(String(item?.quantity ?? 1));
+  const [widthCm, setWidthCm] = useState(item?.widthCm ?? "");
+  const [heightCm, setHeightCm] = useState(item?.heightCm ?? "");
   const [agreedTotal, setAgreedTotal] = useState(item?.agreedTotal ?? "");
   const [specifications, setSpecifications] = useState(item?.specifications ?? "");
   const [showSpecifications, setShowSpecifications] = useState(!!item?.specifications);
@@ -32,6 +34,7 @@ export function OrderItemEditor({ order, item, canPricePreview, onClose }: {
   const [generalError, setGeneralError] = useState("");
   const services = useQuery({ queryKey: ["orders", "item-services"], queryFn: getOrderServiceOptions });
   const known = services.data ?? [];
+  const method = known.find((service) => service.value === Number(serviceId))?.pricingMethod ?? item?.pricingMethod ?? "quantity";
   const options = item && !known.some((v) => v.value === item.serviceId) ?
     [{ value: item.serviceId, label: item.serviceName + " (الخدمة الحالية)" }, ...known] : known;
   const busy = actions.addItem.isPending || actions.editItem.isPending;
@@ -50,6 +53,7 @@ export function OrderItemEditor({ order, item, canPricePreview, onClose }: {
       const result = await previewPrintingServicePrice({
         serviceId: Number(serviceId), quantity: qty,
         customerTypeId: order.customerTypeId,
+        ...(method !== "quantity" ? {widthCm, heightCm} : {}),
       });
       if (result.requiresManualTotal || !result.suggestedTotal)
         setGeneralError("لا يوجد سعر مقترح، أدخل الإجمالي المتفق عليه يدويًا.");
@@ -65,6 +69,10 @@ export function OrderItemEditor({ order, item, canPricePreview, onClose }: {
     if (!/^\d+$/.test(quantity) || !Number.isSafeInteger(Number(quantity)) ||
         Number(quantity) < 1 || Number(quantity) > 1000000)
       issues.quantity = "الكمية من 1 إلى 1,000,000.";
+    if (method !== "quantity") {
+      if (!/^(?:0|[1-9][0-9]{0,7})(?:\.[0-9]{1,4})?$/.test(widthCm) || Number(widthCm) <= 0) issues.widthCm = "أدخل عرضًا صحيحًا بالسنتيمتر.";
+      if (!/^(?:0|[1-9][0-9]{0,7})(?:\.[0-9]{1,4})?$/.test(heightCm) || Number(heightCm) <= 0) issues.heightCm = "أدخل طولًا صحيحًا بالسنتيمتر.";
+    }
     if (!moneyPattern.test(agreedTotal)) issues.agreedTotal = "أدخل الإجمالي المتفق عليه بصيغة مالية صحيحة.";
     setErrors(issues);
     if (Object.keys(issues).length) return;
@@ -72,6 +80,7 @@ export function OrderItemEditor({ order, item, canPricePreview, onClose }: {
     const payload: OrderItemPayload = {
       serviceId: Number(serviceId), quantity: Number(quantity), agreedTotal,
       specifications: specifications.trim() || null,
+      ...(method !== "quantity" ? {widthCm, heightCm} : {}),
     };
     try {
       if (item) {
@@ -80,6 +89,10 @@ export function OrderItemEditor({ order, item, canPricePreview, onClose }: {
         if (payload.quantity !== item.quantity) changes.quantity = payload.quantity;
         if (Number(payload.agreedTotal) !== Number(item.agreedTotal)) changes.agreedTotal = payload.agreedTotal;
         if (payload.specifications !== item.specifications) changes.specifications = payload.specifications;
+        if (method !== "quantity") {
+          if (widthCm !== (item.widthCm ?? "")) changes.widthCm = widthCm;
+          if (heightCm !== (item.heightCm ?? "")) changes.heightCm = heightCm;
+        }
         if (Object.keys(changes).length)
           await actions.editItem.mutateAsync({ id: order.id, itemId: item.id, payload: changes });
       } else await actions.addItem.mutateAsync({ id: order.id, payload });
@@ -136,6 +149,18 @@ export function OrderItemEditor({ order, item, canPricePreview, onClose }: {
             {fieldError("agreedTotal")}
           </label>
         </div>
+        {method !== "quantity" && <div className="grid grid-cols-2 gap-3">
+          <label className="text-sm font-semibold">العرض (سم) *
+            <input aria-label="عرض العنصر" type="number" min="0.0001" step="any" className={fieldClass + " mt-2"} value={widthCm} disabled={busy}
+              onChange={(e) => {setWidthCm(e.target.value);setSuggestion(null);setConfirmSuggestion(false);reset("widthCm");}} />
+            {fieldError("widthCm")}
+          </label>
+          <label className="text-sm font-semibold">الطول (سم) *
+            <input aria-label="طول العنصر" type="number" min="0.0001" step="any" className={fieldClass + " mt-2"} value={heightCm} disabled={busy}
+              onChange={(e) => {setHeightCm(e.target.value);setSuggestion(null);setConfirmSuggestion(false);reset("heightCm");}} />
+            {fieldError("heightCm")}
+          </label>
+        </div>}
         {moneyPattern.test(agreedTotal) && Number(quantity) > 0 && <p className="text-xs text-muted-foreground">
           {uiMessages.orders.agreedUnitPrice}: <span dir="ltr" className="inline-block font-semibold">{(Number(agreedTotal) / Number(quantity)).toFixed(2)} ج.م</span>
         </p>}

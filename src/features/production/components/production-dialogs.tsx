@@ -155,6 +155,7 @@ export function ProductionDetailDialog({ item, onClose }: { item:ProductionItem;
           {itemDetails.isPending?<LoadingState/>:itemDetails.isError?
             <ErrorState error={itemDetails.error} retry={()=>void itemDetails.refetch()}/>:
             itemDetails.data&&<div className="space-y-4">
+              {itemDetails.data.pricingMethod !== "quantity" && itemDetails.data.widthCm && itemDetails.data.heightCm && <p className="rounded-xl border p-3 text-sm font-bold">المقاس: {itemDetails.data.widthCm} × {itemDetails.data.heightCm} سم</p>}
               <section className="space-y-2">
                 <h3 className="text-sm font-bold">مواصفات العنصر</h3>
                 <p className="whitespace-pre-wrap rounded-xl border bg-muted/30 p-3 text-sm leading-6">

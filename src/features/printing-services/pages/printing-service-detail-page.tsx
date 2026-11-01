@@ -8,6 +8,7 @@ import { ErrorState, IdentityStatus, LoadingState } from "@/features/identity/co
 import { usePrintingService } from "../hooks/use-printing-services";
 import { PricePreviewCalculator } from "../components/price-preview-calculator";
 import type { ServiceTier } from "../types/printing-service.types";
+import { formatPriceForDisplay } from "../lib/format-price";
 
 function QuantityRange({ tier }: { tier: ServiceTier }) {
   if (tier.minQuantity === null && tier.maxQuantity === null) return <span className="inline-flex rounded-md border border-primary/15 bg-primary/5 px-2 py-1 text-xs font-semibold text-primary">{uiMessages.printingServices.defaultTier}</span>;
@@ -21,7 +22,7 @@ function QuantityRange({ tier }: { tier: ServiceTier }) {
 }
 
 function Currency({ amount }: { amount: string }) {
-  return <span dir="ltr" className="inline-block tabular-nums">{amount} ج.م</span>;
+  return <span dir="ltr" className="inline-block tabular-nums">{formatPriceForDisplay(amount)} ج.م</span>;
 }
 
 export function PrintingServiceDetailPage() {
@@ -107,6 +108,6 @@ export function PrintingServiceDetailPage() {
         <strong className="shrink-0 text-base font-bold text-foreground"><Currency amount={item.basePrice ?? "0.00"} /></strong>
       </div>
     </section>
-    {mayPreview && <PricePreviewCalculator key={item.id} serviceId={item.id} active={item.status === 1} />}
+    {mayPreview && <PricePreviewCalculator key={item.id} serviceId={item.id} active={item.status === 1} pricingMethod={item.pricingMethod} />}
   </div>;
 }

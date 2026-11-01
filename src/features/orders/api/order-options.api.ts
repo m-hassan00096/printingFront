@@ -1,7 +1,8 @@
 import { apiClient } from "@/shared/api/http";
 import type { ApiResponse } from "@/shared/api/api-types";
 
-export type SelectOption = { value: number; label: string; isDefault?: number };
+import type { PricingMethod } from "@/features/printing-services/types/printing-service.types";
+export type SelectOption = { value: number; label: string; isDefault?: number; pricingMethod?: PricingMethod };
 type SelectGroup = { label: string; options: SelectOption[] };
 async function getGroups(keys: string[]): Promise<SelectGroup[]> {
   const { data } = await apiClient.get<ApiResponse<SelectGroup[]>>("/selects", {

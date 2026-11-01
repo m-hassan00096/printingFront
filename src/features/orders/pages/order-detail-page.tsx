@@ -215,6 +215,7 @@ export function OrderDetailPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div><h3 className="font-bold">{line.serviceName}</h3>
               <p className="mt-1 text-xs text-muted-foreground">الكمية: {line.quantity} — الوحدة: <MoneyAmount amount={line.unitPrice} maximumFractionDigits={4} /></p>
+              {line.pricingMethod !== "quantity" && line.widthCm && line.heightCm && <p className="mt-1 text-xs text-muted-foreground">المقاس: {line.widthCm} × {line.heightCm} سم</p>}
               {line.specifications && <p className="mt-2 whitespace-pre-wrap text-sm">{line.specifications}</p>}
             </div>
             <div className="flex items-center gap-2"><strong><MoneyAmount amount={line.agreedTotal} /></strong>

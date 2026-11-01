@@ -205,6 +205,44 @@ describe("Printing Services API integration", () => {
     expect(calls.filter(call => call.method === "post" && call.url === "/printing-services")).toHaveLength(0);
   });
 
+  it("shows compact decimal prices for area services without losing precision", async () => {
+    services[0].pricingMethod = "square_centimeter";
+    services[0].basePrice = "10.000000";
+    services[0].priceTiers = [{
+      priceTierId: 501, customerTypeId: null,
+      minQuantity: 100, maxQuantity: 500, price: "0.025000",
+    }];
+    visit("/printing-services/11");
+    const pricing = await screen.findByRole("region", { name: "أسعار الخدمة" });
+    expect(within(pricing).getByText("10.00 ج.م")).toBeTruthy();
+    expect(within(pricing).getByText("0.025 ج.م")).toBeTruthy();
+    expect(within(pricing).queryByText("10.000000 ج.م")).toBeNull();
+  });
+
+  it("shows compact prices when editing without submitting unchanged prices", async () => {
+    services[0].pricingMethod = "square_centimeter";
+    services[0].basePrice = "10.000000";
+    services[0].priceTiers = [{
+      priceTierId: 501, customerTypeId: null,
+      minQuantity: 100, maxQuantity: 500, price: "0.025000",
+    }];
+    visit("/printing-services/11/edit");
+    const basePrice = await screen.findByRole<HTMLInputElement>("textbox", { name: "السعر الأساسي" });
+    const tierPrice = screen.getByRole<HTMLInputElement>("textbox", { name: "سعر الشريحة 1" });
+    expect(basePrice.value).toBe("10.00");
+    expect(tierPrice.value).toBe("0.025");
+    await userEvent.setup().click(screen.getByRole("button", { name: "حفظ التعديلات" }));
+    expect(calls.some((call) => call.url === "/printing-services/11" && call.method === "patch")).toBe(false);
+  });
+
+  it("shows compact base prices in the service catalog", async () => {
+    services[0].pricingMethod = "square_centimeter";
+    services[0].basePrice = "10.000000";
+    visit("/printing-services");
+    expect(await screen.findByText("10.00 ج.م")).toBeTruthy();
+    expect(screen.queryByText("10.000000 ج.م")).toBeNull();
+  });
+
   it("displays zero for an empty base price without the manual pricing summary", async () => {
     services[0].basePrice = null;
     visit("/printing-services/11");

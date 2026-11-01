@@ -1,4 +1,5 @@
 export type ServiceStatus = 0 | 1;
+export type PricingMethod = 'quantity' | 'square_centimeter' | 'square_meter';
 export type ServiceTier = {
   priceTierId: number;
   customerTypeId: number | null;
@@ -9,6 +10,7 @@ export type ServiceTier = {
 export type PrintingService = {
   id: number;
   name: string;
+  pricingMethod: PricingMethod;
   basePrice: string | null;
   costPrice: string | null;
   status: ServiceStatus;
@@ -34,19 +36,23 @@ export type TierCommand =
   | ({ actionStatus: 2; priceTierId: number } & TierValues)
   | { actionStatus: 3; priceTierId: number };
 export type CreateServicePayload = {
-  name: string; status: ServiceStatus; basePrice: string | null; costPrice: string | null;
+  name: string; pricingMethod: PricingMethod; status: ServiceStatus; basePrice: string | null; costPrice: string | null;
   priceTiers: TierValues[];
 };
 export type UpdateServicePayload = {
-  name?: string; status?: ServiceStatus; basePrice?: string | null; costPrice?: string | null;
+  name?: string; pricingMethod?: PricingMethod; status?: ServiceStatus; basePrice?: string | null; costPrice?: string | null;
   priceTiers?: TierCommand[];
 };
 export type PricePreviewPayload = {
   serviceId: number; customerTypeId: number | null; quantity: number;
+  widthCm?: string | null; heightCm?: string | null;
 };
 export type PricePreview = {
   serviceId: number;
   quantity: number;
+  pricingMethod: PricingMethod;
+  widthCm: string | null; heightCm: string | null;
+  area: string | null; suggestedPiecePrice: string;
   source: "customerTypeQuantityTier" | "customerTypeCatchAll" | "genericQuantityTier" | "genericCatchAll" | "basePrice" | null;
   suggestedUnitPrice: string | null;
   suggestedTotal: string | null;

@@ -7,12 +7,15 @@ import { useCustomerTypes } from "@/features/customers/hooks/use-customers";
 import { fieldClass } from "@/features/identity/components/identity-ui";
 import { usePrintingServiceMutations } from "../hooks/use-printing-services";
 import type { PricePreview } from "../types/printing-service.types";
+import { formatPriceForDisplay } from "../lib/format-price";
 
 const sourceLabels: Record<NonNullable<PricePreview["source"]>, string> = uiMessages.printingServices.previewSources;
 
-export function PricePreviewCalculator({ serviceId, active }: { serviceId: number; active: boolean }) {
+export function PricePreviewCalculator({ serviceId, active, pricingMethod = "quantity" }: { serviceId: number; active: boolean; pricingMethod?: import("../types/printing-service.types").PricingMethod }) {
   const [customerTypeId, setCustomerTypeId] = useState("");
   const [quantity, setQuantity] = useState("10");
+  const [widthCm, setWidthCm] = useState("");
+  const [heightCm, setHeightCm] = useState("");
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [result, setResult] = useState<PricePreview | null>(null);
   const types = useCustomerTypes(active);
@@ -37,6 +40,7 @@ export function PricePreviewCalculator({ serviceId, active }: { serviceId: numbe
     try {
       const answer = await preview.mutateAsync({
         serviceId, customerTypeId: customerTypeId ? Number(customerTypeId) : null, quantity: parsed,
+        ...(pricingMethod !== "quantity" ? {widthCm, heightCm} : {}),
       });
       setResult(answer);
     } catch (error: unknown) {
@@ -71,6 +75,16 @@ export function PricePreviewCalculator({ serviceId, active }: { serviceId: numbe
             حساب السعر المقترح
           </Button>
         </div>
+        {pricingMethod !== "quantity" && <div className="grid grid-cols-2 gap-3">
+          <label className="block text-xs font-semibold">العرض (سم)
+            <input aria-label="عرض المعاينة" className={fieldClass + " mt-2"} type="number" min="0.0001" step="any" value={widthCm}
+              onChange={(e) => {setWidthCm(e.target.value);invalidateResult();}} />
+          </label>
+          <label className="block text-xs font-semibold">الطول (سم)
+            <input aria-label="طول المعاينة" className={fieldClass + " mt-2"} type="number" min="0.0001" step="any" value={heightCm}
+              onChange={(e) => {setHeightCm(e.target.value);invalidateResult();}} />
+          </label>
+        </div>}
         {types.isError && <p className="text-xs text-destructive">
           تعذّر تحميل أنواع العملاء.{" "}
           <button className="underline" type="button" onClick={() => void types.refetch()}>إعادة المحاولة</button>
@@ -98,7 +112,8 @@ export function PricePreviewCalculator({ serviceId, active }: { serviceId: numbe
                   </span>}
                 </div>
                 <p className="border-t border-primary/10 pt-2.5 text-xs font-medium text-muted-foreground">
-                  <span dir="ltr" className="inline-block tabular-nums">{result.quantity} × {result.suggestedUnitPrice} ج.م</span>
+                  {pricingMethod === "quantity" ? <span dir="ltr" className="inline-block tabular-nums">{result.quantity} × {result.suggestedUnitPrice === null ? "—" : formatPriceForDisplay(result.suggestedUnitPrice)} ج.م</span> :
+                    <span>مساحة القطعة: {result.area} {pricingMethod === "square_meter" ? "م²" : "سم²"} · سعر الوحدة: {result.suggestedUnitPrice === null ? "—" : formatPriceForDisplay(result.suggestedUnitPrice)} ج.م · سعر القطعة: {formatPriceForDisplay(result.suggestedPiecePrice)} ج.م</span>}
                 </p>
               </div>}
         </div>}
