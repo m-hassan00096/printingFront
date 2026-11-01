@@ -11,6 +11,7 @@ import {
 } from "@/features/identity/components/identity-ui";
 import { usePrintingServices, usePrintingServiceMutations } from "../hooks/use-printing-services";
 import type { PrintingService, ServiceFilters } from "../types/printing-service.types";
+import { formatPriceForDisplay } from "../lib/format-price";
 
 function pageNumber(value: string | null): number {
   const page = Number(value);
@@ -101,7 +102,7 @@ export function PrintingServicesPage() {
                     <span className="rounded-lg bg-secondary p-2 text-primary"><Printer className="size-5" /></span>
                     {service.name}
                   </Link></td>
-                  <td className="px-5 py-4 tabular-nums">{service.basePrice === null ? "غير محدد" : `${service.basePrice} ج.م`}</td>
+                  <td className="px-5 py-4 tabular-nums">{service.basePrice === null ? "غير محدد" : `${formatPriceForDisplay(service.basePrice)} ج.م`}</td>
                   <td className="px-5 py-4"><IdentityStatus status={service.status} label={service.status === 1 ? "نشط" : "غير نشط"} /></td>
                   <td className="px-5 py-4"><div className="flex gap-1">
                     <Button asChild variant="ghost" size="icon-sm" title="تفاصيل الخدمة">
