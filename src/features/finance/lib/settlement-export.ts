@@ -6,56 +6,6 @@ const columns = [
   "مدين", "دائن", "الرصيد",
 ];
 
-/** Never let untrusted customer names/specifications execute spreadsheet formulas. */
-function safeCell(value: string | number | null | undefined): string {
-  const text = value === null || value === undefined ? "" : String(value);
-  const numeric = /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/.test(text);
-  const escaped = !numeric && /^[=+@-]/.test(text.trimStart()) ? "'" + text : text;
-  return '"' + escaped.replaceAll('"', '""') + '"';
-}
-
-function reportRows(statement: CustomerSettlement): Array<Array<string | number | null>> {
-  return [
-    ["كشف تصفية حساب — Tabaa"],
-    ["العميل", statement.customerName],
-    ["من", statement.dateFrom, "إلى", statement.dateTo],
-    [],
-    columns,
-    ["", "الرصيد السابق", "", null, null, null, null, statement.openingBalance],
-    ...statement.lines.map(line => [
-      line.date,
-      line.description,
-      line.orderNumber ?? line.receiptNumber ?? "",
-      line.quantity,
-      line.unitPrice,
-      line.signedAmount.startsWith("-") ? null : line.signedAmount,
-      line.signedAmount.startsWith("-") ? line.signedAmount.slice(1) : null,
-      line.runningBalance,
-    ]),
-    [],
-    ["", "إجمالي الشغل المستلم", "", null, null, statement.deliveredTotal],
-    ["", "صافي المدفوعات", "", null, null, null, statement.paymentsTotal],
-    ["", "تسويات افتتاحية داخل الفترة", "", null, null, statement.adjustmentsTotal],
-    ["", "المتبقي عن الشغل المستلم", "", null, null, null, statement.closingBalance],
-  ];
-}
-
-/** UTF-8 CSV is Excel-compatible without adding an XLSX library/dependency. */
-export function exportSettlementCsv(statement: CustomerSettlement): void {
-  const rows = reportRows(statement);
-  const csv = "\uFEFFsep=,\r\n" +
-    rows.map(row => row.map(safeCell).join(",")).join("\r\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "tabaa-settlement-" + statement.customerId + "-" + statement.dateTo + ".csv";
-  document.body.append(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 function escapeHtml(value: unknown): string {
   return String(value ?? "").replace(/[&<>"']/g, character =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
