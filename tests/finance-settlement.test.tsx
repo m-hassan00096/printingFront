@@ -86,7 +86,7 @@ describe("Customer settlement statement", () => {
     expect(within(panel).getByText("COL-90")).toBeTruthy();
     expect(within(panel).getByText(/الفرق عن كشف الشغل المستلم/)).toBeTruthy();
     expect(within(panel).getByRole("button", { name: "طباعة / PDF" })).toBeTruthy();
-    expect(within(panel).getByRole("button", { name: "Excel (CSV)" })).toBeTruthy();
+    expect(within(panel).getByRole("button", { name: "تصدير Excel" })).toBeTruthy();
     expect(calls.filter(call => call.url.endsWith("/settlement")).length).toBe(1);
     const call = calls.find(item => item.url.endsWith("/settlement"))!;
     expect(call.params.get("dateFrom")).toMatch(/^\d{4}-\d{2}-01$/);
