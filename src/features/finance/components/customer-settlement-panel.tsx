@@ -7,7 +7,8 @@ import { ErrorState, LoadingState, EmptyState } from "@/features/identity/compon
 import { CreatedDatePicker } from "@/features/orders/components/created-date-picker";
 import { formatCollectionDate } from "@/features/collections/lib/collection-date-format";
 import { fetchCustomerSettlement } from "../api/settlement.api";
-import { exportSettlementCsv, printSettlement } from "../lib/settlement-export";
+import { printSettlement } from "../lib/settlement-export";
+import { exportSettlementXlsx } from "../lib/settlement-xlsx";
 import type { SettlementPeriod } from "../types/settlement.types";
 import { toast } from "sonner";
 
@@ -82,8 +83,8 @@ export function CustomerSettlementPanel({ customerId }: { customerId: number }) 
           <Button variant="outline" size="sm" onClick={() => {
             if (!printSettlement(statement)) toast.error("اسمح للمتصفح بفتح نافذة الطباعة.");
           }}><Printer className="size-4" /> طباعة / PDF</Button>
-          <Button variant="outline" size="sm" onClick={() => exportSettlementCsv(statement)}>
-            <FileSpreadsheet className="size-4" /> Excel (CSV)
+          <Button variant="outline" size="sm" onClick={() => exportSettlementXlsx(statement)}>
+            <FileSpreadsheet className="size-4" /> تصدير Excel
           </Button>
         </div>
       </div>
