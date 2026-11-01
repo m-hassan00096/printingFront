@@ -7,6 +7,7 @@ import { useCustomerTypes } from "@/features/customers/hooks/use-customers";
 import { fieldClass } from "@/features/identity/components/identity-ui";
 import { usePrintingServiceMutations } from "../hooks/use-printing-services";
 import type { PricePreview } from "../types/printing-service.types";
+import { formatPriceForDisplay } from "../lib/format-price";
 
 const sourceLabels: Record<NonNullable<PricePreview["source"]>, string> = uiMessages.printingServices.previewSources;
 
@@ -111,8 +112,8 @@ export function PricePreviewCalculator({ serviceId, active, pricingMethod = "qua
                   </span>}
                 </div>
                 <p className="border-t border-primary/10 pt-2.5 text-xs font-medium text-muted-foreground">
-                  {pricingMethod === "quantity" ? <span dir="ltr" className="inline-block tabular-nums">{result.quantity} × {result.suggestedUnitPrice} ج.م</span> :
-                    <span>مساحة القطعة: {result.area} {pricingMethod === "square_meter" ? "م²" : "سم²"} · سعر الوحدة: {result.suggestedUnitPrice} ج.م · سعر القطعة: {result.suggestedPiecePrice} ج.م</span>}
+                  {pricingMethod === "quantity" ? <span dir="ltr" className="inline-block tabular-nums">{result.quantity} × {result.suggestedUnitPrice === null ? "—" : formatPriceForDisplay(result.suggestedUnitPrice)} ج.م</span> :
+                    <span>مساحة القطعة: {result.area} {pricingMethod === "square_meter" ? "م²" : "سم²"} · سعر الوحدة: {result.suggestedUnitPrice === null ? "—" : formatPriceForDisplay(result.suggestedUnitPrice)} ج.م · سعر القطعة: {formatPriceForDisplay(result.suggestedPiecePrice)} ج.م</span>}
                 </p>
               </div>}
         </div>}
