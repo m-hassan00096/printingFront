@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowUpLeft, History, Plus, RefreshCw, RotateCcw, UserRound, X } from "lucide-react";
+import { ArrowUpLeft, FileText, History, Plus, RefreshCw, RotateCcw, UserRound, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
@@ -13,6 +13,7 @@ import { uiMessages } from "@/shared/translations/ar/ui";
 import { useFinanceCustomers, useFinanceBalance, useFinanceLedger, useFinanceOpeningStatus } from "../hooks/use-finance";
 import { RefundsPanel } from "../components/refunds-panel";
 import { FinanceAccountsOverview } from "../components/finance-accounts-overview";
+import { CustomerSettlementPanel } from "../components/customer-settlement-panel";
 import { CreateRefundDialog, RefundDetailsDialog } from "../components/refund-dialogs";
 import { OpeningBalanceDialog } from "../components/opening-balance-dialog";
 import type { AccountFilters } from "../types/finance.types";
@@ -58,6 +59,7 @@ export function FinancePage() {
   const [opening, setOpening] = useState(false);
   const [refunding, setRefunding] = useState(false);
   const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [showSettlement, setShowSettlement] = useState(false);
   const [refundDetailsId,setRefundDetailsId] = useState<number|null>(null);
   const [selectedNote,setSelectedNote] = useState<string|null>(null);
   const qc = useQueryClient();
@@ -87,6 +89,7 @@ export function FinancePage() {
     setOpening(false);
     setRefunding(false);
     setHistoryExpanded(false);
+    setShowSettlement(false);
   }
   function changeFilter<K extends keyof AccountFilters>(key: K, value: AccountFilters[K]) {
     setFilters(previous => ({ ...previous, [key]: value, page: 1 }));
@@ -236,15 +239,19 @@ export function FinancePage() {
             </div>
           </div>
           <p className="mt-2 text-xs text-foreground/60">{copy.balanceSource}</p>
-          {(canRefund||canRefundHistory||(canOpening&&openingStatus.isSuccess&&!hasOpening))&&
+          {(canLedger||canRefund||canRefundHistory||(canOpening&&openingStatus.isSuccess&&!hasOpening))&&
             <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3" aria-label={copy.accountActions}>
+              {canLedger&&<Button size="sm" type="button" variant="outline" aria-expanded={showSettlement}
+                onClick={()=>{setShowSettlement(value=>!value);setHistoryExpanded(false);}}>
+                <FileText className="size-4"/> {showSettlement?"العودة لكشف الحساب":"تصفية حساب"}
+              </Button>}
               {canRefund&&<Button size="sm" type="button" disabled={!canRefundSelected}
                 title={refundUnavailableReason||undefined}
                 onClick={()=>setRefunding(true)}>
                 <RotateCcw className="size-4"/> {copy.refundAction}
               </Button>}
               {canRefundHistory&&<Button size="sm" type="button" variant="outline"
-                aria-expanded={historyExpanded} onClick={()=>setHistoryExpanded(v=>!v)}>
+                aria-expanded={historyExpanded} onClick={()=>{setHistoryExpanded(v=>!v);setShowSettlement(false);}}>
                 <History className="size-4"/>
                 {historyExpanded?copy.backToLedger:copy.customerRefundsAction}
               </Button>}
@@ -267,7 +274,8 @@ export function FinancePage() {
         {!canBalance && canLedger && ledger.isError &&
           <ErrorState error={ledger.error} retry={() => void ledger.refetch()}/>}
         {canRefundHistory&&historyExpanded&&<RefundsPanel key={customerId} customerId={customerId}/>}
-        {canLedger && !historyExpanded && <section aria-label="كشف حساب العميل" className="space-y-3">
+        {canLedger&&showSettlement&&<CustomerSettlementPanel key={customerId} customerId={customerId}/>}
+        {canLedger && !historyExpanded && !showSettlement && <section aria-label="كشف حساب العميل" className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <History className="size-4 text-primary"/>
             <h2 className="text-sm font-extrabold">كشف الحساب</h2>
