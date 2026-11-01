@@ -122,8 +122,8 @@ describe("Identity feature browser workflows", () => {
     const user = userEvent.setup();
     for (const path of ["/users/new", "/users/42/edit"]) {
       const view = open(path);
-      const password = screen.getByLabelText(/^كلمة المرور/) as HTMLInputElement;
-      const confirmation = screen.getByLabelText(/^تأكيد كلمة المرور/) as HTMLInputElement;
+      const password = await screen.findByLabelText(/^كلمة المرور/) as HTMLInputElement;
+      const confirmation = await screen.findByLabelText(/^تأكيد كلمة المرور/) as HTMLInputElement;
       expect(password.type).toBe("password");
       expect(confirmation.type).toBe("password");
       await user.click(screen.getByRole("button", { name: "إظهار كلمة المرور" }));
