@@ -194,7 +194,7 @@ describe("Collections frontend against Laravel Finance API",()=>{
     await user.click(within(dialog).getByRole("button",{name:"تأكيد تسجيل التحصيل"}));
     await waitFor(()=>expect(calls.some(c=>c.url==="/finance/collections"&&c.method==="post")).toBe(true));
     const post=calls.find(c=>c.url==="/finance/collections"&&c.method==="post");
-    expect(post?.body).toEqual({customerId:7,amount:"200.50",paymentMethod:0});
+    expect(post?.body).toEqual({customerId:7,amount:"200.50",paymentMethod:0,actualReceiptNumber:"042205"});
     expect(post?.key).toBeTruthy();
     expect(calls.filter(c=>c.url.startsWith("/deliveries/")&&c.method==="post")).toHaveLength(0);
   });

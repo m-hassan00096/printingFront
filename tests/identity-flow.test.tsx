@@ -118,6 +118,25 @@ describe("Identity feature browser workflows", () => {
     expect(screen.getByText("موظف")).toBeTruthy();
   });
 
+  it("toggles password and confirmation visibility independently in user creation and edit", async () => {
+    const user = userEvent.setup();
+    for (const path of ["/users/new", "/users/42/edit"]) {
+      const view = open(path);
+      const password = screen.getByLabelText(/^كلمة المرور/) as HTMLInputElement;
+      const confirmation = screen.getByLabelText(/^تأكيد كلمة المرور/) as HTMLInputElement;
+      expect(password.type).toBe("password");
+      expect(confirmation.type).toBe("password");
+      await user.click(screen.getByRole("button", { name: "إظهار كلمة المرور" }));
+      expect(password.type).toBe("text");
+      expect(confirmation.type).toBe("password");
+      await user.click(screen.getByRole("button", { name: "إظهار تأكيد كلمة المرور" }));
+      expect(confirmation.type).toBe("text");
+      await user.click(screen.getByRole("button", { name: "إخفاء كلمة المرور" }));
+      expect(password.type).toBe("password");
+      view.unmount();
+    }
+  });
+
   it("requires password confirmation and valid role before creating user", async () => {
     open("/users/new");
     expect(await screen.findByLabelText(/الاسم الكامل/)).toBeTruthy();
