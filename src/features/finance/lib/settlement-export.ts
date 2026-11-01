@@ -9,7 +9,8 @@ const columns = [
 /** Never let untrusted customer names/specifications execute spreadsheet formulas. */
 function safeCell(value: string | number | null | undefined): string {
   const text = value === null || value === undefined ? "" : String(value);
-  const escaped = /^[\s\u0000-\u001f]*[=+\-@]/.test(text) ? "'" + text : text;
+  const numeric = /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/.test(text);
+  const escaped = !numeric && /^[=+@-]/.test(text.trimStart()) ? "'" + text : text;
   return '"' + escaped.replaceAll('"', '""') + '"';
 }
 
@@ -96,7 +97,7 @@ export function printSettlement(statement: CustomerSettlement): boolean {
     '<table><thead><tr>' + columns.map(label => '<th>' + escapeHtml(label) + '</th>').join("") +
     '</tr></thead><tbody>' + rows + '</tbody></table>' +
     '<p class="muted">المبالغ بالجنيه المصري. الكشف يخص الشغل المستلم، وليس جميع الأوردرات المؤكدة.</p>' +
-    '<script>window.addEventListener("load",function(){window.print();});<\/script></body></html>';
+    '<script>window.addEventListener("load",function(){window.print();});</script></body></html>';
   popup.document.open();
   popup.document.write(html);
   popup.document.close();
