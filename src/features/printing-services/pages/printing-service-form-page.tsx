@@ -10,6 +10,7 @@ import type { ApiErrorResponse } from "@/shared/api/api-types";
 import { useCustomerTypes } from "@/features/customers/hooks/use-customers";
 import { ErrorState, fieldClass, fieldLabel, LoadingState } from "@/features/identity/components/identity-ui";
 import { usePrintingService, usePrintingServiceMutations } from "../hooks/use-printing-services";
+import { formatPriceForDisplay } from "../lib/format-price";
 import type {
   CreateServicePayload, PrintingService, PricingMethod, ServiceTier, TierCommand,
   TierValues, UpdateServicePayload,
@@ -33,7 +34,7 @@ function fromTier(tier: ServiceTier): TierInput {
     customerTypeId: tier.customerTypeId?.toString() ?? "",
     minQuantity: tier.minQuantity?.toString() ?? "",
     maxQuantity: tier.maxQuantity?.toString() ?? "",
-    price: tier.price,
+    price: formatPriceForDisplay(tier.price),
   };
 }
 function toValues(input: TierInput): TierValues {
@@ -82,7 +83,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
   const nextKey = useRef(-1);
   const [name, setName] = useState(service?.name ?? "");
   const [pricingMethod, setPricingMethod] = useState<PricingMethod>(service?.pricingMethod ?? "quantity");
-  const [basePrice, setBasePrice] = useState(service?.basePrice ?? "");
+  const [basePrice, setBasePrice] = useState(service?.basePrice === null || service === undefined ? "" : formatPriceForDisplay(service.basePrice));
   const [costPrice, setCostPrice] = useState(service?.costPrice ?? "");
   const [status, setStatus] = useState<"0" | "1">(service?.status === 0 ? "0" : "1");
   const [rows, setRows] = useState<TierInput[]>(service?.priceTiers?.map(fromTier) ?? []);
@@ -161,7 +162,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
       const update: UpdateServicePayload = {};
       if (pricingMethod !== (service.pricingMethod ?? 'quantity')) update.pricingMethod = pricingMethod;
       if (name.trim() !== service.name) update.name = name.trim();
-      if ((basePrice.trim() || null) !== service.basePrice) update.basePrice = basePrice.trim() || null;
+      if ((basePrice.trim() || null) !== (service.basePrice === null ? null : formatPriceForDisplay(service.basePrice))) update.basePrice = basePrice.trim() || null;
       if ((costPrice.trim() || null) !== service.costPrice) update.costPrice = costPrice.trim() || null;
       if (Number(status) !== service.status) update.status = Number(status) as 0 | 1;
       for (const row of rows) {
