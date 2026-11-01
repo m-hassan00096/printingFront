@@ -75,6 +75,7 @@ export const PRODUCTION_COLUMNS = [
 export type ProductionItemDetails = {
   id:number; orderId:number;serviceName:string;quantity:number;
   specifications:string|null;
+  widthCm:string|null;heightCm:string|null;pricingMethod:"quantity"|"square_centimeter"|"square_meter";
   files:{id:number;name:string;extension:string;mimeType:string;sizeBytes:number;
     url:string|null;createdAt:string|null}[];
 };
