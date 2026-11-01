@@ -115,7 +115,7 @@ export function CustomerSettlementPanel({ customerId }: { customerId: number }) 
                 <td className="max-w-[360px] px-3 py-2">{line.description}</td>
                 <td className="whitespace-nowrap px-3 py-2">{line.orderNumber ?? line.receiptNumber ?? "—"}</td>
                 <td className="px-3 py-2">{line.quantity ?? "—"}</td>
-                <td className="px-3 py-2">{line.unitPrice ? <MoneyAmount amount={line.unitPrice}/> : "—"}</td>
+                <td className="px-3 py-2">{line.unitPrice ? <MoneyAmount amount={line.unitPrice} maximumFractionDigits={4}/> : "—"}</td>
                 <td className="px-3 py-2">{credit ? "—" : <MoneyAmount amount={line.signedAmount}/>}</td>
                 <td className="px-3 py-2">{credit ? <MoneyAmount amount={line.signedAmount.slice(1)}/> : "—"}</td>
                 <td className="px-3 py-2 font-bold"><MoneyAmount amount={line.runningBalance}/></td>
