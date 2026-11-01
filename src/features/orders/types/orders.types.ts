@@ -5,10 +5,13 @@ export type OrderFile = {
   id: number; name: string; extension: string; mimeType: string; sizeBytes: number;
   url: string | null; createdAt: string | null;
 };
+import type { PricingMethod } from '@/features/printing-services/types/printing-service.types';
 export type OrderItem = {
   id: number; serviceId: number; serviceName: string;
   customerTypeId: number | null; customerTypeName: string | null;
   quantity: number; specifications: string | null; agreedTotal: string;
+  pricingMethod: PricingMethod; widthCm: string | null; heightCm: string | null;
+  pricingRateSnapshot: string | null;
   unitPrice: string; productionStage: number;
   designerId: number | null; printingLocationId: number | null; files?: OrderFile[];
 };
@@ -29,7 +32,7 @@ export type Order = {
   items?: OrderItem[];
 };
 export type OrderFilters = { search: string; status: string; productionStatus: string; lateOnly: boolean; readyDueToday: boolean; createdFrom: string; createdTo: string; sort: string; page: number };
-export type OrderItemPayload = { serviceId: number; quantity: number; specifications: string | null; agreedTotal: string };
+export type OrderItemPayload = { serviceId: number; quantity: number; specifications: string | null; agreedTotal: string; widthCm?: string | null; heightCm?: string | null };
 export type CreateOrderPayload = {
   customerId: number; source: 0 | 1; dueDate: string | null;
   notes: string | null; items: OrderItemPayload[]; status: 0 | 1;
