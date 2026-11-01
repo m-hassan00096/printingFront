@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { ArrowRight, LoaderCircle, Save, UserRound } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, LoaderCircle, Save, UserRound } from "lucide-react";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
@@ -33,6 +34,8 @@ export function UserFormPage() {
   const [avatar, setAvatar] = useState<File | undefined>();
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [generalError, setGeneralError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
     defaultValues,
@@ -190,14 +193,36 @@ export function UserFormPage() {
       <section className="space-y-5 rounded-lg border bg-card p-5  sm:p-7">
         <div className="border-b pb-4"><h3 className="text-base font-extrabold">{isNew ? "بيانات الدخول" : "تغيير كلمة المرور"}</h3><p className="mt-1 text-xs text-muted-foreground">{isNew ? "كلمة مرور لا تقل عن 8 أحرف." : "اترك الحقلين فارغين للاحتفاظ بكلمة المرور الحالية."}</p></div>
         <div className="grid gap-5 sm:grid-cols-2">
-          <label className="space-y-2"><span className={fieldLabel}>كلمة المرور {isNew && "*"}</span>
-            <input type="password" autoComplete="new-password" className={fieldClass} {...register("password")} disabled={busy} />
+          <div className="space-y-2">
+            <label htmlFor="user-password" className={fieldLabel}>كلمة المرور {isNew && "*"}</label>
+            <div className="relative">
+              <input id="user-password" type={showPassword ? "text" : "password"} autoComplete="new-password"
+                className={fieldClass + " pe-11"} {...register("password")} disabled={busy} />
+              <button type="button" disabled={busy} aria-pressed={showPassword}
+                aria-label={showPassword ? uiMessages.identityUsers.hidePassword : uiMessages.identityUsers.showPassword}
+                title={showPassword ? uiMessages.identityUsers.hidePassword : uiMessages.identityUsers.showPassword}
+                onClick={() => setShowPassword(v => !v)}
+                className="absolute inset-y-0 end-2 flex items-center justify-center rounded-md px-2 text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary">
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
             {errors.password && <span role="alert" className="text-xs text-destructive">{errors.password.message}</span>}
-          </label>
-          <label className="space-y-2"><span className={fieldLabel}>تأكيد كلمة المرور {isNew && "*"}</span>
-            <input type="password" autoComplete="new-password" className={fieldClass} {...register("passwordConfirmation")} disabled={busy} />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="user-confirmation" className={fieldLabel}>تأكيد كلمة المرور {isNew && "*"}</label>
+            <div className="relative">
+              <input id="user-confirmation" type={showConfirmation ? "text" : "password"} autoComplete="new-password"
+                className={fieldClass + " pe-11"} {...register("passwordConfirmation")} disabled={busy} />
+              <button type="button" disabled={busy} aria-pressed={showConfirmation}
+                aria-label={showConfirmation ? uiMessages.identityUsers.hideConfirmation : uiMessages.identityUsers.showConfirmation}
+                title={showConfirmation ? uiMessages.identityUsers.hideConfirmation : uiMessages.identityUsers.showConfirmation}
+                onClick={() => setShowConfirmation(v => !v)}
+                className="absolute inset-y-0 end-2 flex items-center justify-center rounded-md px-2 text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary">
+                {showConfirmation ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
             {errors.passwordConfirmation && <span role="alert" className="text-xs text-destructive">{errors.passwordConfirmation.message}</span>}
-          </label>
+          </div>
         </div>
         {!isNew && watch("password") && <p className="text-xs text-[#a46b0b]">سيتم تغيير كلمة مرور الحساب عند الحفظ.</p>}
       </section>

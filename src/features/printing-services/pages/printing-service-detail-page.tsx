@@ -92,6 +92,13 @@ export function PrintingServiceDetailPage() {
         {copy.noTiers}
       </p>}
 
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t px-5 py-3">
+        <div className="min-w-0">
+          <p className="text-sm font-bold">{copy.costPriceLabel}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{copy.costPriceHelp}</p>
+        </div>
+        <strong className="shrink-0 text-base">{item.costPrice === null ? copy.costNotSet : <Currency amount={item.costPrice} />}</strong>
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-4 border-t bg-[#f8f9ff] px-5 py-3">
         <div className="min-w-0">
           <p className="text-sm font-bold text-foreground">{copy.basePrice}</p>

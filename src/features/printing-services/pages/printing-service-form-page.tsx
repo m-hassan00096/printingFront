@@ -82,6 +82,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
   const nextKey = useRef(-1);
   const [name, setName] = useState(service?.name ?? "");
   const [basePrice, setBasePrice] = useState(service?.basePrice ?? "");
+  const [costPrice, setCostPrice] = useState(service?.costPrice ?? "");
   const [status, setStatus] = useState<"0" | "1">(service?.status === 0 ? "0" : "1");
   const [rows, setRows] = useState<TierInput[]>(service?.priceTiers?.map(fromTier) ?? []);
   const [removedIds, setRemovedIds] = useState<number[]>([]);
@@ -131,6 +132,8 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
     if (!name.trim()) issues.name = "اسم الخدمة مطلوب.";
     else if (name.trim().length > 150) issues.name = "اسم الخدمة يجب ألا يزيد عن 150 حرفًا.";
     if (basePrice.trim() && !validMoney(basePrice, true)) issues.basePrice = "السعر الأساسي يجب أن يكون مبلغًا صحيحًا حتى منزلتين عشريتين.";
+    if (costPrice.trim() && (!validMoney(costPrice, true) || !/^(?:0|[1-9][0-9]{0,9})(?:\.[0-9]{1,2})?$/.test(costPrice.trim())))
+      issues.costPrice = copy.costPriceInvalid;
     for (const row of rows) {
       if (!validMoney(row.price, false)) issues[`row.${row.key}.price`] = "سعر الشريحة يجب أن يكون أكبر من صفر.";
       for (const field of ["minQuantity", "maxQuantity"] as const) {
@@ -157,6 +160,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
       const update: UpdateServicePayload = {};
       if (name.trim() !== service.name) update.name = name.trim();
       if ((basePrice.trim() || null) !== service.basePrice) update.basePrice = basePrice.trim() || null;
+      if ((costPrice.trim() || null) !== service.costPrice) update.costPrice = costPrice.trim() || null;
       if (Number(status) !== service.status) update.status = Number(status) as 0 | 1;
       for (const row of rows) {
         const original = row.priceTierId ? existing.get(row.priceTierId) : undefined;
@@ -181,7 +185,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
       payload = update;
     } else {
       payload = {
-        name: name.trim(), basePrice: basePrice.trim() || null,
+        name: name.trim(), basePrice: basePrice.trim() || null, costPrice: costPrice.trim() || null,
         status: Number(status) as 0 | 1, priceTiers: rows.map(toValues),
       };
       commandKeys.push(...rows.map((row) => row.key));
@@ -206,7 +210,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
               if (rowKey !== null && rowKey !== undefined)
                 mapped[`row.${rowKey}.${match[2]}`] = messages[0];
               else other.push(...messages);
-            } else if (["name", "basePrice", "status"].includes(key)) mapped[key] = messages[0];
+            } else if (["name", "basePrice", "costPrice", "status"].includes(key)) mapped[key] = messages[0];
             else other.push(...messages);
           }
           setErrors(mapped);
@@ -236,7 +240,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
     <form onSubmit={(event) => void save(event)} noValidate className="space-y-4">
       <section className="rounded-lg border bg-card p-4  sm:p-5">
         <h2 className="mb-4 font-bold">بيانات الخدمة</h2>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <label className="block"><span className={fieldLabel}>اسم الخدمة *</span>
             <input aria-label="اسم الخدمة" aria-invalid={!!errors.name} className={fieldClass + " mt-2"}
               maxLength={150} value={name} disabled={busy}
@@ -250,6 +254,14 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
               onChange={(e) => { setBasePrice(e.target.value); clear("basePrice"); }} />
             {err("basePrice")}
             <span className="mt-1.5 block text-[11px] leading-5 text-muted-foreground">{copy.basePriceFallbackHelp}</span>
+          </label>
+          <label className="block"><span className={fieldLabel}>{copy.costPriceLabel}</span>
+            <input aria-label={copy.costPriceLabel} aria-invalid={!!errors.costPrice} type="text"
+              inputMode="decimal" dir="ltr" className={fieldClass + " mt-2"}
+              placeholder="0.00" value={costPrice} disabled={busy}
+              onChange={(e) => { setCostPrice(e.target.value); clear("costPrice"); }} />
+            {err("costPrice")}
+            <span className="mt-1.5 block text-[11px] leading-5 text-muted-foreground">{copy.costPriceHelp}</span>
           </label>
           <label className="block"><span className={fieldLabel}>الحالة</span>
             <select aria-label="حالة الخدمة" className={fieldClass + " mt-2"} value={status}

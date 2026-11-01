@@ -10,6 +10,7 @@ export type PrintingService = {
   id: number;
   name: string;
   basePrice: string | null;
+  costPrice: string | null;
   status: ServiceStatus;
   priceTiers?: ServiceTier[];
 };
@@ -33,11 +34,11 @@ export type TierCommand =
   | ({ actionStatus: 2; priceTierId: number } & TierValues)
   | { actionStatus: 3; priceTierId: number };
 export type CreateServicePayload = {
-  name: string; status: ServiceStatus; basePrice: string | null;
+  name: string; status: ServiceStatus; basePrice: string | null; costPrice: string | null;
   priceTiers: TierValues[];
 };
 export type UpdateServicePayload = {
-  name?: string; status?: ServiceStatus; basePrice?: string | null;
+  name?: string; status?: ServiceStatus; basePrice?: string | null; costPrice?: string | null;
   priceTiers?: TierCommand[];
 };
 export type PricePreviewPayload = {

@@ -41,6 +41,7 @@ const adapter: AxiosAdapter = async (config) => {
     const saved: PrintingService = {
       id: 12, name: String(body.name), status: Number(body.status) as 0 | 1,
       basePrice: body.basePrice === null ? null : String(body.basePrice),
+      costPrice: body.costPrice === null ? null : String(body.costPrice),
       priceTiers: (body.priceTiers as Array<{customerTypeId:number|null;minQuantity:number|null;maxQuantity:number|null;price:string}>)
         .map((tier, i) => ({ ...tier, priceTierId: 600 + i })),
     };
@@ -66,6 +67,7 @@ const adapter: AxiosAdapter = async (config) => {
         }];
     }
     if (body.name) updated.name = String(body.name);
+    if (body.costPrice !== undefined) updated.costPrice = body.costPrice === null ? null : String(body.costPrice);
     return result(config, updated);
   }
   if (url === "/printing-services/price-preview" && config.method === "post")
@@ -82,7 +84,7 @@ beforeEach(() => {
   permissions = [...rights];
   calls = [];
   services = [{
-    id: 11, name: "كروت شخصية", status: 1, basePrice: "10.00",
+    id: 11, name: "كروت شخصية", status: 1, basePrice: "10.00", costPrice: "3.00",
     priceTiers: [{ priceTierId: 501, customerTypeId: null,
       minQuantity: 100, maxQuantity: 500, price: "5.50" }],
   }];
@@ -109,6 +111,7 @@ describe("Printing Services API integration", () => {
     const user = userEvent.setup();
     await user.type(await screen.findByRole("textbox", { name: "اسم الخدمة" }), "بوسترات");
     await user.type(screen.getByRole("textbox", { name: "السعر الأساسي" }), "10.00");
+    await user.type(screen.getByRole("textbox", { name: "سعر تكلفة الوحدة (اختياري)" }), "4.25");
     await user.click(screen.getByRole("button", { name: "إضافة شريحة" }));
     await user.selectOptions(screen.getByRole("combobox", { name: "نوع عميل الشريحة 1" }), "21");
     await user.type(screen.getByRole("spinbutton", { name: "الكمية من للشريحة 1" }), "100");
@@ -118,7 +121,7 @@ describe("Printing Services API integration", () => {
     await waitFor(() => expect(calls.some((c) => c.url === "/printing-services" && c.method === "post")).toBe(true));
     const request = calls.find((c) => c.url === "/printing-services" && c.method === "post");
     expect(request?.body).toMatchObject({
-      name: "بوسترات", basePrice: "10.00", status: 1, priceTiers: [
+      name: "بوسترات", basePrice: "10.00", costPrice: "4.25", status: 1, priceTiers: [
         { customerTypeId: 21, minQuantity: 100, maxQuantity: 500, price: "5.50" },
       ],
     });
