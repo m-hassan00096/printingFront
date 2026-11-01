@@ -11,7 +11,7 @@ import { useCustomerTypes } from "@/features/customers/hooks/use-customers";
 import { ErrorState, fieldClass, fieldLabel, LoadingState } from "@/features/identity/components/identity-ui";
 import { usePrintingService, usePrintingServiceMutations } from "../hooks/use-printing-services";
 import type {
-  CreateServicePayload, PrintingService, ServiceTier, TierCommand,
+  CreateServicePayload, PrintingService, PricingMethod, ServiceTier, TierCommand,
   TierValues, UpdateServicePayload,
 } from "../types/printing-service.types";
 
@@ -51,8 +51,62 @@ function equalTier(input: TierInput, original: ServiceTier): boolean {
     values.maxQuantity === original.maxQuantity &&
     Number(values.price) === Number(original.price);
 }
-function validMoney(value: string, zeroAllowed: boolean): boolean {
-  if (!/^\d{1,10}(?:\.\d{1,2})?$/.test(value.trim())) return false;
+function validMoney(value: string, zeroAllowed: boolean, method: PricingMethod = "quantity"): boolean {
+  if (!new RegExp(`^\\d{1,10}(?:\\.\\d{1,${method === "quantity" ? 2 : 6}})?import { useRef, useState, type FormEvent } from "react";
+import axios from "axios";
+import { ArrowRight, LoaderCircle, Plus, Trash2, TriangleAlert } from "lucide-react";
+import { uiMessages } from "@/shared/translations/ar/ui";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
+import { Button } from "@/shared/components/ui/button";
+import { getApiErrorMessage } from "@/shared/api/http";
+import type { ApiErrorResponse } from "@/shared/api/api-types";
+import { useCustomerTypes } from "@/features/customers/hooks/use-customers";
+import { ErrorState, fieldClass, fieldLabel, LoadingState } from "@/features/identity/components/identity-ui";
+import { usePrintingService, usePrintingServiceMutations } from "../hooks/use-printing-services";
+import type {
+  CreateServicePayload, PrintingService, PricingMethod, ServiceTier, TierCommand,
+  TierValues, UpdateServicePayload,
+} from "../types/printing-service.types";
+
+type TierInput = {
+  key: number;
+  priceTierId?: number;
+  customerTypeId: string;
+  minQuantity: string;
+  maxQuantity: string;
+  price: string;
+};
+type Errors = Record<string, string>;
+const blankTier = (key: number): TierInput => ({
+  key, customerTypeId: "", minQuantity: "", maxQuantity: "", price: "",
+});
+function fromTier(tier: ServiceTier): TierInput {
+  return {
+    key: tier.priceTierId, priceTierId: tier.priceTierId,
+    customerTypeId: tier.customerTypeId?.toString() ?? "",
+    minQuantity: tier.minQuantity?.toString() ?? "",
+    maxQuantity: tier.maxQuantity?.toString() ?? "",
+    price: tier.price,
+  };
+}
+function toValues(input: TierInput): TierValues {
+  return {
+    customerTypeId: input.customerTypeId ? Number(input.customerTypeId) : null,
+    minQuantity: input.minQuantity ? Number(input.minQuantity) : null,
+    maxQuantity: input.maxQuantity ? Number(input.maxQuantity) : null,
+    price: input.price.trim(),
+  };
+}
+function equalTier(input: TierInput, original: ServiceTier): boolean {
+  const values = toValues(input);
+  return values.customerTypeId === original.customerTypeId &&
+    values.minQuantity === original.minQuantity &&
+    values.maxQuantity === original.maxQuantity &&
+    Number(values.price) === Number(original.price);
+}
+function validMoney(value: string, zeroAllowed: boolean, method: PricingMethod = "quantity"): boolean {
+  if (!).test(value.trim())) return false;
   const number = Number(value);
   return Number.isFinite(number) && (zeroAllowed ? number >= 0 : number > 0);
 }
@@ -81,6 +135,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
   const types = useCustomerTypes(true);
   const nextKey = useRef(-1);
   const [name, setName] = useState(service?.name ?? "");
+  const [pricingMethod, setPricingMethod] = useState<PricingMethod>(service?.pricingMethod ?? "quantity");
   const [basePrice, setBasePrice] = useState(service?.basePrice ?? "");
   const [costPrice, setCostPrice] = useState(service?.costPrice ?? "");
   const [status, setStatus] = useState<"0" | "1">(service?.status === 0 ? "0" : "1");
@@ -131,11 +186,11 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
     const issues: Errors = {};
     if (!name.trim()) issues.name = "اسم الخدمة مطلوب.";
     else if (name.trim().length > 150) issues.name = "اسم الخدمة يجب ألا يزيد عن 150 حرفًا.";
-    if (basePrice.trim() && !validMoney(basePrice, true)) issues.basePrice = "السعر الأساسي يجب أن يكون مبلغًا صحيحًا حتى منزلتين عشريتين.";
+    if (basePrice.trim() && !validMoney(basePrice, true, pricingMethod)) issues.basePrice = "السعر الأساسي يجب أن يكون مبلغًا صحيحًا حتى منزلتين عشريتين.";
     if (costPrice.trim() && (!validMoney(costPrice, true) || !/^(?:0|[1-9][0-9]{0,9})(?:\.[0-9]{1,2})?$/.test(costPrice.trim())))
       issues.costPrice = copy.costPriceInvalid;
     for (const row of rows) {
-      if (!validMoney(row.price, false)) issues[`row.${row.key}.price`] = "سعر الشريحة يجب أن يكون أكبر من صفر.";
+      if (!validMoney(row.price, false, pricingMethod)) issues[`row.${row.key}.price`] = "سعر الشريحة يجب أن يكون أكبر من صفر.";
       for (const field of ["minQuantity", "maxQuantity"] as const) {
         if (row[field] && (!/^\d+$/.test(row[field]) || !Number.isSafeInteger(Number(row[field])) || Number(row[field]) < 1))
           issues[`row.${row.key}.${field}`] = "الكمية يجب أن تكون عددًا صحيحًا أكبر من صفر.";
@@ -158,6 +213,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
     let payload: CreateServicePayload | UpdateServicePayload;
     if (service) {
       const update: UpdateServicePayload = {};
+      if (pricingMethod !== (service.pricingMethod ?? 'quantity')) update.pricingMethod = pricingMethod;
       if (name.trim() !== service.name) update.name = name.trim();
       if ((basePrice.trim() || null) !== service.basePrice) update.basePrice = basePrice.trim() || null;
       if ((costPrice.trim() || null) !== service.costPrice) update.costPrice = costPrice.trim() || null;
@@ -185,7 +241,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
       payload = update;
     } else {
       payload = {
-        name: name.trim(), basePrice: basePrice.trim() || null, costPrice: costPrice.trim() || null,
+        name: name.trim(), pricingMethod, basePrice: basePrice.trim() || null, costPrice: costPrice.trim() || null,
         status: Number(status) as 0 | 1, priceTiers: rows.map(toValues),
       };
       commandKeys.push(...rows.map((row) => row.key));
@@ -210,7 +266,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
               if (rowKey !== null && rowKey !== undefined)
                 mapped[`row.${rowKey}.${match[2]}`] = messages[0];
               else other.push(...messages);
-            } else if (["name", "basePrice", "costPrice", "status"].includes(key)) mapped[key] = messages[0];
+            } else if (["name", "basePrice", "costPrice", "status", "pricingMethod"].includes(key)) mapped[key] = messages[0];
             else other.push(...messages);
           }
           setErrors(mapped);
@@ -241,13 +297,18 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
       <section className="rounded-lg border bg-card p-4  sm:p-5">
         <h2 className="mb-4 font-bold">بيانات الخدمة</h2>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <label className="block"><span className={fieldLabel}>طريقة حساب السعر</span>
+            <select aria-label="طريقة حساب السعر" className={fieldClass + " mt-2"} value={pricingMethod} disabled={busy} onChange={(e) => {setPricingMethod(e.target.value as PricingMethod);clear("pricingMethod");}}>
+              <option value="quantity">بالكمية</option><option value="square_centimeter">بالسنتيمتر المربع</option><option value="square_meter">بالمتر المربع</option>
+            </select>
+          </label>
           <label className="block"><span className={fieldLabel}>اسم الخدمة *</span>
             <input aria-label="اسم الخدمة" aria-invalid={!!errors.name} className={fieldClass + " mt-2"}
               maxLength={150} value={name} disabled={busy}
               onChange={(e) => { setName(e.target.value); clear("name"); }} />
             {err("name")}
           </label>
-          <label className="block"><span className={fieldLabel}>السعر الأساسي (اختياري)</span>
+          <label className="block"><span className={fieldLabel}>{pricingMethod === "quantity" ? "سعر القطعة الأساسي" : pricingMethod === "square_centimeter" ? "سعر سم² الأساسي" : "سعر م² الأساسي"}</span>
             <input aria-label="السعر الأساسي" aria-invalid={!!errors.basePrice} type="text"
               inputMode="decimal" dir="ltr" className={fieldClass + " mt-2"}
               placeholder="0.00" value={basePrice} disabled={busy}
@@ -352,7 +413,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
                     </label>
                   </div>
                 </div>
-                <label className="block text-xs font-semibold">سعر الوحدة *
+                <label className="block text-xs font-semibold">{pricingMethod === "quantity" ? "سعر القطعة" : pricingMethod === "square_centimeter" ? "سعر سم²" : "سعر م²"} *
                   <input aria-label={`سعر الشريحة ${index + 1}`} className={fieldClass + " mt-2"}
                     dir="ltr" inputMode="decimal" value={row.price} placeholder="0.00"
                     onChange={event => editRow(row.key, "price", event.target.value)} />
