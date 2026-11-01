@@ -107,6 +107,6 @@ export function PrintingServiceDetailPage() {
         <strong className="shrink-0 text-base font-bold text-foreground"><Currency amount={item.basePrice ?? "0.00"} /></strong>
       </div>
     </section>
-    {mayPreview && <PricePreviewCalculator key={item.id} serviceId={item.id} active={item.status === 1} />}
+    {mayPreview && <PricePreviewCalculator key={item.id} serviceId={item.id} active={item.status === 1} pricingMethod={item.pricingMethod} />}
   </div>;
 }
