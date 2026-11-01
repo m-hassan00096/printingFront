@@ -1,4 +1,5 @@
 import { useEffect,useState } from "react";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { Link,useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Eye, Plus, RefreshCw, SlidersHorizontal } from "lucide-react";
@@ -96,7 +97,7 @@ export function CollectionsPage(){
         <label className="block min-w-0 space-y-1 text-xs font-semibold">
           <span className="text-foreground/80">البحث</span>
           <input className={compactFieldClass} maxLength={200} value={searchInput} onChange={e=>setSearchInput(e.target.value)}
-            aria-label="البحث في التحصيلات" placeholder="إيصال، عميل، هاتف، رقم أوردر..."/>
+            aria-label="البحث في التحصيلات" placeholder={uiMessages.collectionReceipts.searchPlaceholder}/>
         </label>
         <CreatedDatePicker label="من تاريخ التحصيل" value={filters.dateFrom}
           max={filters.dateTo||undefined} onChange={value=>change("dateFrom",value)}/>
@@ -147,14 +148,15 @@ export function CollectionsPage(){
           </span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1160px] text-right text-sm">
+          <table className="w-full min-w-[1270px] text-right text-sm">
             <thead className="bg-muted/60 text-xs text-muted-foreground">
-              <tr>{["الإيصال","العميل","الهاتف","المبلغ","طريقة الدفع","المصدر","رقم الأوردر","تاريخ التحصيل","الحالة","الإجراء"].map((label,i)=>
+              <tr>{["الإيصال",uiMessages.collectionReceipts.actualReceiptNumber,"العميل","الهاتف","المبلغ","طريقة الدفع","المصدر","رقم الأوردر","تاريخ التحصيل","الحالة","الإجراء"].map((label,i)=>
                 <th className="whitespace-nowrap px-3 py-2.5 font-bold text-foreground/75" key={i}>{label}</th>)}</tr>
             </thead>
             <tbody className="divide-y">
               {list.data.collections.map(c=><tr key={c.id} className="hover:bg-muted/30">
                 <td className="px-3 py-2.5 font-bold"><span dir="ltr" className="inline-block tabular-nums">{c.receiptNumber}</span></td>
+                <td className="whitespace-nowrap px-3 py-2.5"><span dir="ltr" className="inline-block tabular-nums">{c.actualReceiptNumber??"—"}</span></td>
                 <td className="px-3 py-2.5">{c.customerName}</td>
                 <td className="px-3 py-2.5"><span dir="ltr" className="inline-block tabular-nums">{c.customerPhone}</span></td>
                 <td className="px-3 py-2.5"><MoneyAmount amount={c.amount} className={c.status===2?"font-semibold text-foreground/60":"font-bold text-foreground"}/></td>

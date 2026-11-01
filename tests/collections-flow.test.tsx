@@ -12,7 +12,7 @@ let permissions=["finance.collections.view","finance.collections.create","financ
 let records:Collection[]=[];
 let calls:{url:string;method:string;query:URLSearchParams;body:Record<string,unknown>;key:string|null}[]=[];
 const general:Collection={
-  id:51,receiptNumber:"COL-2026-00051",customerId:7,customerName:"مؤسسة الريادة",
+  id:51,receiptNumber:"COL-2026-00051",actualReceiptNumber:"042205",customerId:7,customerName:"مؤسسة الريادة",
   customerPhone:"01012345678",orderId:null,orderNumber:null,correctedFromId:null,correctedToId:null,amount:"100.00",
   paymentMethod:0,paymentMethodLabel:"نقدي",paymentDestinationId:null,destinationLabel:null,
   source:0,sourceLabel:"تحصيل عام",status:1,statusLabel:"معتمد",
@@ -190,6 +190,7 @@ describe("Collections frontend against Laravel Finance API",()=>{
     await user.click(within(dialog).getByRole("combobox",{name:"اختيار العميل"}));
     await user.click(await within(dialog).findByRole("option",{name:/مؤسسة الريادة/}));
     await user.type(within(dialog).getByRole("textbox",{name:/المبلغ/}),"200.50");
+    await user.type(within(dialog).getByRole("textbox",{name:/رقم التحصيل الحقيقي/}),"042205");
     await user.click(within(dialog).getByRole("button",{name:"تأكيد تسجيل التحصيل"}));
     await waitFor(()=>expect(calls.some(c=>c.url==="/finance/collections"&&c.method==="post")).toBe(true));
     const post=calls.find(c=>c.url==="/finance/collections"&&c.method==="post");

@@ -3,7 +3,7 @@ export type PaymentMethod=0|1|2;
 export type CollectionStatus=1|2;
 export type CollectionSource=0|1|2;
 export type Collection={
-  id:number;receiptNumber:string;customerId:number;customerName:string;customerPhone:string;
+  id:number;receiptNumber:string;actualReceiptNumber:string|null;customerId:number;customerName:string;customerPhone:string;
   orderId:number|null;orderNumber:string|null;correctedFromId:number|null;correctedToId:number|null;amount:string;paymentMethod:PaymentMethod;paymentMethodLabel:string;
   paymentDestinationId:number|null;destinationLabel:string|null;
   source:CollectionSource;sourceLabel:string;status:CollectionStatus;statusLabel:string;
@@ -20,7 +20,7 @@ export type CollectionFilters={
 };
 export type CreateCollectionPayload={
   customerId:number;amount:string;paymentMethod:PaymentMethod;paymentDestinationId?:number;
-  collectedOn?:string;note?:string|null;orderId?:number;
+  collectedOn?:string;note?:string|null;orderId?:number;actualReceiptNumber?:string;
 };
 export type CollectionCreated={id:number;receiptNumber:string};
 export type CorrectCollectionPayload={amount:string;reason:string;confirmCreditBalance?:boolean};

@@ -1,6 +1,11 @@
 /** Arabic-only UI copy. Future locales can provide the same keys without changing components. */
 export const uiMessages = {
 
+  collectionReceipts: {
+    actualReceiptNumber: "رقم التحصيل الحقيقي (اختياري)",
+    actualReceiptNumberInvalid: "أدخل أرقامًا فقط، بحد أقصى 40 رقمًا.",
+    searchPlaceholder: "رقم إيصال أو تحصيل حقيقي، عميل، هاتف، رقم أوردر...",
+  },
   financeAccounts: {
     moduleTabs: "أقسام حسابات العملاء",
     accountsTab: "حسابات العملاء",
