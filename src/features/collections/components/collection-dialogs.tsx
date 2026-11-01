@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { uiMessages } from "@/shared/translations/ar/ui";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -44,6 +45,7 @@ export function CreateCollectionDialog({onClose,onSuccess}:{onClose:()=>void;onS
   const customers=useCollectionCustomers(true);
   const [customer,setCustomer]=useState("");
   const [amount,setAmount]=useState("");
+  const [actualReceiptNumber,setActualReceiptNumber]=useState("");
   const [method,setMethod]=useState<PaymentMethod>(0);
   const [destination,setDestination]=useState("");
   const [collectedOn,setCollectedOn]=useState("");
@@ -53,6 +55,7 @@ export function CreateCollectionDialog({onClose,onSuccess}:{onClose:()=>void;onS
   const amountCents=parseCents(amount);
   const amountInvalid=amount.length>0 && (amountCents===null || amountCents<=0);
   const amountError=fieldErrors.amount||(amountInvalid?"أدخل مبلغًا أكبر من صفر وبحد أقصى رقمين عشريين.":"");
+  const receiptNumberInvalid=actualReceiptNumber.length>0&&!/^[0-9]{1,40}$/.test(actualReceiptNumber);
   const needsDestination=method!==0;
   const paymentOptions=useQuery({queryKey:["collections","destinations"],queryFn:getOrderPaymentOptions,enabled:needsDestination});
   const destinations=method===1?paymentOptions.data?.banks??[]:paymentOptions.data?.wallets??[];
@@ -63,7 +66,7 @@ export function CreateCollectionDialog({onClose,onSuccess}:{onClose:()=>void;onS
   const valid=Number(customer)>0 && amountCents!==null && amountCents>0 &&
     customers.data?.some(x=>String(x.value)===customer)===true &&
     (!needsDestination || destinations.some(x=>String(x.value)===destination)) &&
-    dateValid && note.length<=5000 && !actions.create.isPending;
+    dateValid && !receiptNumberInvalid && note.length<=5000 && !actions.create.isPending;
   async function submit(){
     if(!valid)return;
     const payload:CreateCollectionPayload={
@@ -72,6 +75,7 @@ export function CreateCollectionDialog({onClose,onSuccess}:{onClose:()=>void;onS
     if(needsDestination)payload.paymentDestinationId=Number(destination);
     if(collectedOn)payload.collectedOn=collectedOn;
     if(note.trim())payload.note=note.trim();
+    if(actualReceiptNumber)payload.actualReceiptNumber=actualReceiptNumber;
     setError("");setFieldErrors({});
     try {
       const created=await actions.create.mutateAsync(payload);
@@ -111,6 +115,17 @@ export function CreateCollectionDialog({onClose,onSuccess}:{onClose:()=>void;onS
           aria-invalid={amountInvalid||Boolean(fieldErrors.amount)}
           onChange={e=>{setAmount(e.target.value);setError("");setFieldErrors(prev=>({...prev,amount:""}));}} placeholder="0.00"/>
         {amountError&&<p role="alert" className="text-xs text-destructive">{amountError}</p>}
+      </label>
+      <label className="block space-y-1 text-sm font-semibold">
+        <span>{uiMessages.collectionReceipts.actualReceiptNumber}</span>
+        <input dir="ltr" inputMode="numeric" autoComplete="off" className={fieldClass}
+          aria-label={uiMessages.collectionReceipts.actualReceiptNumber}
+          aria-invalid={receiptNumberInvalid||Boolean(fieldErrors.actualReceiptNumber)}
+          maxLength={40} value={actualReceiptNumber}
+          onChange={e=>{setActualReceiptNumber(e.target.value);setFieldErrors(prev=>({...prev,actualReceiptNumber:""}));}}
+          placeholder="42205" />
+        {receiptNumberInvalid&&<span role="alert" className="text-xs text-destructive">{uiMessages.collectionReceipts.actualReceiptNumberInvalid}</span>}
+        {fieldErrors.actualReceiptNumber&&<span role="alert" className="text-xs text-destructive">{fieldErrors.actualReceiptNumber}</span>}
       </label>
       <label className="block space-y-1 text-sm font-semibold">
         <span>طريقة التحصيل *</span>
@@ -279,14 +294,16 @@ export function CollectionDetailsDialog({id,onClose,onSuccess}:{id:number;onClos
       (view==="details"?<div className="space-y-4">
         <div className="grid gap-4 rounded-lg bg-muted/40 p-4 text-sm sm:grid-cols-2">
           {[
-            ["رقم الإيصال",receipt.receiptNumber],["العميل",receipt.customerName],
+            ["رقم الإيصال",receipt.receiptNumber],
+            [uiMessages.collectionReceipts.actualReceiptNumber,receipt.actualReceiptNumber??"—"],
+            ["العميل",receipt.customerName],
             ["رقم الهاتف",receipt.customerPhone],["تاريخ التحصيل",formatCollectionDate(receipt.collectedOn)],
             ...(receipt.source!==0&&receipt.orderNumber?[["رقم الأوردر",receipt.orderNumber]]:[]),
             ["طريقة التحصيل",receipt.paymentMethodLabel],["مصدر التحصيل",receipt.sourceLabel],
             ["الحالة",receipt.statusLabel],["جهة التحصيل",receipt.destinationLabel??"—"],
           ].map(([label,value])=><div key={label}>
             <p className="text-xs text-muted-foreground">{label}</p>
-            <p className="mt-1 break-words text-right font-semibold text-foreground">{label==="رقم الإيصال"||label==="رقم الأوردر"?<span dir="ltr" className="inline-block tabular-nums">{value}</span>:value}</p>
+            <p className="mt-1 break-words text-right font-semibold text-foreground">{label==="رقم الإيصال"||label===uiMessages.collectionReceipts.actualReceiptNumber||label==="رقم الأوردر"?<span dir="ltr" className="inline-block tabular-nums">{value}</span>:value}</p>
           </div>)}
           <div><p className="text-xs text-muted-foreground">المبلغ</p>
             <p className="mt-1 font-extrabold"><MoneyAmount amount={receipt.amount}/></p></div>

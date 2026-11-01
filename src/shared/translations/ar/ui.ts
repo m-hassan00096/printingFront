@@ -1,6 +1,11 @@
 /** Arabic-only UI copy. Future locales can provide the same keys without changing components. */
 export const uiMessages = {
 
+  collectionReceipts: {
+    actualReceiptNumber: "رقم التحصيل الحقيقي (اختياري)",
+    actualReceiptNumberInvalid: "أدخل أرقامًا فقط، بحد أقصى 40 رقمًا.",
+    searchPlaceholder: "رقم إيصال أو تحصيل حقيقي، عميل، هاتف، رقم أوردر...",
+  },
   financeAccounts: {
     moduleTabs: "أقسام حسابات العملاء",
     accountsTab: "حسابات العملاء",
@@ -73,6 +78,10 @@ export const uiMessages = {
     typeOptional: "نوع العميل (اختياري)",
   },
   printingServices: {
+    costPriceLabel: "سعر تكلفة الوحدة (اختياري)",
+    costPriceHelp: "يُحفظ سعر التكلفة مع الخدمة وتُؤخذ منه نسخة داخل كل منتج عند إنشاء الأوردر؛ لا يظهر للعميل.",
+    costPriceInvalid: "أدخل سعر تكلفة صحيحًا لا يقل عن صفر وبحد أقصى منزلتين عشريتين.",
+    costNotSet: "غير محدد",
     unclassifiedPrice: "بدون تصنيف — السعر الأساسي",
     genericTiers: "الأنواع المصنفة (عام)",
     basePriceFallbackHelp: "اختياري: عند عدم وجود سعر مناسب يُستخدم السعر الأساسي. تركه فارغًا يعني 0.00 ج.م.",
@@ -139,6 +148,12 @@ export const uiMessages = {
       identity: "المستخدمون والأدوار",
       other: "صلاحيات أخرى",
     },
+  },
+  identityUsers: {
+    showPassword: "إظهار كلمة المرور",
+    hidePassword: "إخفاء كلمة المرور",
+    showConfirmation: "إظهار تأكيد كلمة المرور",
+    hideConfirmation: "إخفاء تأكيد كلمة المرور",
   },
   sidebar: {
     logout: "تسجيل خروج",
