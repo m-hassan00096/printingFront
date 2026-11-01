@@ -53,7 +53,7 @@ export function exportSettlementCsv(statement: CustomerSettlement): void {
   document.body.append(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function escapeHtml(value: unknown): string {
@@ -97,9 +97,13 @@ export function printSettlement(statement: CustomerSettlement): boolean {
     '<table><thead><tr>' + columns.map(label => '<th>' + escapeHtml(label) + '</th>').join("") +
     '</tr></thead><tbody>' + rows + '</tbody></table>' +
     '<p class="muted">المبالغ بالجنيه المصري. الكشف يخص الشغل المستلم، وليس جميع الأوردرات المؤكدة.</p>' +
-    '<script>window.addEventListener("load",function(){window.print();});</script></body></html>';
+    '</body></html>';
   popup.document.open();
   popup.document.write(html);
+  popup.addEventListener("load", () => {
+    popup.focus();
+    popup.print();
+  }, { once: true });
   popup.document.close();
   return true;
 }
