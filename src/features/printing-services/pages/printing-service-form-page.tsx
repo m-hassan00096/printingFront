@@ -83,7 +83,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
   const nextKey = useRef(-1);
   const [name, setName] = useState(service?.name ?? "");
   const [pricingMethod, setPricingMethod] = useState<PricingMethod>(service?.pricingMethod ?? "quantity");
-  const [basePrice, setBasePrice] = useState(service?.basePrice === null || service === undefined ? "" : formatPriceForDisplay(service.basePrice));
+  const [basePrice, setBasePrice] = useState(service?.basePrice ? formatPriceForDisplay(service.basePrice) : "");
   const [costPrice, setCostPrice] = useState(service?.costPrice ?? "");
   const [status, setStatus] = useState<"0" | "1">(service?.status === 0 ? "0" : "1");
   const [rows, setRows] = useState<TierInput[]>(service?.priceTiers?.map(fromTier) ?? []);
