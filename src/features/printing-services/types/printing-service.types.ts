@@ -40,7 +40,7 @@ export type CreateServicePayload = {
   priceTiers: TierValues[];
 };
 export type UpdateServicePayload = {
-  name?: string; status?: ServiceStatus; basePrice?: string | null; costPrice?: string | null;
+  name?: string; pricingMethod?: PricingMethod; status?: ServiceStatus; basePrice?: string | null; costPrice?: string | null;
   priceTiers?: TierCommand[];
 };
 export type PricePreviewPayload = {
