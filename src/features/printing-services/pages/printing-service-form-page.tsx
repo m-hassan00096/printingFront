@@ -52,61 +52,7 @@ function equalTier(input: TierInput, original: ServiceTier): boolean {
     Number(values.price) === Number(original.price);
 }
 function validMoney(value: string, zeroAllowed: boolean, method: PricingMethod = "quantity"): boolean {
-  if (!new RegExp(`^\\d{1,10}(?:\\.\\d{1,${method === "quantity" ? 2 : 6}})?import { useRef, useState, type FormEvent } from "react";
-import axios from "axios";
-import { ArrowRight, LoaderCircle, Plus, Trash2, TriangleAlert } from "lucide-react";
-import { uiMessages } from "@/shared/translations/ar/ui";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { toast } from "sonner";
-import { Button } from "@/shared/components/ui/button";
-import { getApiErrorMessage } from "@/shared/api/http";
-import type { ApiErrorResponse } from "@/shared/api/api-types";
-import { useCustomerTypes } from "@/features/customers/hooks/use-customers";
-import { ErrorState, fieldClass, fieldLabel, LoadingState } from "@/features/identity/components/identity-ui";
-import { usePrintingService, usePrintingServiceMutations } from "../hooks/use-printing-services";
-import type {
-  CreateServicePayload, PrintingService, PricingMethod, ServiceTier, TierCommand,
-  TierValues, UpdateServicePayload,
-} from "../types/printing-service.types";
-
-type TierInput = {
-  key: number;
-  priceTierId?: number;
-  customerTypeId: string;
-  minQuantity: string;
-  maxQuantity: string;
-  price: string;
-};
-type Errors = Record<string, string>;
-const blankTier = (key: number): TierInput => ({
-  key, customerTypeId: "", minQuantity: "", maxQuantity: "", price: "",
-});
-function fromTier(tier: ServiceTier): TierInput {
-  return {
-    key: tier.priceTierId, priceTierId: tier.priceTierId,
-    customerTypeId: tier.customerTypeId?.toString() ?? "",
-    minQuantity: tier.minQuantity?.toString() ?? "",
-    maxQuantity: tier.maxQuantity?.toString() ?? "",
-    price: tier.price,
-  };
-}
-function toValues(input: TierInput): TierValues {
-  return {
-    customerTypeId: input.customerTypeId ? Number(input.customerTypeId) : null,
-    minQuantity: input.minQuantity ? Number(input.minQuantity) : null,
-    maxQuantity: input.maxQuantity ? Number(input.maxQuantity) : null,
-    price: input.price.trim(),
-  };
-}
-function equalTier(input: TierInput, original: ServiceTier): boolean {
-  const values = toValues(input);
-  return values.customerTypeId === original.customerTypeId &&
-    values.minQuantity === original.minQuantity &&
-    values.maxQuantity === original.maxQuantity &&
-    Number(values.price) === Number(original.price);
-}
-function validMoney(value: string, zeroAllowed: boolean, method: PricingMethod = "quantity"): boolean {
-  if (!).test(value.trim())) return false;
+  if (!new RegExp(`^\\d{1,10}(?:\\.\\d{1,${method === "quantity" ? 2 : 6}})?$`).test(value.trim())) return false;
   const number = Number(value);
   return Number.isFinite(number) && (zeroAllowed ? number >= 0 : number > 0);
 }
