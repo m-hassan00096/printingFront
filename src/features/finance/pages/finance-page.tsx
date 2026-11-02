@@ -107,11 +107,13 @@ export function FinancePage() {
   return <div className="space-y-4">
     <SectionHeader title="حسابات العملاء" detail="اعرف الرصيد، سجّل تحصيل، وراجع حساب الشغل المستلّم في مكان واحد."
       actions={<Button type="button" variant="outline" onClick={refresh}><RefreshCw className="size-4"/> تحديث</Button>}/>
-    {(canAccountDetails || canRefundHistory) && <div role="tablist" aria-label={copy.moduleTabs} className="flex flex-wrap items-center gap-2">
+    {(canAccountDetails || canRefundHistory) && <div role="tablist" aria-label={copy.moduleTabs} className="flex flex-wrap items-center gap-6 border-b border-border">
       {canAccountDetails && <button type="button" role="tab" id="finance-accounts-tab" aria-controls="finance-accounts-panel" aria-selected={!globalRefunds} onClick={() => selectFinanceTab("accounts")}
-        className={"rounded-lg px-4 py-2 text-sm font-semibold " + (!globalRefunds ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>{copy.accountsTab}</button>}
+        className={"-mb-px border-b-2 px-1 pb-3 pt-2 text-sm font-semibold transition-colors focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary " +
+          (!globalRefunds ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>{copy.accountsTab}</button>}
       {canRefundHistory && <button type="button" role="tab" id="finance-refunds-tab" aria-controls="finance-refunds-panel" aria-selected={globalRefunds} onClick={() => selectFinanceTab("refunds")}
-        className={"rounded-lg px-4 py-2 text-sm font-semibold " + (globalRefunds ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>{copy.globalRefundsTab}</button>}
+        className={"-mb-px border-b-2 px-1 pb-3 pt-2 text-sm font-semibold transition-colors focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary " +
+          (globalRefunds ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>{copy.globalRefundsTab}</button>}
     </div>}
     {canAccountDetails && <div role="tabpanel" id="finance-accounts-panel" aria-labelledby="finance-accounts-tab" hidden={globalRefunds} className="space-y-4">
       {!globalRefunds && <>
