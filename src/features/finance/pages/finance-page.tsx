@@ -199,7 +199,7 @@ export function FinancePage() {
                           entry.orderId && canViewOrders ? <Link className="text-primary underline" to={`/orders/${entry.orderId}`}><span dir="ltr" className="inline-block">{reference}</span></Link> : <span dir="ltr" className="inline-block">{reference}</span>}
                         {entry.collectionId && entry.orderId && entry.orderNumber && canViewOrders && <Link className="block text-muted-foreground underline" to={`/orders/${entry.orderId}`}>{copy.relatedOrder}: <span dir="ltr" className="inline-block">{entry.orderNumber}</span></Link>}
                       </div>}
-                      {entry.note && <button className="mt-1 text-xs text-muted-foreground underline" onClick={() => setSelectedNote(entry.note)} aria-label={copy.showNote}>عرض الملاحظة</button>}
+                      {entry.note && <button className="mt-1 block max-w-56 truncate text-right text-xs text-muted-foreground underline" onClick={() => setSelectedNote(entry.note)} aria-label={copy.showNote} title={entry.note}>{entry.note}</button>}
                     </td>
                     <td className="whitespace-nowrap px-3 py-3">{credit ? "—" : <MoneyAmount amount={entry.amount}/>}</td>
                     <td className="whitespace-nowrap px-3 py-3">{credit ? <MoneyAmount amount={entry.amount}/> : "—"}</td>
