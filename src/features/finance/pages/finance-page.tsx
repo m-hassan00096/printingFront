@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowUpLeft, History, Plus, RefreshCw, RotateCcw, X } from "lucide-react";
+import { History, Plus, RefreshCw, RotateCcw, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
@@ -126,20 +126,12 @@ export function FinancePage() {
           <section aria-label="بيانات حساب العميل" className="rounded-xl border bg-card p-4 sm:p-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
-                <nav aria-label="مسار حساب العميل" className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
-                  <button type="button" onClick={() => chooseCustomer("")} className="font-semibold text-primary hover:underline focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
-                    {canBalance ? "حسابات العملاء" : "اختيار عميل"}
-                  </button>
-                  <span aria-hidden="true">/</span>
-                  <span aria-current="page">حساب العميل</span>
-                </nav>
-                <h2 className="text-xl font-bold">{customerName}</h2>
-                <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                  <p className="text-muted-foreground">{copy.phone}: <span dir="ltr" className="inline-block">{customerPhone ?? copy.notAvailable}</span></p>
-                  {canCustomerProfile && <Link to={"/customers/" + customerId} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
-                    {copy.customerRecord}<ArrowUpLeft className="size-3.5"/>
-                  </Link>}
-                </div>
+                <h2 className="text-xl font-bold">
+                  {canCustomerProfile ?
+                    <Link to={"/customers/" + customerId} className="underline underline-offset-4 decoration-current hover:text-primary focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">{customerName}</Link>
+                    : customerName}
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">{copy.phone}: <span dir="ltr" className="inline-block">{customerPhone ?? copy.notAvailable}</span></p>
               </div>
               <div className="space-y-1 text-start sm:text-end">
                 <p className="text-xs text-muted-foreground">الرصيد الكلي — حتى الآن</p>
