@@ -160,7 +160,7 @@ describe("Finance account page against Laravel existing contracts",()=>{
     permissions=["finance.balances.view","finance.ledger.view","customers.view"];
     visit();
     const card=await screen.findByRole("region",{name:"بيانات حساب العميل"});
-    const link=within(card).getByRole("link",{name:"أحمد خالد"});
+    const link=await within(card).findByRole("link",{name:"أحمد خالد"});
     expect(link.getAttribute("href")).toBe("/customers/7");
     expect(link.className).toContain("underline");
     expect(within(card).queryByText("ملف العميل")).toBeNull();
