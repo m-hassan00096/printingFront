@@ -142,7 +142,7 @@ describe("Customer settlement records", () => {
 
     await user.click(within(panel).getByRole("button", { name: "تصفية جديدة" }));
     const dialog = screen.getByRole("dialog", { name: "تصفية حساب جديدة" });
-    expect(await within(dialog).findByText("كروت شخصية — وجهين")).toBeFalsy();
+    expect(within(dialog).queryByText("كروت شخصية — وجهين")).toBeNull();
   });
 
   it("creates a fixed discount and a genuine cash collection, then shows immutable history", async () => {
@@ -176,7 +176,7 @@ describe("Customer settlement records", () => {
     expect(screen.getByRole("button", { name: "تصدير Excel" })).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "العودة لسجل التصفيات" }));
     expect(await screen.findByText("SET-2026-00012")).toBeTruthy();
-    expect(screen.getByText("خصم ثابت")).toBeFalsy();
+    expect(screen.queryByRole("dialog", { name: "تصفية حساب جديدة" })).toBeNull();
   });
 
   it("respects read and write permissions without leaking private statements", async () => {
