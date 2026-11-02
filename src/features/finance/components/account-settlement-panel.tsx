@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ChevronDown, FileSpreadsheet, History, Plus, Printer, RefreshCw, TriangleAlert } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -27,6 +27,8 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
   const [discountInput, setDiscountInput] = useState('0.00');
   const [discountReason, setDiscountReason] = useState('');
   const [discountOpen, setDiscountOpen] = useState(false);
+  const [datePopoverOpen, setDatePopoverOpen] = useState(false);
+  const datePopoverRef = useRef<HTMLDivElement>(null);
   const [payment, setPayment] = useState<AccountPaymentValue>({method: 0, destination: ""});
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
@@ -37,6 +39,25 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
   const [openingRecord, setOpeningRecord] = useState(false);
   const keys = useRef(new Map<string, string>());
   const validDate = Boolean(cutoff && cutoff <= cairoToday());
+  useEffect(() => {
+    if (!datePopoverOpen) return;
+    function dismissOnOutsideClick(event: PointerEvent) {
+      const target = event.target;
+      if (target instanceof Node && datePopoverRef.current?.contains(target)) return;
+      // The existing calendar renders its own dialog in a portal outside this panel.
+      if (target instanceof Element && target.closest('[role="dialog"][aria-label="اختيار الشغل المستلّم حتى"]')) return;
+      setDatePopoverOpen(false);
+    }
+    function dismissOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setDatePopoverOpen(false);
+    }
+    document.addEventListener("pointerdown", dismissOnOutsideClick);
+    document.addEventListener("keydown", dismissOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", dismissOnOutsideClick);
+      document.removeEventListener("keydown", dismissOnEscape);
+    };
+  }, [datePopoverOpen]);
   const preview = useQuery({queryKey: ["finance", "settlement-preview", customerId, cutoff],
     queryFn: () => previewAccountSettlement(customerId, cutoff), enabled: mode === "new" && validDate && !record,
     refetchOnWindowFocus: false, retry: false});
@@ -122,7 +143,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
   function startNew() {
     setRecord(null); setMode("new"); setAmountInput(null);
     setPayment({method: 0, destination: ""}); setNote("");
-    setDiscountInput('0.00'); setDiscountReason(''); setDiscountOpen(false);
+    setDiscountInput('0.00'); setDiscountReason(''); setDiscountOpen(false); setDatePopoverOpen(false);
     setError(""); setStale(false);
   }
 
@@ -189,8 +210,11 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
       className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-2 sm:p-4"
       onMouseDown={event => {if (event.target === event.currentTarget && !busy) setMode("history");}}>
       <section role="dialog" aria-modal="true" aria-label="تصفية حساب جديدة" dir="rtl"
-        className="flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl bg-card shadow-2xl sm:max-h-[92vh]"
-        onKeyDown={event => {if (event.key === "Escape" && !busy) setMode("history");}}>
+        className="flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-card shadow-2xl sm:max-h-[92vh]"
+        onKeyDown={event => {if (event.key === "Escape" && !busy) {
+          if (datePopoverOpen) setDatePopoverOpen(false);
+          else setMode("history");
+        }}}>
         <header className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
           <div className="min-w-0">
             <h2 className="truncate text-base font-bold sm:text-lg">تصفية حساب — {modalCustomerName}</h2>
@@ -204,24 +228,29 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
             {stale && <Button variant="outline" className="ms-3" size="sm"
               onClick={() => void refreshPreview()}>تحديث المراجعة</Button>}
           </div>}
-          <div className="mx-auto flex max-w-4xl flex-wrap items-start justify-between gap-x-4 gap-y-2 text-xs text-muted-foreground">
+          <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-muted-foreground">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span>الشغل حتى <span dir="ltr" className="inline-block font-semibold text-foreground">
                 {cutoff ? formatCollectionDate(cutoff) : "—"}
               </span></span>
               <span aria-hidden="true">·</span>
               <span>الدفعات حتى اليوم</span>
-              <details className="text-xs">
-                <summary className="cursor-pointer font-semibold text-primary">تغيير التاريخ</summary>
-                <div className="mt-2 w-56 rounded-lg border bg-card p-2">
+              <div className="relative" ref={datePopoverRef}>
+                <button type="button" aria-expanded={datePopoverOpen} aria-controls="settlement-date-popover"
+                  disabled={busy} onClick={() => setDatePopoverOpen(open => !open)}
+                  className="inline-flex items-center gap-1 rounded-md px-1 py-1 font-semibold text-primary hover:bg-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+                  تغيير التاريخ <ChevronDown className="size-3.5" aria-hidden="true"/>
+                </button>
+                {datePopoverOpen && <div id="settlement-date-popover" role="group" aria-label="تعديل تاريخ الشغل"
+                  className="absolute right-0 top-full z-30 mt-2 w-60 max-w-[calc(100vw-2rem)] rounded-lg border bg-card p-3 text-foreground shadow-lg">
                   <CreatedDatePicker label="الشغل المستلّم حتى" value={cutoff} max={cairoToday()} disabled={busy}
                     onChange={value => {
                       if (busy) return;
-                      setCutoff(value); setAmountInput(null); setDiscountInput('0.00');
+                      setDatePopoverOpen(false); setCutoff(value); setAmountInput(null); setDiscountInput('0.00');
                       setDiscountReason(''); setDiscountOpen(false); setStale(false); setError("");
                     }}/>
-                </div>
-              </details>
+                </div>}
+              </div>
             </div>
             <Button variant="ghost" size="sm" disabled={busy || preview.isFetching || !validDate}
               onClick={() => void refreshPreview()}>
@@ -232,7 +261,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
             : preview.isPending ? <LoadingState/>
             : preview.isError ? <ErrorState error={preview.error} retry={() => void preview.refetch()}/>
             : data && <>
-              <section className="mx-auto w-full max-w-4xl space-y-4" aria-label="إتمام التصفية">
+              <section className="mx-auto w-full max-w-3xl space-y-4" aria-label="إتمام التصفية">
                 <div className="space-y-1 py-1 text-center">
                   <p className="text-sm text-muted-foreground">
                     {due === 0 && data.balanceBefore.startsWith("-") ? "رصيد دائن للعميل ضمن التصفية" : "المستحق على العميل"}
@@ -289,7 +318,8 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
                           <Plus className="size-4" aria-hidden="true"/>}
                         {discountOpen ? "إلغاء الخصم" : "إضافة خصم"}
                       </button>
-                      {discountOpen && <div id="settlement-discount-fields" className="grid gap-3 rounded-lg bg-muted/25 p-3 sm:grid-cols-2">
+                      {discountOpen && <div id="settlement-discount-fields" className={"grid gap-3 rounded-lg bg-muted/25 p-3 " +
+                        (discountCents !== null && discountCents > 0 ? "sm:grid-cols-2" : "grid-cols-1")}>
                         <div className="space-y-1">
                           <label className="block space-y-1.5 text-sm font-semibold">
                             <span>قيمة الخصم (ج.م)</span>
@@ -329,8 +359,11 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
                           تحصيل {cents !== null ? <MoneyAmount amount={centsToMoney(cents)}/> : "غير محدد"}
                         </p>}
                       </div>
-                      <strong className="text-xl font-bold text-primary">
-                        {projectedRemainder !== null ? <MoneyAmount amount={centsToMoney(projectedRemainder)}/> : "لم يُحدد بعد"}
+                      <strong className={projectedRemainder !== null
+                        ? "text-xl font-bold text-primary" : "text-sm font-medium text-muted-foreground"}>
+                        {projectedRemainder !== null ? <MoneyAmount amount={centsToMoney(projectedRemainder)}/>
+                          : !discountAmountValid ? "راجع قيمة الخصم"
+                          : cents === null ? "أدخل المبلغ أو اختر «بدون تحصيل»" : "راجع مبلغ التحصيل"}
                       </strong>
                       <p className="w-full text-xs text-muted-foreground">
                         نتيجة تقديرية فقط، لم تُسجَّل بعد.
@@ -348,7 +381,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
                     </details>
                   </>}
               </section>
-              <details className="mx-auto w-full max-w-4xl border-t pt-3 text-sm">
+              <details className="mx-auto w-full max-w-3xl border-t pt-3 text-sm">
                 <summary className="cursor-pointer font-semibold text-primary">عرض تفاصيل الحساب والشغل</summary>
                 <div className="mt-3 space-y-4 border-t pt-3">
                   <p className="font-semibold">كيف اتحسب المبلغ المتبقي؟</p>
@@ -401,7 +434,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
         </div>
         {canConfirm && data?.hasWork && validDate && <footer aria-label="إجراءات التصفية"
           className="shrink-0 border-t bg-card px-4 py-3 sm:px-6">
-          <Button type="button" className="w-full" disabled={!valid} onClick={() => void confirm()}>
+          <Button type="button" className="mx-auto w-full max-w-3xl" disabled={!valid} onClick={() => void confirm()}>
             {busy ? "جاري التسجيل..." : cents === 0
               ? discountCents !== null && discountCents > 0 ? "حفظ الخصم بدون تحصيل" : "حفظ مراجعة الحساب بدون تحصيل"
               : cents !== null && cents > 0 && afterDiscount !== null && cents <= afterDiscount
