@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildSettlementXlsx } from "@/features/finance/lib/settlement-xlsx";
+import { deliveredWorkReport } from "@/features/finance/lib/delivered-work-report";
+import { renderDeliveredWorkHtml } from "@/features/finance/lib/settlement-export";
 import type { CustomerSettlement } from "@/features/finance/types/settlement.types";
 
 const statement: CustomerSettlement = {
@@ -24,34 +26,97 @@ function unpack(archive: Uint8Array): Map<string,string> {
   return result;
 }
 describe("native delivered-work XLSX export",()=>{
-  it("preserves Arabic, real numeric/date cells and RTL formatting",()=>{
+  it("contains only delivered items in Arabic, with real number/date cells and RTL layout",()=>{
     const files=unpack(buildSettlementXlsx(statement));
-    expect([...files.keys()].sort()).toEqual(['[Content_Types].xml','_rels/.rels','xl/_rels/workbook.xml.rels','xl/styles.xml','xl/workbook.xml','xl/worksheets/sheet1.xml'].sort());
-    expect(files.get('xl/workbook.xml')).toContain('name="كشف الشغل المسلّم"');
-    const sheet=files.get('xl/worksheets/sheet1.xml')!;
-    expect(sheet).toContain('rightToLeft="1"'); expect(sheet).toContain('showGridLines="0"');
-    expect(sheet).toContain('<col min="1" max="1" width="19"'); expect(sheet).toContain('<col min="2" max="2" width="63"');
-    expect(sheet).toContain('شركة طباعة &amp; &lt;خدمات&gt;'); expect(sheet).toContain('كروت شخصية وجهين');
-    expect(sheet).toContain('رقم الأوردر / الإيصال'); expect(sheet).toContain('r="A11" s="6"');
-    expect(sheet).toContain('r="D11" s="7"><v>1200</v>'); expect(sheet).toContain('r="E11" s="12"><v>0.5</v>');
-    expect(files.get('xl/styles.xml')).toContain('formatCode="dd/mm/yyyy"'); expect(files.get('xl/styles.xml')).toContain('#,##0.0000');
-    expect(new DOMParser().parseFromString(sheet,'application/xml').querySelector('parsererror')).toBeNull();
+    expect([...files.keys()].sort()).toEqual([
+      "[Content_Types].xml", "_rels/.rels", "xl/_rels/workbook.xml.rels",
+      "xl/styles.xml", "xl/workbook.xml", "xl/worksheets/sheet1.xml",
+    ].sort());
+    expect(files.get("xl/workbook.xml")).toContain('name="الشغل المستلّم"');
+    const sheet=files.get("xl/worksheets/sheet1.xml")!;
+    expect(sheet).toContain('rightToLeft="1"');
+    expect(sheet).toContain('showGridLines="0"');
+    expect(sheet).toContain('<col min="1" max="1" width="19"');
+    expect(sheet).toContain('<col min="3" max="3" width="63"');
+    expect(sheet).toContain("شركة طباعة &amp; &lt;خدمات&gt;");
+    expect(sheet).toContain("كروت شخصية وجهين");
+    expect(sheet).toContain("رقم الأوردر");
+    expect(sheet).toContain('r="A11" s="6"');
+    expect(sheet).toContain('r="D11" s="7"><v>1200</v>');
+    expect(sheet).toContain('r="E11" s="12"><v>0.5</v>');
+    expect(sheet).toContain('r="F11" s="5"><v>600</v>');
+    expect(sheet).not.toContain("COL-25");
+    expect(sheet).not.toContain("تحصيل نقدي");
+    expect(files.get("xl/styles.xml")).toContain('formatCode="dd/mm/yyyy"');
+    expect(files.get("xl/styles.xml")).toContain("#,##0.0000");
+    expect(new DOMParser().parseFromString(sheet,"application/xml").querySelector("parsererror")).toBeNull();
   });
-  it("shows all five reconciliation amounts above the ledger, including opening adjustments",()=>{
-    const sheet=unpack(buildSettlementXlsx({...statement,openingBalance:'0.00',adjustmentsTotal:'5000.00',deliveredTotal:'50.00',paymentsTotal:'100.00',closingBalance:'4950.00'})).get('xl/worksheets/sheet1.xml')!;
-    expect(sheet).toContain('رصيد افتتاحي سُجل داخل الفترة');
-    expect(sheet).toContain('r="A7" s="9"><v>0</v>'); expect(sheet).toContain('r="C7" s="9"><v>5000</v>');
-    expect(sheet).toContain('r="E7" s="9"><v>50</v>'); expect(sheet).toContain('r="G7" s="9"><v>100</v>');
-    expect(sheet).toContain('r="H8" s="11"><v>4950</v>');
-    expect(sheet).toContain('ليس إيصال سداد أو إثبات تقفيل مالي');
+
+  it("does not include opening balances, payments or outstanding customer debt",()=>{
+    const sheet=unpack(buildSettlementXlsx({
+      ...statement,openingBalance:"1111.00",adjustmentsTotal:"5000.00",
+      deliveredTotal:"600.00",paymentsTotal:"2222.00",closingBalance:"3888.00",
+    })).get("xl/worksheets/sheet1.xml")!;
+    expect(sheet).toContain("عدد الأوردرات المستلّمة");
+    expect(sheet).toContain("إجمالي الشغل المستلّم");
+    expect(sheet).toContain("إلغاءات التسليم");
+    expect(sheet).toContain("صافي الشغل المستلّم");
+    expect(sheet).toContain('r="C7" s="9"><v>600</v>');
+    expect(sheet).toContain('r="F8" s="11"><v>600</v>');
+    expect(sheet).not.toContain("1111");
+    expect(sheet).not.toContain("5000");
+    expect(sheet).not.toContain("2222");
+    expect(sheet).not.toContain("3888");
+    expect(sheet).not.toContain("رصيد نهاية الفترة");
+    expect(sheet).not.toContain("إيصال");
   });
-  it("reports cash and closing amounts without exposing private ledger reconciliation",()=>{
-    const sheet=unpack(buildSettlementXlsx(statement)).get('xl/worksheets/sheet1.xml')!;
-    expect(sheet).toContain('r="G12" s="5"><v>50</v>'); expect(sheet).toContain('r="H12" s="5"><v>750</v>');
-    expect(sheet).toContain('رصيد نهاية الفترة'); expect(sheet).not.toContain('5250'); expect(sheet).not.toContain('6000');
+
+  it("keeps cancellation history as negative work and excludes unrelated cash rows",()=>{
+    const cancelled: CustomerSettlement = {
+      ...statement,
+      deliveredTotal: "0.00",
+      lines: [...statement.lines, {
+        key:"delivery-cancel:1",kind:"delivery_cancellation",date:"2026-11-01",description:"إلغاء التسليم",
+        orderId:1,orderNumber:"ORD-123",receiptNumber:null,quantity:null,unitPrice:null,
+        signedAmount:"-600.00",runningBalance:"150.00",
+      }],
+    };
+    const work=deliveredWorkReport(cancelled);
+    expect(work.deliveredOrderCount).toBe(1);
+    expect(work.deliveredItemCount).toBe(1);
+    expect(work.grossDelivered).toBe("600.00");
+    expect(work.cancelledDelivered).toBe("600.00");
+    expect(work.netDelivered).toBe("0.00");
+    expect(work.lines.map(line=>line.kind)).toEqual(["delivered_item","delivery_cancellation"]);
+    const sheet=unpack(buildSettlementXlsx(cancelled)).get("xl/worksheets/sheet1.xml")!;
+    expect(sheet).toContain("إلغاء تسليم");
+    expect(sheet).toContain('r="F11" s="5"><v>600</v>');
+    expect(sheet).toContain('r="F12" s="5"><v>-600</v>');
+    expect(sheet).not.toContain("COL-25");
+    expect(sheet).not.toContain("تحصيل نقدي");
+    const html=renderDeliveredWorkHtml(cancelled);
+    expect(html).toContain("إلغاء تسليم");
+    expect(html).toContain("كروت شخصية وجهين");
+    expect(html).not.toContain("COL-25");
+    expect(html).not.toContain("تحصيل نقدي");
+    expect(html).not.toContain("رصيد افتتاحي");
+    expect(html).not.toContain("750.00");
   });
-  it("writes untrusted text as escaped inline strings, never as formulas",()=>{
-    const sheet=unpack(buildSettlementXlsx({...statement,customerName:'=1+1',lines:[{...statement.lines[0],description:'@SUM(1,2)'}]})).get('xl/worksheets/sheet1.xml')!;
-    expect(sheet).toContain('t="inlineStr"'); expect(sheet).toContain('العميل: =1+1'); expect(sheet).toContain('@SUM(1,2)'); expect(sheet).not.toContain('<f>');
+
+  it("safely escapes untrusted customer and item text, not spreadsheet formulas or HTML",()=>{
+    const malicious = {...statement, customerName:'=1+1<&', lines:[
+      {...statement.lines[0],description:'@SUM(1,2)<script>alert(1)</script>'},
+      statement.lines[1],
+    ]};
+    const sheet=unpack(buildSettlementXlsx(malicious)).get("xl/worksheets/sheet1.xml")!;
+    expect(sheet).toContain('t="inlineStr"');
+    expect(sheet).toContain("العميل: =1+1&lt;&amp;");
+    expect(sheet).toContain("@SUM(1,2)&lt;script&gt;alert(1)&lt;/script&gt;");
+    expect(sheet).not.toContain("<f>");
+    expect(new DOMParser().parseFromString(sheet,"application/xml").querySelector("parsererror")).toBeNull();
+    const html=renderDeliveredWorkHtml(malicious);
+    expect(html).toContain("=1+1&lt;&amp;");
+    expect(html).toContain("@SUM(1,2)&lt;script&gt;alert(1)&lt;/script&gt;");
+    expect(html).not.toContain("<script>alert(1)</script>");
   });
 });
