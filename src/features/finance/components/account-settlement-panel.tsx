@@ -29,7 +29,7 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [stale, setStale] = useState(false);
-  const [mode, setMode] = useState<"new" | "history">("new");
+  const [mode, setMode] = useState<"new" | "history">("history");
   const [page, setPage] = useState(1);
   const [record, setRecord] = useState<AccountSettlementRecord | null>(null);
   const [openingRecord, setOpeningRecord] = useState(false);
@@ -116,16 +116,13 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
         <p className="mt-1 text-sm text-muted-foreground">راجع المستحق عن الشغل المستلّم، وسجّل ما دفعه العميل فعلًا.</p>
       </div>
       <div className="flex flex-wrap gap-2">
-        {mode === "new" && !record
-          ? <Button variant="outline" size="sm" disabled={busy} onClick={() => {setMode("history"); setRecord(null); setError("");}}>
-              <History className="size-4"/> التصفيات السابقة
-            </Button>
-          : <>
-              <Button variant="outline" size="sm" disabled={busy} onClick={startNew}>تصفية جديدة</Button>
-              {record && <Button variant="ghost" size="sm" disabled={busy} onClick={() => {setMode("history"); setRecord(null); setError("");}}>
-                <History className="size-4"/> التصفيات السابقة
-              </Button>}
-            </>}
+        {mode === "new" && !record ? null : <>
+          <Button size="sm" disabled={busy} onClick={startNew}>تصفية جديدة</Button>
+          {record && <Button variant="ghost" size="sm" disabled={busy}
+            onClick={() => {setMode("history"); setRecord(null); setError("");}}>
+            <History className="size-4"/> التصفيات السابقة
+          </Button>}
+        </>}
       </div>
     </header>
 
@@ -168,7 +165,21 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
         {record.collectionId && canViewCollections && <Button variant="outline" asChild><Link to={"/collections?receiptId=" + record.collectionId}>إيصال التحصيل {record.receiptNumber}</Link></Button>}
         {!record.collectionId && <span className="self-center text-sm text-muted-foreground">لم يُسجّل تحصيل جديد في هذه العملية.</span>}
       </div>
-    </section> : mode === "new" ? <>
+    </section> : mode === "new" ? <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-3 sm:p-4"
+      onMouseDown={event => {if (event.target === event.currentTarget && !busy) setMode("history");}}>
+      <section role="dialog" aria-modal="true" aria-label="تصفية حساب جديدة" dir="rtl"
+        className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-card shadow-2xl"
+        onKeyDown={event => {if (event.key === "Escape" && !busy) setMode("history");}}>
+        <header className="flex shrink-0 items-center justify-between border-b p-4">
+          <div>
+            <h2 className="font-bold">تصفية حساب جديدة</h2>
+            <p className="mt-1 text-xs text-muted-foreground">حدد الشغل، ثم اكتب خصمًا أو مبلغًا محصلًا إن وجد.</p>
+          </div>
+          <Button type="button" variant="ghost" size="sm" disabled={busy}
+            onClick={() => setMode("history")}>إغلاق</Button>
+        </header>
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
       <div className="mx-auto w-full max-w-4xl rounded-lg border bg-muted/20 px-4 py-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <p className="text-sm leading-7 text-muted-foreground">
@@ -321,7 +332,9 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
             </div>
           </details>
         </>}
-    </> : history.isPending ? <LoadingState/> : history.isError ? <ErrorState error={history.error} retry={() => void history.refetch()}/>
+        </div>
+      </section>
+    </div> : history.isPending ? <LoadingState/> : history.isError ? <ErrorState error={history.error} retry={() => void history.refetch()}/>
       : <div className="space-y-3 rounded-xl border bg-card p-4">
           {!history.data?.settlements.length
             ? <p className="py-8 text-center text-sm text-muted-foreground">لا توجد تصفيات مسجلة لهذا العميل.</p>
