@@ -144,7 +144,12 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
       {record.needsReview && <p role="alert" className="rounded-lg bg-destructive/5 p-3 text-sm text-destructive">
         حدث إلغاء أو رد مالي بعد تسجيل التصفية. هذا الإثبات يحتاج مراجعة ولا يؤكد سداد الرصيد الحالي.
       </p>}
-      <dl className="grid gap-3 sm:grid-cols-2">
+      <dl className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border p-4">
+          <dt className="text-sm text-muted-foreground">خصم هذه التصفية (ليس تحصيلًا)</dt>
+          <dd className="mt-2 text-xl font-bold"><MoneyAmount amount={record.discountAmount ?? '0.00'}/></dd>
+          {record.discountReason && <p className="mt-1 text-xs text-muted-foreground">السبب: {record.discountReason}</p>}
+        </div>
         <div className="rounded-lg border p-4">
           <dt className="text-sm text-muted-foreground">المبلغ المحصّل في هذه التصفية</dt>
           <dd className="mt-2 text-xl font-bold"><MoneyAmount amount={record.amountCollected}/></dd>
@@ -210,6 +215,24 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
             {!canConfirm ? <p className="text-sm text-muted-foreground">يمكنك مراجعة الحساب، لكن تسجيل التصفية يحتاج صلاحية تسجيل التحصيل.</p>
               : !data.hasWork ? <p className="text-sm text-muted-foreground">لا يوجد شغل مستلّم أو رصيد افتتاحي لتصفيته.</p>
               : <>
+                {canDiscount && due !== null && due > 0 && <div className="space-y-2 rounded-lg border p-3">
+                  <label className="block space-y-1.5 text-sm font-semibold">
+                    <span>خصم ثابت من حساب العميل (ج.م)</span>
+                    <input aria-label="خصم ثابت" className={fieldClass} dir="ltr" inputMode="decimal"
+                      placeholder="0.00" value={discountInput} disabled={busy}
+                      onChange={event => {setDiscountInput(event.target.value); setError("");}}/>
+                  </label>
+                  {discountCents !== null && discountCents > 0 && <label className="block space-y-1.5 text-sm font-semibold">
+                    <span>سبب الخصم *</span>
+                    <input aria-label="سبب الخصم" className={fieldClass} value={discountReason}
+                      maxLength={1000} disabled={busy} placeholder="مثال: خصم متفق عليه مع العميل"
+                      onChange={event => setDiscountReason(event.target.value)}/>
+                  </label>}
+                  {!allowedDiscount && <p role="alert" className="text-xs text-destructive">
+                    أدخل خصمًا صحيحًا لا يتجاوز المستحق أو المديونية الحالية، مع سبب لا يقل عن 3 أحرف.
+                  </p>}
+                  <p className="text-xs text-muted-foreground">الخصم يقلل المديونية لكنه لا يُسجل ضمن الفلوس المحصّلة.</p>
+                </div>}
                 {due === 0 ? <p className="rounded-lg bg-muted/40 p-3 text-sm leading-6">
                   لا يوجد مبلغ مطلوب تحصيله الآن. يمكنك حفظ إثبات التصفية بدون تسجيل فلوس جديدة.
                 </p> : <div className="space-y-2">
@@ -221,17 +244,23 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
                   </label>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs leading-5 text-muted-foreground">مش هنسجل أي مبلغ تلقائيًا.</p>
-                    <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => setAmountInput(data.dueNow)}>دفع كامل المتبقي</Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => setAmountInput('0.00')}>بدون تحصيل الآن</Button>
+                      <Button type="button" variant="outline" size="sm" disabled={busy || !allowedDiscount}
+                        onClick={() => setAmountInput(centsToMoney(afterDiscount ?? 0))}>دفع كامل المتبقي بعد الخصم</Button>
+                    </div>
                   </div>
-                  {amountInput !== null && (cents === null || cents <= 0 || (due !== null && cents > due)) &&
-                    <p role="alert" className="text-xs text-destructive">أدخل مبلغًا أكبر من صفر ولا يتجاوز المتبقي.</p>}
+                  {amountInput !== null && (cents === null || (afterDiscount !== null && cents > afterDiscount)) &&
+                    <p role="alert" className="text-xs text-destructive">أدخل مبلغًا صحيحًا لا يتجاوز المستحق بعد الخصم، أو اختر صفرًا بدون تحصيل.</p>}
                 </div>}
-                {cents !== null && cents > 0 && due !== null && cents <= due &&
-                  <AccountPaymentFields value={payment} onChange={setPayment} disabled={busy}/>}
-                {due !== null && cents !== null && due > 0 && cents > 0 && cents <= due &&
+                {cents !== null && cents > 0 && afterDiscount !== null && cents <= afterDiscount &&
+                  <AccountPaymentFields value={payment} onChange={setPayment} disabled={busy}/>} 
+                {afterDiscount !== null && cents !== null && due !== null && cents <= afterDiscount &&
                   <p role="status" className="rounded-lg bg-muted/40 p-3 text-sm leading-6">
-                    المتبقي بعد تسجيل هذه الدفعة: <strong><MoneyAmount amount={centsToMoney(due - cents)}/></strong>
-                    <span className="ms-2 font-semibold">{cents < due ? "— دفعة جزئية" : "— تقفيل كامل للشغل المشمول"}</span>
+                    المتبقي بعد الخصم والتحصيل: <strong><MoneyAmount amount={centsToMoney(afterDiscount - cents)}/></strong>
+                    <span className="ms-2 font-semibold">
+                      {afterDiscount - cents > 0 ? "— المديونية المتبقية محفوظة" : "— تمت تسوية الشغل المشمول"}
+                    </span>
                   </p>}
                 <details className="border-t pt-3 text-sm">
                   <summary className="cursor-pointer font-semibold text-muted-foreground">إضافة ملاحظة (اختياري)</summary>
@@ -239,10 +268,10 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
                     maxLength={4000} disabled={busy} onChange={event => setNote(event.target.value)}/>
                 </details>
                 <Button className="w-full" disabled={!valid} onClick={() => void confirm()}>
-                  {busy ? "جاري التسجيل..." : due === 0 ? "حفظ إثبات التصفية بدون تحصيل" :
-                    cents !== null && cents > 0 && due !== null && cents <= due
+                  {busy ? "جاري التسجيل..." : cents === 0 ? "حفظ التصفية بدون تحصيل" :
+                    cents !== null && cents > 0 && afterDiscount !== null && cents <= afterDiscount
                       ? "تأكيد تحصيل " + formatEgp(centsToMoney(cents))
-                      : "تأكيد التحصيل"}
+                      : "تأكيد التصفية"}
                 </Button>
               </>}
           </section>
@@ -256,6 +285,7 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
                   ["الرصيد الافتتاحي", data.openingBalance],
                   ["الشغل المستلّم", data.deliveredTotal],
                   ["صافي دفعات العميل السابقة", data.netPayments],
+                  ["الخصومات السابقة", data.discountsTotal ?? '0.00'],
                 ].map(([title, value]) => <div key={title} className="flex items-center justify-between gap-3">
                   <dt>{title}</dt><dd className="font-semibold"><MoneyAmount amount={value}/></dd>
                 </div>)}
@@ -266,7 +296,7 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
               </dl>
               <p className="rounded-lg bg-muted/40 p-3 text-sm leading-6">
                 الحساب الكلي حتى الآن: {balanceDescription(data.accountBalance)} <MoneyAmount amount={absoluteAmount(data.accountBalance)}/>.
-                الدفعات محسوبة حتى {data.paymentsThrough}، والتصفية لا تُنشئ مديونية جديدة.
+                الدفعات محسوبة حتى {data.paymentsThrough}، والخصومات حركات مستقلة لا تُعد تحصيلًا، والتصفية لا تُنشئ مديونية جديدة.
               </p>
               <div className="border-t pt-3">
                 <Link to={"/finance?customerId=" + customerId + "&view=ledger"}
@@ -298,9 +328,10 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
             : <>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[850px] text-right text-sm">
-                    <thead><tr>{["رقم التصفية", "تاريخ التنفيذ", "الشغل حتى", "المحصّل", "المتبقي بعد العملية", "النتيجة", ""].map((title, index) => <th key={index} className="p-3">{title}</th>)}</tr></thead>
+                    <thead><tr>{["رقم التصفية", "تاريخ التنفيذ", "الشغل حتى", "الخصم", "المحصّل", "المتبقي بعد العملية", "النتيجة", ""].map((title, index) => <th key={index} className="p-3">{title}</th>)}</tr></thead>
                     <tbody>{history.data.settlements.map(item => <tr className="border-t" key={item.id}>
                       <td className="p-3" dir="ltr">{item.number}</td><td className="p-3">{item.settledOn}</td><td className="p-3">{item.dateTo}</td>
+                      <td className="p-3"><MoneyAmount amount={item.discountAmount ?? '0.00'}/></td>
                       <td className="p-3"><MoneyAmount amount={item.amountCollected}/></td>
                       <td className="whitespace-nowrap p-3">
                         <span>{item.balanceAfter.startsWith("-") ? "للعميل رصيد " : ""}</span>
