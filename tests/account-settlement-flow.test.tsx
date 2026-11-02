@@ -127,7 +127,7 @@ describe("Financial settlement workspace", () => {
   it("opens as one compact cash flow without discount fields or the financial details", async () => {
     visit(); await openCreate();
     const dialog = screen.getByRole("dialog", {name: "تصفية حساب جديدة"});
-    expect(dialog.className).toContain("max-w-5xl");
+    expect(dialog.className).toContain("max-w-4xl");
     expect(within(dialog).getByText("تصفية حساب — شركة النور")).toBeTruthy();
     expect(within(dialog).getByText("المستحق على العميل")).toBeTruthy();
     expect(within(dialog).getByRole("textbox", {name: "مبلغ التصفية المستلم"})).toBeTruthy();
@@ -185,17 +185,74 @@ describe("Financial settlement workspace", () => {
   });
   it("keeps the date compact and changeable without opening another payment step", async () => {
     visit(); await openCreate(); const user = userEvent.setup();
-    const editDate = await screen.findByText("تغيير التاريخ");
-    const dateSection = editDate.closest("details");
-    expect(dateSection?.open).toBe(false);
+    const editDate = await screen.findByRole("button", {name: "تغيير التاريخ"});
+    expect(editDate.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("group", {name: "تعديل تاريخ الشغل"})).toBeNull();
     expect(await screen.findByText("المستحق على العميل")).toBeTruthy();
     expect(screen.getByText("الدفعات حتى اليوم")).toBeTruthy();
     expect(screen.getByRole<HTMLInputElement>("textbox", {name: "مبلغ التصفية المستلم"}).value).toBe("");
     await user.click(editDate);
-    expect(dateSection?.open).toBe(true);
+    expect(editDate.getAttribute("aria-expanded")).toBe("true");
+    const floatingPanel = screen.getByRole("group", {name: "تعديل تاريخ الشغل"});
+    expect(floatingPanel.className).toContain("absolute");
     expect(screen.getByRole("button", {name: "الشغل المستلّم حتى"})).toBeTruthy();
+    // The floating control does not insert a new in-flow row above the balance.
+    expect(floatingPanel.closest(".space-y-3")).toBeTruthy();
+    await user.click(screen.getByText("المستحق على العميل"));
+    expect(editDate.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("group", {name: "تعديل تاريخ الشغل"})).toBeNull();
     expect(posts()).toHaveLength(0);
   });
+  it("keeps the calendar usable inside the floating date control and resets draft values when changed", async () => {
+    visit(); await openCreate(); const user = userEvent.setup();
+    await user.type(screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"}), "100");
+    await user.click(screen.getByRole("button", {name: "إضافة خصم"}));
+    const discount = screen.getByRole<HTMLInputElement>("textbox", {name: "خصم ثابت"});
+    await user.clear(discount); await user.type(discount, "50");
+    await user.type(screen.getByRole("textbox", {name: "سبب الخصم"}), "خصم متفق عليه");
+    await user.click(screen.getByRole("button", {name: "تغيير التاريخ"}));
+    await user.click(screen.getByRole("button", {name: "الشغل المستلّم حتى"}));
+    expect(screen.getByRole("dialog", {name: "اختيار الشغل المستلّم حتى"})).toBeTruthy();
+    const prev = new Date(cairoToday() + "T12:00:00Z");
+    prev.setUTCDate(prev.getUTCDate() - 1);
+    const previousDay = prev.toISOString().slice(0, 10);
+    await user.click(screen.getByRole("gridcell", {name: previousDay}));
+    expect(screen.queryByRole("group", {name: "تعديل تاريخ الشغل"})).toBeNull();
+    expect(screen.getByRole("button", {name: "تغيير التاريخ"}).getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("textbox", {name: "خصم ثابت"})).toBeNull();
+    expect(screen.getByRole<HTMLInputElement>("textbox", {name: "مبلغ التصفية المستلم"}).value).toBe("");
+    expect(posts()).toHaveLength(0);
+  });
+
+  it("gives the discount input full width before a positive value reveals the reason", async () => {
+    visit(); await openCreate(); const user = userEvent.setup();
+    await user.click(screen.getByRole("button", {name: "إضافة خصم"}));
+    const group = document.getElementById("settlement-discount-fields");
+    if (!group) throw new Error("Missing discount group");
+    expect(group.className).toContain("grid-cols-1");
+    expect(group.className).not.toContain("sm:grid-cols-2");
+    const discount = screen.getByRole<HTMLInputElement>("textbox", {name: "خصم ثابت"});
+    expect(screen.queryByRole("textbox", {name: "سبب الخصم"})).toBeNull();
+    await user.clear(discount); await user.type(discount, "100");
+    expect(group.className).toContain("sm:grid-cols-2");
+    expect(screen.getByRole("textbox", {name: "سبب الخصم"})).toBeTruthy();
+    await user.clear(discount); await user.type(discount, "0");
+    expect(group.className).toContain("grid-cols-1");
+    expect(screen.queryByRole("textbox", {name: "سبب الخصم"})).toBeNull();
+    expect(posts()).toHaveLength(0);
+  });
+
+  it("guides the operator to enter a payment or explicitly choose no collection", async () => {
+    visit(); await openCreate(); const user = userEvent.setup();
+    const summary = screen.getByRole("region", {name: "ملخص التصفية المتوقع"});
+    expect(within(summary).getByText("أدخل المبلغ أو اختر «بدون تحصيل»")).toBeTruthy();
+    expect(screen.getByRole("button", {name: "تأكيد التصفية"}).hasAttribute("disabled")).toBe(true);
+    await user.click(screen.getByRole("button", {name: "بدون تحصيل الآن"}));
+    expect(within(summary).getByText("300.00 ج.م")).toBeTruthy();
+    expect(screen.queryByText("أدخل المبلغ أو اختر «بدون تحصيل»")).toBeNull();
+    expect(posts()).toHaveLength(0);
+  });
+
   it("shows the historical amount remaining after a partial settlement in the history table", async () => {
     visit(); await openCreate(); const user = userEvent.setup();
     await user.type(await screen.findByRole("textbox", {name: "مبلغ التصفية المستلم"}), "100.00");
