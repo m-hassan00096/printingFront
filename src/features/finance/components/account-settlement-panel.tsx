@@ -184,7 +184,7 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
           {error}
           {stale && <Button variant="outline" className="ms-3" size="sm"
             onClick={() => void refreshPreview()}>تحديث المراجعة</Button>}
-        </div>
+        </div>}
       <div className="mx-auto w-full max-w-4xl rounded-lg border bg-muted/20 px-4 py-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <p className="text-sm leading-7 text-muted-foreground">
