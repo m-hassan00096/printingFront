@@ -128,3 +128,13 @@ Backend PR #23 exercises customer-select permission boundaries, including inacti
 - Historical evidence keeps the discount, its reason, real cash, receipt, original balance and remaining balance separately; reversal/cancellation warnings from the original backend V2 are preserved. The ledger filter adds the discount movement type.
 - Requires backend integrated PR #42 (migration and permission seeders) deployed before the frontend PR #27. Old V2 PRs #25/#40 and the parallel drafts #26/#41 must **not** be merged independently.
 - Verify actual currency arithmetic, staff roles, cash receipts, historical snapshots, mobile RTL and printed evidence in staging before deployment.
+
+## Customer-facing settlement account statement Excel (2026-11-02)
+
+- Dedicated Arabic RTL **one-sheet client-facing XLSX** available in new settlement preview, saved settlement result, and each saved history row (one-click).
+- Customer-facing statement is separate from the **internal immutable evidence Excel**, and does not alter the delivered-work-only report.
+- Displays client identity, work cutoff, payment cutoff, opening balance, delivered-work total and itemized work, prior net cash movements (collections, reversals and refunds), prior non-cash discounts, and historical outstanding balance in the settlement scope.
+- **Draft:** re-read the latest backend preview before exporting; always label as NOT posted. Valid entered discount and cash can appear only as proposals, with projected balance explicitly hypothetical, not a receipt. Stale preview rejects proposed figures until user refreshes.
+- **Saved:** re-fetch individual saved snapshot and review flag; actual collected cash and actual discount are separate, remaining balance historical, and a later reversal/refund triggers a clear warning.
+- Numerics/dates use Excel value types; customer strings are escaped inline text, preventing formula injection. No additional POST, new API, new DB tables, or permissions required. Never leak idempotency keys, internal identifiers or internal operator notes.
+- Verify `npm test`, `npm run typecheck`, `npm run lint` and `npm run build` before merge; check customer-facing statements against actual receipts in staging.
