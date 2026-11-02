@@ -151,7 +151,7 @@ describe("Read-only delivered work statement", () => {
     visit("customerId=7&view=settlements");
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", {name: "تصفية جديدة"}));
-    await user.click(await screen.findByText("تفاصيل التصفية"));
+    await user.click(await screen.findByText("عرض تفاصيل الحساب والشغل"));
     expect(screen.getByText("صافي دفعات العميل السابقة")).toBeTruthy();
     expect(screen.queryByText("تفصيل الدفعات والمقدمات")).toBeNull();
     const link = screen.getByRole("link", {name: "عرض حركات الدفعات في كشف الحساب"});
