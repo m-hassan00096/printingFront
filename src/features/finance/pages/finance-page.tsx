@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowUpLeft, FileText, History, Plus, RefreshCw, RotateCcw, X } from "lucide-react";
+import { ArrowUpLeft, History, Plus, RefreshCw, RotateCcw, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
@@ -103,11 +103,11 @@ export function FinancePage() {
     setParams(previous => {const next = new URLSearchParams(previous); if (tab === "refunds") next.set("tab", "refunds"); else next.delete("tab"); return next;});
   }
   const accountViews: {key: AccountView; title: string}[] = canLedger ? [
-    {key: "ledger", title: "كشف الحساب"}, {key: "delivered", title: "الشغل المسلَّم"}, {key: "settlements", title: "التصفية المالية"},
+    {key: "ledger", title: "كشف الحساب"}, {key: "delivered", title: "الشغل المستلّم"}, {key: "settlements", title: "تصفية الحساب"},
   ] : [];
 
   return <div className="space-y-4">
-    <SectionHeader title="حسابات العملاء" detail="اعرف موقف العميل، سجّل دفعة، أو راجع الشغل المسلّم ونفّذ تصفية مالية واضحة."
+    <SectionHeader title="حسابات العملاء" detail="اعرف الرصيد، سجّل تحصيل، وراجع حساب الشغل المستلّم في مكان واحد."
       actions={<Button type="button" variant="outline" onClick={refresh}><RefreshCw className="size-4"/> تحديث</Button>}/>
     {(canAccountDetails || canRefundHistory) && <div role="tablist" aria-label={copy.moduleTabs} className="flex flex-wrap items-center gap-2">
       {canAccountDetails && <button type="button" role="tab" id="finance-accounts-tab" aria-controls="finance-accounts-panel" aria-selected={!globalRefunds} onClick={() => selectFinanceTab("accounts")}
@@ -141,8 +141,7 @@ export function FinancePage() {
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-3" aria-label={copy.accountActions}>
               {canCollect && <Button onClick={() => setCollecting(true)}><Plus className="size-4"/> تسجيل تحصيل</Button>}
-              {canLedger && <Button variant="outline" onClick={() => changeView("settlements")}><CheckSettlementIcon/> تصفية الحساب</Button>}
-              {(canRefund || canRefundHistory || canOpening) && <details className="relative"><summary className="cursor-pointer rounded-lg border px-3 py-2 text-sm font-semibold">إجراءات أخرى</summary>
+                      {(canRefund || canRefundHistory || canOpening) && <details className="relative"><summary className="cursor-pointer rounded-lg border px-3 py-2 text-sm font-semibold">إجراءات أخرى</summary>
                 <div className="absolute start-0 z-20 mt-2 w-72 space-y-2 rounded-xl border bg-card p-3 shadow-lg">
                   {canRefund && <><Button className="w-full justify-start" size="sm" variant="outline" disabled={!canRefundSelected} title={refundUnavailableReason || undefined} onClick={() => setRefunding(true)}><RotateCcw className="size-4"/>{copy.refundAction}</Button>
                     <p role="status" className="text-xs leading-5 text-muted-foreground">{canRefundSelected && actualBalance?.type === 2 ? <>{copy.refundableAmount}: <MoneyAmount amount={actualBalance.amount}/></> : refundUnavailableReason || copy.refundValidatedByServer}</p></>}
@@ -225,4 +224,3 @@ export function FinancePage() {
     {collecting && canCollect && customerId > 0 && <AccountCollectionDialog customerId={customerId} customerName={customerName} onClose={() => setCollecting(false)} onSuccess={() => {setCollecting(false); refresh();}}/>}
   </div>;
 }
-function CheckSettlementIcon() { return <FileText className="size-4"/>; }
