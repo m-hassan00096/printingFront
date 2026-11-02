@@ -115,7 +115,8 @@ describe("Finance account page against Laravel existing contracts",()=>{
     permissions=["finance.balances.view","finance.ledger.view","finance.refunds.create"];
     visit();
     const card=await screen.findByRole("region",{name:"بيانات حساب العميل"});
-    expect(within(card).getByRole("navigation",{name:"مسار حساب العميل"})).toBeTruthy();
+    expect(within(card).queryByRole("navigation",{name:"مسار حساب العميل"})).toBeNull();
+    expect(within(card).queryByRole("link",{name:"أحمد خالد"})).toBeNull();
     expect(within(card).queryByRole("combobox",{name:"اختيار حساب العميل"})).toBeNull();
     expect(screen.queryByRole("region",{name:"اختيار حساب العميل"})).toBeNull();
     const button=within(card).getByRole("button",{name:"رد رصيد للعميل"});
@@ -141,19 +142,29 @@ describe("Finance account page against Laravel existing contracts",()=>{
     await waitFor(()=>expect(calls.some(c=>c.url==="/finance/customer-balances"&&c.params.get("filter[search]")==="أحمد")).toBe(true));
     await user.click(within(section).getByRole("button",{name:"كشف الحساب"}));
     expect(await screen.findByText("سداد دين")).toBeTruthy();
-    expect(within(screen.getByRole("navigation",{name:"مسار حساب العميل"})).getByRole("button",{name:"حسابات العملاء"})).toBeTruthy();
+    expect(screen.queryByRole("navigation",{name:"مسار حساب العميل"})).toBeNull();
+    expect(screen.queryByRole("button",{name:"العودة إلى الحسابات"})).toBeNull();
     expect(screen.queryByRole("combobox",{name:"اختيار حساب العميل"})).toBeNull();
   });
-  it("navigates back to the account list and allows switching customers",async()=>{
+  it("opens the selected account without duplicate customer switch or back navigation",async()=>{
     visit("");const user=userEvent.setup();
     const section=await screen.findByRole("region",{name:"قائمة حسابات العملاء"});
     await user.click((await within(section).findAllByRole("button",{name:"كشف الحساب"}))[0]);
     await screen.findByText("سداد دين");
+    expect(await screen.findByRole("region",{name:"بيانات حساب العميل"})).toBeTruthy();
+    expect(screen.queryByRole("navigation",{name:"مسار حساب العميل"})).toBeNull();
+    expect(screen.queryByRole("button",{name:"العودة إلى الحسابات"})).toBeNull();
     expect(screen.queryByRole("combobox",{name:"اختيار حساب العميل"})).toBeNull();
-    const crumb = screen.getByRole("navigation",{name:"مسار حساب العميل"});
-    await user.click(within(crumb).getByRole("button",{name:"حسابات العملاء"}));
-    const overview = await screen.findByRole("region",{name:"قائمة حسابات العملاء"});
-    expect(await within(overview).findByText("مؤسسة النور")).toBeTruthy();
+  });
+  it("makes the customer name itself an underlined profile link only with Customers permission",async()=>{
+    permissions=["finance.balances.view","finance.ledger.view","customers.view"];
+    visit();
+    const card=await screen.findByRole("region",{name:"بيانات حساب العميل"});
+    const link=within(card).getByRole("link",{name:"أحمد خالد"});
+    expect(link.getAttribute("href")).toBe("/customers/7");
+    expect(link.className).toContain("underline");
+    expect(within(card).queryByText("ملف العميل")).toBeNull();
+    expect(within(card).queryByRole("navigation",{name:"مسار حساب العميل"})).toBeNull();
   });
   it("hides a previously registered opening balance, without relying on a disabled submit",async()=>{
     hasOpening=true;
@@ -189,11 +200,9 @@ describe("Finance account page against Laravel existing contracts",()=>{
     await user.click(await screen.findByRole("option",{name:/أحمد خالد/}));
     expect(await screen.findByText("سداد دين")).toBeTruthy();
     expect(screen.queryByText("ملف العميل")).toBeNull();
-    const crumb = screen.getByRole("navigation",{name:"مسار حساب العميل"});
-    expect(within(crumb).getByRole("button",{name:"اختيار عميل"})).toBeTruthy();
+    expect(screen.queryByRole("navigation",{name:"مسار حساب العميل"})).toBeNull();
+    expect(screen.queryByRole("link",{name:"أحمد خالد"})).toBeNull();
     expect(screen.queryByRole("combobox",{name:"اختيار حساب العميل"})).toBeNull();
-    await user.click(within(crumb).getByRole("button",{name:"اختيار عميل"}));
-    expect(await screen.findByRole("combobox",{name:"اختيار حساب العميل"})).toBeTruthy();
     expect(calls.some(c=>c.url==="/finance/customers/7/balance")).toBe(false);
   });
 });
