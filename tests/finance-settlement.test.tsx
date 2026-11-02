@@ -73,8 +73,8 @@ describe("Read-only delivered work statement", () => {
       "التاريخ", "العملية والتفاصيل", "زيادة على الحساب (+)", "دفعة / تخفيض (−)", "الرصيد بعد الحركة",
     ]);
     expect(within(table).getByText("COL-90")).toBeTruthy();
-    await userEvent.setup().click(within(table).getByText("عرض الملاحظة"));
-    expect(await screen.findByText("ملاحظة تجريبية للحركة")).toBeTruthy();
+    await userEvent.setup().click(within(table).getByRole("button", {name: "عرض الملاحظة كاملة"}));
+    expect(within(screen.getByRole("dialog", {name: "تفاصيل الحركة المالية"})).getByText("ملاحظة تجريبية للحركة")).toBeTruthy();
   });
   it("includes in-period opening adjustments in the visible reconciliation summary", async () => {
     visit("customerId=7&view=delivered");
