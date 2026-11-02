@@ -17,12 +17,14 @@ import { AccountPaymentFields, type AccountPaymentValue } from "./account-paymen
 import { absoluteAmount, balanceDescription, cairoToday } from "../lib/account-display";
 import { renderAccountSettlementEvidence } from "../lib/account-settlement-print";
 
-export function AccountSettlementPanel({customerId, canConfirm, canViewCollections}: {
-  customerId: number; canConfirm: boolean; canViewCollections: boolean;
+export function AccountSettlementPanel({customerId, canConfirm, canViewCollections, canDiscount = false}: {
+  customerId: number; canConfirm: boolean; canViewCollections: boolean; canDiscount?: boolean;
 }) {
   const qc = useQueryClient();
   const [cutoff, setCutoff] = useState(cairoToday);
   const [amountInput, setAmountInput] = useState<string | null>(null);
+  const [discountInput, setDiscountInput] = useState('0.00');
+  const [discountReason, setDiscountReason] = useState('');
   const [payment, setPayment] = useState<AccountPaymentValue>({method: 0, destination: ""});
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
@@ -41,12 +43,18 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
   const mutation = useMutation({mutationFn: ({payload, key}: {payload: AccountSettlementInput; key: string}) => confirmAccountSettlement(customerId, payload, key), retry: false});
   const data = preview.data;
   const due = data ? parseCents(data.dueNow) : null;
+  const accountCents = data ? parseCents(data.accountBalance.startsWith('-') ? '0.00' : data.accountBalance) : null;
+  const discountCents = parseCents(discountInput);
+  const afterDiscount = due === null || discountCents === null ? null : due - discountCents;
+  const allowedDiscount = discountCents !== null && due !== null && accountCents !== null &&
+    discountCents <= due && discountCents <= accountCents &&
+    (discountCents === 0 || (canDiscount && discountReason.trim().length >= 3));
   // Never prefill a real cash collection: the operator must confirm what was actually received.
   const amount = amountInput ?? (due === 0 ? "0.00" : "");
   const cents = parseCents(amount);
   const busy = mutation.isPending;
   const valid = canConfirm && !busy && !stale && preview.isSuccess && !preview.isFetching && data?.hasWork &&
-    cents !== null && due !== null && cents <= due && (due === 0 ? cents === 0 : cents > 0) &&
+    cents !== null && afterDiscount !== null && allowedDiscount && cents <= afterDiscount &&
     (cents === 0 || payment.method === 0 || payment.destination !== "");
   async function refreshPreview() {
     setStale(false); setError(""); setAmountInput(null);
@@ -55,6 +63,9 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
   async function confirm() {
     if (!valid || !data || cents === null) return;
     const payload: AccountSettlementInput = {dateTo: cutoff, previewHash: data.previewHash, amount: centsToMoney(cents),
+      ...(discountCents !== null && discountCents > 0 ? {
+        discountAmount: centsToMoney(discountCents), discountReason: discountReason.trim(),
+      } : {}),
       ...(note.trim() ? {note: note.trim()} : {}),
       ...(cents > 0 ? {paymentMethod: payment.method, ...(payment.method !== 0 ? {paymentDestinationId: Number(payment.destination)} : {})} : {})};
     const fingerprint = JSON.stringify(payload);
@@ -94,6 +105,7 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
   function startNew() {
     setRecord(null); setMode("new"); setAmountInput(null);
     setPayment({method: 0, destination: ""}); setNote("");
+    setDiscountInput('0.00'); setDiscountReason('');
     setError(""); setStale(false);
   }
 
