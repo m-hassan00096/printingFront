@@ -249,6 +249,22 @@ describe("Financial settlement workspace", () => {
     expect(posts()[0].body).toMatchObject({customerId: 7, amount: "125.50", paymentMethod: 0, collectedOn: cairoToday()});
     expect(posts()[0].key).toBeTruthy();
   });
+  it("keeps draft numbers separate from the posted settlement and updates only after confirmation", async () => {
+    visit(); await openCreate();
+    const user = userEvent.setup();
+    await user.type(screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"}), "100.00");
+    const previewBox = screen.getByRole("region", {name: "ملخص التصفية المتوقع"});
+    expect(within(previewBox).getByText("المتبقي المتوقع بعد الخصم والتحصيل")).toBeTruthy();
+    expect(within(previewBox).getByText("200.00 ج.م")).toBeTruthy();
+    expect(screen.queryByRole("region", {name: "نتيجة التصفية"})).toBeNull();
+    expect(posts()).toHaveLength(0);
+    await user.click(screen.getByRole("button", {name: "تأكيد تحصيل 100.00 ج.م"}));
+    const posted = await screen.findByRole("region", {name: "نتيجة التصفية"});
+    expect(within(posted).getByText("المتبقي بعد التصفية")).toBeTruthy();
+    expect(screen.queryByRole("region", {name: "ملخص التصفية المتوقع"})).toBeNull();
+    expect(posts()).toHaveLength(1);
+  });
+
   it("opens saved history first and does not request a financial preview until the modal is opened", async () => {
     visit();
     expect(await screen.findByText("لا توجد تصفيات مسجلة لهذا العميل.")).toBeTruthy();
@@ -284,6 +300,45 @@ describe("Financial settlement workspace", () => {
     expect(within(history).getByText("100.00 ج.م")).toBeTruthy();
   });
 
+  it("shows only the missing discount reason error for a valid discount", async () => {
+    preview = {...preview, balanceBefore: "1950.00", dueNow: "1950.00", accountBalance: "1950.00",
+      deliveredTotal: "1950.00", netPayments: "0.00", grossCollections: "0.00", outsideBalance: "0.00"};
+    visit(); await openCreate();
+    const user = userEvent.setup();
+    const discount = await screen.findByRole("textbox", {name: "خصم ثابت"});
+    await user.clear(discount);
+    await user.type(discount, "950");
+    await user.type(screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"}), "1000");
+    expect(screen.getByText("اكتب سبب الخصم قبل التأكيد (3 أحرف على الأقل).")).toBeTruthy();
+    expect(screen.queryByText(/أدخل خصمًا صحيحًا لا يتجاوز/)).toBeNull();
+    expect(screen.getByRole("textbox", {name: "سبب الخصم"}).getAttribute("aria-invalid")).toBe("true");
+    const summary = screen.getByRole("region", {name: "ملخص التصفية المتوقع"});
+    expect(within(summary).getByText("المتبقي المتوقع بعد الخصم والتحصيل")).toBeTruthy();
+    expect(within(summary).getByText("نتيجة تقديرية فقط، لم تُسجَّل بعد. الشغل غير المستلّم خارج هذه التصفية.")).toBeTruthy();
+    expect(within(summary).getAllByText("0.00 ج.م")).toHaveLength(1);
+    expect(screen.queryByText("تمت تسوية الشغل المشمول")).toBeNull();
+    expect(screen.getByRole("button", {name: "تأكيد الخصم والتحصيل"}).hasAttribute("disabled")).toBe(true);
+    expect(posts()).toHaveLength(0);
+    await user.type(screen.getByRole("textbox", {name: "سبب الخصم"}), "خصم متفق عليه");
+    expect(screen.queryByText("اكتب سبب الخصم قبل التأكيد (3 أحرف على الأقل).")).toBeNull();
+    expect(screen.getByRole("button", {name: "تأكيد الخصم والتحصيل"}).hasAttribute("disabled")).toBe(false);
+    expect(posts()).toHaveLength(0);
+  });
+
+  it("shows the discount amount error separately when it exceeds the real customer debt", async () => {
+    visit(); await openCreate();
+    const user = userEvent.setup();
+    const discount = await screen.findByRole("textbox", {name: "خصم ثابت"});
+    await user.clear(discount);
+    await user.type(discount, "301");
+    await user.type(screen.getByRole("textbox", {name: "سبب الخصم"}), "خصم متفق عليه");
+    expect(screen.getByText("أدخل خصمًا صحيحًا لا يتجاوز المستحق للتصفية أو مديونية العميل الحالية.")).toBeTruthy();
+    expect(screen.queryByText("اكتب سبب الخصم قبل التأكيد (3 أحرف على الأقل).")).toBeNull();
+    expect(discount.getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getByRole("button", {name: "تأكيد التصفية"}).hasAttribute("disabled")).toBe(true);
+    expect(posts()).toHaveLength(0);
+  });
+
   it("shows the correct 2500 - 1000 discount - 500 cash settlement remainder", async () => {
     preview = {...preview, deliveredTotal: "2500.00", netPayments: "0.00", grossCollections: "0.00",
       dueNow: "2500.00", balanceBefore: "2500.00", accountBalance: "2500.00", outsideBalance: "0.00"};
@@ -294,9 +349,11 @@ describe("Financial settlement workspace", () => {
     await user.type(discount, "1000.00");
     await user.type(screen.getByRole("textbox", {name: "سبب الخصم"}), "خصم متفق عليه");
     await user.type(screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"}), "500.00");
-    await user.click(screen.getByRole("button", {name: "تأكيد تحصيل 500.00 ج.م"}));
+    await user.click(screen.getByRole("button", {name: "تأكيد الخصم والتحصيل"}));
     const result = await screen.findByRole("region", {name: "نتيجة التصفية"});
-    expect(within(result).getByText("1,000.00 ج.م")).toBeTruthy();
+    const balanceCard = within(result).getByText("المتبقي بعد التصفية").parentElement;
+    if (!balanceCard) throw new Error("Missing remaining balance card");
+    expect(within(balanceCard).getByText("1,000.00 ج.م")).toBeTruthy();
     expect(posts()).toHaveLength(1);
     expect(posts()[0].body).toMatchObject({
       discountAmount: "1000.00", amount: "500.00", discountReason: "خصم متفق عليه", paymentMethod: 0,
@@ -315,7 +372,7 @@ describe("Financial settlement workspace", () => {
     const cash = screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"});
     await user.type(cash, "50.00");
     expect(screen.getByText(/المتبقي بعد الخصم والتحصيل/)).toBeTruthy();
-    await user.click(screen.getByRole("button", {name: "تأكيد تحصيل 50.00 ج.م"}));
+    await user.click(screen.getByRole("button", {name: "تأكيد الخصم والتحصيل"}));
     await screen.findByRole("region", {name: "نتيجة التصفية"});
     expect(posts()).toHaveLength(1);
     expect(posts()[0].body).toMatchObject({
