@@ -89,7 +89,11 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
       popup.document.close();
     } catch (cause) {popup.close(); toast.error(getApiErrorMessage(cause, "تعذّر تحميل إثبات التصفية."));}
   }
-  function startNew() {setRecord(null); setMode("new"); setAmountInput(null); setError(""); setStale(false);}
+  function startNew() {
+    setRecord(null); setMode("new"); setAmountInput(null);
+    setPayment({method: 0, destination: ""}); setNote("");
+    setError(""); setStale(false);
+  }
 
   return <section aria-label="التصفية المالية" className="space-y-4">
     <header className="flex flex-wrap items-center justify-between gap-3">
