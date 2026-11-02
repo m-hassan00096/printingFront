@@ -226,5 +226,5 @@ export function exportCustomerSettlementStatementXlsx(source: CustomerSettlement
   document.body.append(link);
   link.click();
   link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  window.setTimeout(() => {if (typeof URL.revokeObjectURL === "function") URL.revokeObjectURL(url);}, 1000);
 }
