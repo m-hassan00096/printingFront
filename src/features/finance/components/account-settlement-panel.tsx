@@ -16,6 +16,7 @@ import { AccountPaymentFields, type AccountPaymentValue } from "./account-paymen
 import { absoluteAmount, balanceDescription, cairoToday } from "../lib/account-display";
 import { renderAccountSettlementEvidence } from "../lib/account-settlement-print";
 import { exportAccountSettlementXlsx } from "../lib/account-settlement-xlsx";
+import { exportCustomerSettlementStatementXlsx } from "../lib/customer-settlement-statement-xlsx";
 
 export function AccountSettlementPanel({customerId, customerName, canConfirm, canViewCollections, canDiscount = false}: {
   customerId: number; customerName?: string; canConfirm: boolean; canViewCollections: boolean; canDiscount?: boolean;
@@ -34,6 +35,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
   const [page, setPage] = useState(1);
   const [record, setRecord] = useState<AccountSettlementRecord | null>(null);
   const [openingRecord, setOpeningRecord] = useState(false);
+  const [exportingClient, setExportingClient] = useState(false);
   const keys = useRef(new Map<string, string>());
   const validDate = Boolean(cutoff && cutoff <= cairoToday());
   const preview = useQuery({queryKey: ["finance", "settlement-preview", customerId, cutoff],
@@ -57,13 +59,59 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
   const cents = parseCents(amount);
   const projectedRemainder = discountAmountValid && afterDiscount !== null && cents !== null && cents <= afterDiscount
     ? afterDiscount - cents : null;
+  const proposed = amountInput !== null || (discountOpen && discountInput !== "0.00" && discountInput !== "0");
+  const proposedValid = !proposed || (cents !== null && discountCents !== null && allowedDiscount && projectedRemainder !== null);
   const busy = mutation.isPending;
   const valid = canConfirm && !busy && !stale && preview.isSuccess && !preview.isFetching && data?.hasWork &&
     cents !== null && afterDiscount !== null && allowedDiscount && cents <= afterDiscount &&
     (cents === 0 || payment.method === 0 || payment.destination !== "");
   async function refreshPreview() {
     setStale(false); setError(""); setAmountInput(null);
+    setPayment({method: 0, destination: ""});
+    setDiscountInput("0.00"); setDiscountReason(""); setDiscountOpen(false);
     await preview.refetch();
+  }
+  async function exportClientDraft() {
+    if (!validDate || !data || preview.isFetching || busy || stale || exportingClient) return;
+    if (!proposedValid) {
+      toast.error("راجع مبلغ التحصيل والخصم وسبب الخصم قبل تصدير الكشف.");
+      return;
+    }
+    setExportingClient(true);
+    try {
+      // Always re-read the live balance before producing a client-facing statement.
+      const fresh = await preview.refetch({throwOnError: true});
+      if (!fresh.data || fresh.data.dateTo !== cutoff) throw Error("تعذر تحديث كشف العميل");
+      if (proposed && fresh.data.previewHash !== data.previewHash) {
+        setStale(true);
+        setError("تغير حساب العميل بعد إدخال المبالغ. حدّث الحساب وراجع المبلغ قبل تصدير كشف يتضمن اقتراحات.");
+        return;
+      }
+      const proposal = proposed && proposedValid && discountCents !== null &&
+        cents !== null && projectedRemainder !== null
+        ? {discount: centsToMoney(discountCents), collected: centsToMoney(cents),
+          remaining: centsToMoney(projectedRemainder), reason: discountReason.trim()}
+        : undefined;
+      exportCustomerSettlementStatementXlsx({kind: "draft", preview: fresh.data, proposal});
+    } catch (cause) {
+      toast.error(getApiErrorMessage(cause, "تعذّر تصدير كشف الحساب. حاول مرة أخرى."));
+    } finally {
+      setExportingClient(false);
+    }
+  }
+  async function exportClientSaved(id: number) {
+    if (exportingClient) return;
+    setExportingClient(true);
+    try {
+      // Refresh the historical review flag; never substitute today's live balance for a saved snapshot.
+      const latest = await getAccountSettlement(customerId, id);
+      if (record?.id === id) setRecord(latest);
+      exportCustomerSettlementStatementXlsx({kind: "saved", record: latest});
+    } catch (cause) {
+      toast.error(getApiErrorMessage(cause, "تعذّر تصدير كشف التصفية المسجلة."));
+    } finally {
+      setExportingClient(false);
+    }
   }
   async function confirm() {
     if (!valid || !data || cents === null) return;
@@ -177,6 +225,9 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
         التصفية تخص الشغل المحدد ولا تمسح مديونيات أوردرات أخرى لم تُسلَّم.
       </p>
       <div className="flex flex-wrap gap-2">
+        <Button variant="outline" disabled={exportingClient} onClick={() => void exportClientSaved(record.id)}>
+          <FileSpreadsheet className="size-4"/> كشف حساب للعميل Excel
+        </Button>
         <Button variant="outline" onClick={() => void printRecord()}><Printer className="size-4"/> طباعة إثبات التصفية</Button>
         <Button variant="outline" onClick={() => void exportExcelRecord()}>
           <FileSpreadsheet className="size-4"/> تصدير إثبات Excel
@@ -214,7 +265,11 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
             </div>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="text-xs text-muted-foreground">الدفعات محسوبة حتى اليوم</span>
-              <Button variant="ghost" size="sm" disabled={busy || preview.isFetching || !validDate}
+              <Button variant="outline" size="sm" disabled={busy || exportingClient || preview.isFetching || !validDate || stale || !data}
+                onClick={() => void exportClientDraft()}>
+                <FileSpreadsheet className="size-3.5" aria-hidden="true"/> كشف حساب Excel للعميل
+              </Button>
+              <Button variant="ghost" size="sm" disabled={busy || exportingClient || preview.isFetching || !validDate}
                 onClick={() => void refreshPreview()}>
                 <RefreshCw className="size-3.5" aria-hidden="true"/> تحديث الحساب
               </Button>
@@ -429,7 +484,14 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
                         <MoneyAmount amount={absoluteAmount(item.balanceAfter)}/>
                       </td>
                       <td className={"p-3 " + (item.needsReview ? "text-destructive" : "")}>{item.statusLabel}</td>
-                      <td className="p-3"><Button variant="outline" size="sm" disabled={openingRecord} onClick={() => void openRecord(item.id)}>عرض الإثبات</Button></td>
+                      <td className="p-3">
+                        <div className="flex flex-wrap gap-2">
+                          <Button variant="outline" size="sm" disabled={openingRecord} onClick={() => void openRecord(item.id)}>عرض الإثبات</Button>
+                          <Button variant="outline" size="sm" disabled={exportingClient} onClick={() => void exportClientSaved(item.id)}>
+                            <FileSpreadsheet className="size-4"/> كشف العميل Excel
+                          </Button>
+                        </div>
+                      </td>
                     </tr>)}</tbody>
                   </table>
                 </div>
