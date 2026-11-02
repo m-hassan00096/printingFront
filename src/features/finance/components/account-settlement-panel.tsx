@@ -48,12 +48,15 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
   const accountCents = data ? parseCents(data.accountBalance.startsWith('-') ? '0.00' : data.accountBalance) : null;
   const discountCents = parseCents(discountInput);
   const afterDiscount = due === null || discountCents === null ? null : due - discountCents;
-  const allowedDiscount = discountCents !== null && due !== null && accountCents !== null &&
-    discountCents <= due && discountCents <= accountCents &&
-    (discountCents === 0 || (canDiscount && discountReason.trim().length >= 3));
+  const discountAmountValid = discountCents !== null && due !== null && accountCents !== null &&
+    discountCents <= due && discountCents <= accountCents;
+  const discountReasonValid = discountCents === 0 || (discountCents !== null && canDiscount && discountReason.trim().length >= 3);
+  const allowedDiscount = discountAmountValid && discountReasonValid;
   // Never prefill a real cash collection: the operator must confirm what was actually received.
   const amount = amountInput ?? (due === 0 ? "0.00" : "");
   const cents = parseCents(amount);
+  const projectedRemainder = discountAmountValid && afterDiscount !== null && cents !== null && cents <= afterDiscount
+    ? afterDiscount - cents : null;
   const busy = mutation.isPending;
   const valid = canConfirm && !busy && !stale && preview.isSuccess && !preview.isFetching && data?.hasWork &&
     cents !== null && afterDiscount !== null && allowedDiscount && cents <= afterDiscount &&
@@ -190,12 +193,12 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
         <header className="flex shrink-0 items-center justify-between border-b p-4">
           <div>
             <h2 className="font-bold">تصفية حساب — {modalCustomerName}</h2>
-            <p className="mt-1 text-xs text-muted-foreground">حدد الشغل، ثم اكتب خصمًا أو مبلغًا محصلًا إن وجد.</p>
+            <p className="mt-1 text-xs text-muted-foreground">راجع المستحق، ثم أدخل الخصم والمبلغ المحصّل فعلًا إن وجد.</p>
           </div>
           <Button type="button" variant="ghost" size="sm" disabled={busy}
             onClick={() => setMode("history")}>إغلاق</Button>
         </header>
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 sm:p-4">
         {error && <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
           {error}
           {stale && <Button variant="outline" className="ms-3" size="sm"
@@ -227,7 +230,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
         : preview.isPending ? <LoadingState/>
         : preview.isError ? <ErrorState error={preview.error} retry={() => void preview.refetch()}/>
         : data && <>
-          <section className="mx-auto w-full max-w-4xl space-y-4 rounded-xl border bg-card p-4 sm:p-6" aria-label="إتمام التصفية">
+          <section className="mx-auto w-full max-w-4xl space-y-3 rounded-xl border bg-card p-4" aria-label="إتمام التصفية">
             <div className="space-y-1">
               <p className="text-sm font-semibold text-muted-foreground">
                 {due === 0 && data.balanceBefore.startsWith("-") ? "للعميل رصيد ضمن التصفية" : "المبلغ المتبقي للتصفية"}
@@ -247,58 +250,80 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
             {!canConfirm ? <p className="text-sm text-muted-foreground">يمكنك مراجعة الحساب، لكن تسجيل التصفية يحتاج صلاحية تسجيل التحصيل.</p>
               : !data.hasWork ? <p className="text-sm text-muted-foreground">لا يوجد شغل مستلّم أو رصيد افتتاحي لتصفيته.</p>
               : <>
-                {canDiscount && due !== null && due > 0 && <div className="space-y-2 rounded-lg border p-3">
-                  <label className="block space-y-1.5 text-sm font-semibold">
-                    <span>خصم ثابت من حساب العميل (ج.م)</span>
-                    <input aria-label="خصم ثابت" className={fieldClass} dir="ltr" inputMode="decimal"
-                      placeholder="0.00" value={discountInput} disabled={busy}
-                      onChange={event => {setDiscountInput(event.target.value); setError("");}}/>
-                  </label>
-                  {discountCents !== null && discountCents > 0 && <label className="block space-y-1.5 text-sm font-semibold">
-                    <span>سبب الخصم *</span>
-                    <input aria-label="سبب الخصم" className={fieldClass} value={discountReason}
-                      maxLength={1000} disabled={busy} placeholder="مثال: خصم متفق عليه مع العميل"
-                      onChange={event => setDiscountReason(event.target.value)}/>
-                  </label>}
-                  {!allowedDiscount && <p role="alert" className="text-xs text-destructive">
-                    أدخل خصمًا صحيحًا لا يتجاوز المستحق أو المديونية الحالية، مع سبب لا يقل عن 3 أحرف.
-                  </p>}
-                  <p className="text-xs text-muted-foreground">الخصم يقلل المديونية لكنه لا يُسجل ضمن الفلوس المحصّلة.</p>
-                </div>}
-                {due === 0 ? <p className="rounded-lg bg-muted/40 p-3 text-sm leading-6">
-                  لا يوجد مبلغ مطلوب تحصيله الآن. يمكنك حفظ مراجعة الحساب بدون تحصيل، ولن يُنشأ إيصال قبض جديد.
-                </p> : <div className="space-y-2">
-                  <label className="block space-y-1.5 text-sm font-semibold">
-                    <span>المبلغ اللي استلمته من العميل الآن</span>
-                    <input aria-label="مبلغ التصفية المستلم" className={fieldClass} dir="ltr" inputMode="decimal"
-                      placeholder="اكتب المبلغ المدفوع فعليًا" value={amount} disabled={busy}
-                      onChange={event => setAmountInput(event.target.value)}/>
-                  </label>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs leading-5 text-muted-foreground">مش هنسجل أي مبلغ تلقائيًا.</p>
+                <div className={canDiscount && due !== null && due > 0 ? "grid items-start gap-3 md:grid-cols-2" : "space-y-3"}>
+                  {canDiscount && due !== null && due > 0 && <div className="space-y-2 rounded-lg border p-3">
+                    <label className="block space-y-1.5 text-sm font-semibold">
+                      <span>خصم من حساب العميل (اختياري)</span>
+                      <input aria-label="خصم ثابت" aria-invalid={!discountAmountValid}
+                        aria-describedby={!discountAmountValid ? "settlement-discount-amount-error" : undefined}
+                        className={fieldClass} dir="ltr" inputMode="decimal" placeholder="0.00"
+                        value={discountInput} disabled={busy}
+                        onChange={event => {setDiscountInput(event.target.value); setError("");}}/>
+                    </label>
+                    {!discountAmountValid && <p id="settlement-discount-amount-error" role="alert" className="text-xs text-destructive">
+                      أدخل خصمًا صحيحًا لا يتجاوز المستحق للتصفية أو مديونية العميل الحالية.
+                    </p>}
+                    {discountCents !== null && discountCents > 0 && <label className="block space-y-1.5 text-sm font-semibold">
+                      <span>سبب الخصم *</span>
+                      <input aria-label="سبب الخصم" aria-invalid={!discountReasonValid}
+                        aria-describedby={!discountReasonValid ? "settlement-discount-reason-error" : undefined}
+                        className={fieldClass} value={discountReason}
+                        maxLength={1000} disabled={busy} placeholder="مثال: خصم متفق عليه مع العميل"
+                        onChange={event => {setDiscountReason(event.target.value); setError("");}}/>
+                    </label>}
+                    {discountCents !== null && discountCents > 0 && !discountReasonValid && <p
+                      id="settlement-discount-reason-error" role="alert" className="text-xs text-destructive">
+                      اكتب سبب الخصم قبل التأكيد (3 أحرف على الأقل).
+                    </p>}
+                    <p className="text-xs text-muted-foreground">الخصم يقلل المديونية، ولا يُعتبر تحصيلًا نقديًا.</p>
+                  </div>}
+                  {due === 0 ? <p className="rounded-lg border bg-muted/20 p-3 text-sm leading-6">
+                    لا يوجد مبلغ مطلوب تحصيله الآن. يمكنك حفظ مراجعة الحساب بدون تحصيل، ولن يُنشأ إيصال قبض جديد.
+                  </p> : <div className="space-y-3 rounded-lg border p-3">
+                    <label className="block space-y-1.5 text-sm font-semibold">
+                      <span>المبلغ المستلم من العميل الآن</span>
+                      <input aria-label="مبلغ التصفية المستلم" className={fieldClass} dir="ltr" inputMode="decimal"
+                        placeholder="اكتب المبلغ المدفوع فعليًا" value={amount} disabled={busy}
+                        onChange={event => {setAmountInput(event.target.value); setError("");}}/>
+                    </label>
                     <div className="flex flex-wrap gap-2">
                       <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => setAmountInput('0.00')}>بدون تحصيل الآن</Button>
                       <Button type="button" variant="outline" size="sm" disabled={busy || !allowedDiscount}
                         onClick={() => setAmountInput(centsToMoney(afterDiscount ?? 0))}>دفع كامل المتبقي بعد الخصم</Button>
                     </div>
-                  </div>
-                  {amountInput !== null && (cents === null || (afterDiscount !== null && cents > afterDiscount)) &&
-                    <p role="alert" className="text-xs text-destructive">أدخل مبلغًا صحيحًا لا يتجاوز المستحق بعد الخصم، أو اختر صفرًا بدون تحصيل.</p>}
-                </div>}
+                    {amountInput !== null && (cents === null || (afterDiscount !== null && cents > afterDiscount)) &&
+                      <p role="alert" className="text-xs text-destructive">أدخل مبلغًا صحيحًا لا يتجاوز المستحق بعد الخصم، أو اختر صفرًا بدون تحصيل.</p>}
+                    {cents !== null && cents > 0 && afterDiscount !== null && cents <= afterDiscount &&
+                      <AccountPaymentFields value={payment} onChange={setPayment} disabled={busy}/>}
+                    <p className="text-xs text-muted-foreground">لن يُسجَّل أي مبلغ قبل تأكيد العملية.</p>
+                  </div>}
+                </div>
                 {cents === 0 && <p className="text-xs text-muted-foreground">
                   {discountCents !== null && discountCents > 0
-                    ? "سيُسجّل الخصم فقط دون أي مبلغ محصّل الآن."
+                    ? "سيُسجّل الخصم فقط، دون إنشاء إيصال تحصيل."
                     : "حفظ المراجعة بدون تحصيل لا يسدد المديونية؛ الرصيد المتبقي يظل مستحقًا."}
                 </p>}
-                {cents !== null && cents > 0 && afterDiscount !== null && cents <= afterDiscount &&
-                  <AccountPaymentFields value={payment} onChange={setPayment} disabled={busy}/>} 
-                {afterDiscount !== null && cents !== null && due !== null && cents <= afterDiscount &&
-                  <p role="status" className="rounded-lg bg-muted/40 p-3 text-sm leading-6">
-                    المتبقي بعد الخصم والتحصيل: <strong><MoneyAmount amount={centsToMoney(afterDiscount - cents)}/></strong>
-                    <span className="ms-2 font-semibold">
-                      {afterDiscount - cents > 0 ? "— المديونية المتبقية محفوظة" : "— تمت تسوية الشغل المشمول"}
-                    </span>
-                  </p>}
+                <section aria-label="ملخص التصفية المتوقع" className="space-y-2 rounded-lg bg-muted/40 p-3 text-sm">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground">الخصم المقترح</span>
+                      <strong>{discountAmountValid && discountCents !== null ? <MoneyAmount amount={centsToMoney(discountCents)}/> : "—"}</strong>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground">التحصيل المقترح</span>
+                      <strong>{cents !== null ? <MoneyAmount amount={centsToMoney(cents)}/> : "لم يُحدد بعد"}</strong>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 border-t pt-2">
+                    <span className="font-semibold">المتبقي المتوقع بعد الخصم والتحصيل</span>
+                    <strong className="text-lg text-primary">
+                      {projectedRemainder !== null ? <MoneyAmount amount={centsToMoney(projectedRemainder)}/> : "—"}
+                    </strong>
+                  </div>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    نتيجة تقديرية فقط، لم تُسجَّل بعد. الشغل غير المستلّم خارج هذه التصفية.
+                  </p>
+                </section>
                 <details className="border-t pt-3 text-sm">
                   <summary className="cursor-pointer font-semibold text-muted-foreground">إضافة ملاحظة (اختياري)</summary>
                   <textarea aria-label="ملاحظة التصفية" className={fieldClass + " mt-3 min-h-20 py-2"} value={note}
@@ -353,12 +378,14 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
           </details>
         </>}
         </div>
-        {canConfirm && data?.hasWork && validDate && <footer aria-label="إجراءات التصفية" className="shrink-0 border-t bg-card px-4 py-3 sm:px-5">
+        {canConfirm && data?.hasWork && validDate && <footer aria-label="إجراءات التصفية" className="sticky bottom-0 z-10 shrink-0 border-t bg-card px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] sm:px-5">
           <Button type="button" className="w-full" disabled={!valid} onClick={() => void confirm()}>
             {busy ? "جاري التسجيل..." : cents === 0
               ? discountCents !== null && discountCents > 0 ? "حفظ الخصم بدون تحصيل" : "حفظ مراجعة الحساب بدون تحصيل"
               : cents !== null && cents > 0 && afterDiscount !== null && cents <= afterDiscount
-                ? "تأكيد تحصيل " + formatEgp(centsToMoney(cents)) : "تأكيد التصفية"}
+                ? discountCents !== null && discountCents > 0 ? "تأكيد الخصم والتحصيل"
+                  : "تأكيد تحصيل " + formatEgp(centsToMoney(cents))
+                : "تأكيد التصفية"}
           </Button>
         </footer>}
       </section>
