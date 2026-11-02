@@ -50,7 +50,7 @@ describe("Finance refunds within the account workspace", () => {
   it("keeps the finance title only in the page, removes redundant header labels and adds space below tabs", async () => {
     permissions = ["finance.balances.view", "finance.ledger.view", "finance.refunds.view"];
     visit("/finance?customerId=7");
-    const banner = screen.getByRole("banner");
+    const banner = await screen.findByRole("banner");
     expect(within(banner).queryByText("مساحة العمل")).toBeNull();
     expect(within(banner).queryByText("الحسابات")).toBeNull();
     expect(screen.getByRole("heading", {level: 1, name: "حسابات العملاء"})).toBeTruthy();
