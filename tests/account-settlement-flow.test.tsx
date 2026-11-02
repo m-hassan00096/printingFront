@@ -9,6 +9,7 @@ import { AccountSettlementPanel } from "@/features/finance/components/account-se
 import { AccountCollectionDialog } from "@/features/finance/components/account-collection-dialog";
 import { renderAccountSettlementEvidence } from "@/features/finance/lib/account-settlement-print";
 import { cairoToday } from "@/features/finance/lib/account-display";
+import { formatCollectionDate } from "@/features/collections/lib/collection-date-format";
 import type { AccountSettlementPreview, AccountSettlementRecord } from "@/features/finance/types/account-settlement.types";
 
 const original = apiClient.defaults.adapter;
@@ -183,45 +184,49 @@ describe("Financial settlement workspace", () => {
     await user.click(screen.getByRole("button", {name: "تصفية جديدة"}));
     expect(await screen.findByRole("region", {name: "إتمام التصفية"})).toBeTruthy();
   });
-  it("keeps the date compact and changeable without opening another payment step", async () => {
-    visit(); await openCreate(); const user = userEvent.setup();
-    const editDate = await screen.findByRole("button", {name: "تغيير التاريخ"});
-    expect(editDate.getAttribute("aria-expanded")).toBe("false");
-    expect(screen.queryByRole("group", {name: "تعديل تاريخ الشغل"})).toBeNull();
-    expect(await screen.findByText("المستحق على العميل")).toBeTruthy();
-    expect(screen.getByText("الدفعات حتى اليوم")).toBeTruthy();
-    expect(screen.getByRole<HTMLInputElement>("textbox", {name: "مبلغ التصفية المستلم"}).value).toBe("");
-    await user.click(editDate);
-    expect(editDate.getAttribute("aria-expanded")).toBe("true");
-    const floatingPanel = screen.getByRole("group", {name: "تعديل تاريخ الشغل"});
-    expect(floatingPanel.className).toContain("absolute");
-    expect(screen.getByRole("button", {name: "الشغل المستلّم حتى"})).toBeTruthy();
-    // The floating control does not insert a new in-flow row above the balance.
-    expect(floatingPanel.closest(".space-y-3")).toBeTruthy();
-    await user.click(screen.getByText("المستحق على العميل"));
-    expect(editDate.getAttribute("aria-expanded")).toBe("false");
-    expect(screen.queryByRole("group", {name: "تعديل تاريخ الشغل"})).toBeNull();
+  it("shows a labeled date field defaulting to today's Cairo date, within the financial layout", async () => {
+    visit(); await openCreate();
+    const dialog = screen.getByRole("dialog", {name: "تصفية حساب جديدة"});
+    const dateField = within(dialog).getByRole("button", {name: "الشغل المستلّم حتى"});
+    expect(dateField.textContent).toContain(formatCollectionDate(cairoToday()));
+    expect(dateField.getAttribute("aria-expanded")).toBe("false");
+    expect(within(dialog).queryByRole("button", {name: "تغيير التاريخ"})).toBeNull();
+    expect(within(dialog).getByText("الدفعات محسوبة حتى اليوم")).toBeTruthy();
+    const balanceSection = within(dialog).getByText("المستحق على العميل").parentElement;
+    expect(balanceSection?.className).toContain("bg-primary/5");
+    expect(within(dialog).getByRole("region", {name: "تسجيل التصفية"})).toBeTruthy();
+    const summary = within(dialog).getByRole("region", {name: "ملخص التصفية المتوقع"});
+    expect(summary.className).toContain("bg-muted/40");
+    expect(summary.className).toContain("border");
     expect(posts()).toHaveLength(0);
   });
-  it("keeps the calendar usable inside the floating date control and resets draft values when changed", async () => {
+
+  it("uses the date field's calendar, resets draft entries and restores today's default for a new settlement", async () => {
     visit(); await openCreate(); const user = userEvent.setup();
     await user.type(screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"}), "100");
     await user.click(screen.getByRole("button", {name: "إضافة خصم"}));
     const discount = screen.getByRole<HTMLInputElement>("textbox", {name: "خصم ثابت"});
     await user.clear(discount); await user.type(discount, "50");
     await user.type(screen.getByRole("textbox", {name: "سبب الخصم"}), "خصم متفق عليه");
-    await user.click(screen.getByRole("button", {name: "تغيير التاريخ"}));
-    await user.click(screen.getByRole("button", {name: "الشغل المستلّم حتى"}));
+    const dateField = screen.getByRole("button", {name: "الشغل المستلّم حتى"});
+    expect(dateField.textContent).toContain(formatCollectionDate(cairoToday()));
+    await user.click(dateField);
     expect(screen.getByRole("dialog", {name: "اختيار الشغل المستلّم حتى"})).toBeTruthy();
     const prev = new Date(cairoToday() + "T12:00:00Z");
     prev.setUTCDate(prev.getUTCDate() - 1);
     const previousDay = prev.toISOString().slice(0, 10);
     await user.click(screen.getByRole("gridcell", {name: previousDay}));
-    expect(screen.queryByRole("group", {name: "تعديل تاريخ الشغل"})).toBeNull();
-    expect(screen.getByRole("button", {name: "تغيير التاريخ"}).getAttribute("aria-expanded")).toBe("false");
+    expect(dateField.textContent).toContain(formatCollectionDate(previousDay));
     expect(screen.queryByRole("textbox", {name: "خصم ثابت"})).toBeNull();
     expect(screen.getByRole<HTMLInputElement>("textbox", {name: "مبلغ التصفية المستلم"}).value).toBe("");
     expect(posts()).toHaveLength(0);
+    await user.type(screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"}), "100");
+    await user.click(screen.getByRole("button", {name: "تأكيد تحصيل 100.00 ج.م"}));
+    await screen.findByRole("region", {name: "نتيجة التصفية"});
+    expect(posts()[0].body.dateTo).toBe(previousDay);
+    await user.click(screen.getByRole("button", {name: "التصفيات السابقة"}));
+    await user.click(screen.getByRole("button", {name: "تصفية جديدة"}));
+    expect(screen.getByRole("button", {name: "الشغل المستلّم حتى"}).textContent).toContain(formatCollectionDate(cairoToday()));
   });
 
   it("gives the discount input full width before a positive value reveals the reason", async () => {
