@@ -44,7 +44,7 @@ describe("Read-only delivered work statement", () => {
   it("loads the default month when its tab opens and never creates a payment or settlement", async () => {
     visit();
     const user = userEvent.setup();
-    const tab = await screen.findByRole("tab", {name: "الشغل المسلَّم"});
+    const tab = await screen.findByRole("tab", {name: "الشغل المستلّم"});
     expect(calls.some(call => call.url.endsWith("/settlement"))).toBe(false);
     await user.click(tab);
     const panel = screen.getByRole("region", {name: "كشف الشغل المسلّم للعميل"});
@@ -73,8 +73,8 @@ describe("Read-only delivered work statement", () => {
     permissions = ["finance.balances.view"];
     visit("customerId=7&view=delivered");
     await screen.findByRole("region", {name: "بيانات حساب العميل"});
-    expect(screen.queryByRole("tab", {name: "الشغل المسلَّم"})).toBeNull();
-    expect(screen.queryByRole("tab", {name: "التصفية المالية"})).toBeNull();
+    expect(screen.queryByRole("tab", {name: "الشغل المستلّم"})).toBeNull();
+    expect(screen.queryByRole("tab", {name: "تصفية الحساب"})).toBeNull();
     expect(calls.some(call => call.url.endsWith("/settlement") || call.url.includes("/settlements"))).toBe(false);
   });
 });
