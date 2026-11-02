@@ -38,7 +38,7 @@ function dateCell(column: number, row: number, value: string): string {
 function tableRow(row: number, cells: string[], height = 25): string {
   return '<row r="' + row + '" ht="' + height + '" customHeight="1">' + cells.join('') + '</row>';
 }
-function stylesXml(): string {
+export function stylesXml(): string {
   const formats = '<numFmts count="3"><numFmt numFmtId="' + NUM_FMT + '" formatCode="' + xmlText(moneyFormat) + '"/><numFmt numFmtId="' + UNIT_FMT + '" formatCode="' + xmlText(unitFormat) + '"/><numFmt numFmtId="' + DATE_FMT + '" formatCode="dd/mm/yyyy"/></numFmts>';
   const font = (color: string, size: number, bold: boolean) => '<font>' + (bold ? '<b/>' : '') + '<sz val="' + size + '"/><color rgb="' + color + '"/><name val="Arial"/><family val="2"/></font>';
   const fonts = '<fonts count="4">' + font('FF263348', 11, false) + font('FFFFFFFF', 18, true) + font('FFFFFFFF', 11, true) + font('FF163B67', 11, true) + '</fonts>';
@@ -109,7 +109,7 @@ function sheetXml(statement: CustomerSettlement): string {
     '<pageMargins left="0.3" right="0.3" top="0.45" bottom="0.45" header="0.2" footer="0.2"/>' +
     '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>';
 }
-function zipStored(files: Array<{name: string; content: string}>): Uint8Array {
+export function zipStored(files: Array<{name: string; content: string}>): Uint8Array {
   const encoder = new TextEncoder();
   const entries = files.map(file => {
     const name = encoder.encode(file.name), data = encoder.encode(file.content);
