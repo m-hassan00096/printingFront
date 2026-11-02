@@ -124,6 +124,32 @@ describe("Finance refunds within the account workspace", () => {
     expect(screen.queryByRole("button", {name: "رد رصيد للعميل"})).toBeNull();
     expect(screen.getByRole("button", {name: "عرض ردود رصيد العميل"})).toBeTruthy();
   });
+  it("shows account and refund tabs as text with an underline only on the active tab", async () => {
+    permissions = ["finance.balances.view", "finance.ledger.view", "finance.refunds.view"];
+    visit("/finance?customerId=7");
+    const user = userEvent.setup();
+    const tabs = await screen.findByRole("tablist", {name: "أقسام حسابات العملاء"});
+    const accounts = within(tabs).getByRole("tab", {name: "حسابات العملاء"});
+    const refunds = within(tabs).getByRole("tab", {name: "سجل الردود العام"});
+    expect(tabs.className).toContain("border-b");
+    expect(accounts.className).toContain("border-primary");
+    expect(accounts.className).toContain("text-primary");
+    expect(accounts.className).not.toContain("bg-primary");
+    expect(refunds.className).toContain("border-transparent");
+    expect(refunds.getAttribute("aria-selected")).toBe("false");
+
+    await user.click(refunds);
+    expect(refunds.getAttribute("aria-selected")).toBe("true");
+    expect(refunds.className).toContain("border-primary");
+    expect(refunds.className).toContain("text-primary");
+    expect(refunds.className).not.toContain("bg-primary");
+    expect(accounts.className).toContain("border-transparent");
+
+    await user.click(accounts);
+    expect(accounts.getAttribute("aria-selected")).toBe("true");
+    expect(accounts.className).toContain("border-primary");
+    expect(refunds.className).toContain("border-transparent");
+  });
   it("separates customer refunds from the global register and preserves customer context", async () => {
     records = [...records, {...originalRecord, id: 92, refundNumber: "REF-2026-00092", customerId: 8, customerName: "مؤسسة النور"}];
     permissions = ["finance.balances.view", "finance.ledger.view", "finance.refunds.view"];
