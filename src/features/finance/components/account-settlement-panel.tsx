@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, History, Printer, RefreshCw, TriangleAlert } from "lucide-react";
+import { CheckCircle2, FileSpreadsheet, History, Printer, RefreshCw, TriangleAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
@@ -16,6 +16,7 @@ import type { AccountSettlementInput, AccountSettlementRecord } from "../types/a
 import { AccountPaymentFields, type AccountPaymentValue } from "./account-payment-fields";
 import { absoluteAmount, balanceDescription, cairoToday } from "../lib/account-display";
 import { renderAccountSettlementEvidence } from "../lib/account-settlement-print";
+import { exportAccountSettlementXlsx } from "../lib/account-settlement-xlsx";
 
 export function AccountSettlementPanel({customerId, canConfirm, canViewCollections, canDiscount = false}: {
   customerId: number; canConfirm: boolean; canViewCollections: boolean; canDiscount?: boolean;
@@ -102,6 +103,17 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
       popup.document.close();
     } catch (cause) {popup.close(); toast.error(getApiErrorMessage(cause, "تعذّر تحميل إثبات التصفية."));}
   }
+  async function exportExcelRecord() {
+    if (!record) return;
+    try {
+      // Preserve original settlement evidence, refresh only the current review flag.
+      const latest = await getAccountSettlement(customerId, record.id);
+      setRecord(latest);
+      exportAccountSettlementXlsx(latest);
+    } catch (cause) {
+      toast.error(getApiErrorMessage(cause, "تعذّر تصدير إثبات التصفية."));
+    }
+  }
   function startNew() {
     setRecord(null); setMode("new"); setAmountInput(null);
     setPayment({method: 0, destination: ""}); setNote("");
@@ -162,6 +174,9 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
       </p>
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" onClick={() => void printRecord()}><Printer className="size-4"/> طباعة إثبات التصفية</Button>
+        <Button variant="outline" onClick={() => void exportExcelRecord()}>
+          <FileSpreadsheet className="size-4"/> تصدير إثبات Excel
+        </Button>
         {record.collectionId && canViewCollections && <Button variant="outline" asChild><Link to={"/collections?receiptId=" + record.collectionId}>إيصال التحصيل {record.receiptNumber}</Link></Button>}
         {!record.collectionId && <span className="self-center text-sm text-muted-foreground">لم يُسجّل تحصيل جديد في هذه العملية.</span>}
       </div>
