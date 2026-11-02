@@ -38,11 +38,15 @@ export function printSettlement(statement: CustomerSettlement): boolean {
     escapeHtml(statement.customerName) + '</p><p class="muted">الفترة من ' +
     escapeHtml(formatCollectionDate(statement.dateFrom)) + ' إلى ' +
     escapeHtml(formatCollectionDate(statement.dateTo)) + '</p>' +
+    (statement.settlementOn ? '<p class="muted">تاريخ تنفيذ التصفية: ' +
+      escapeHtml(formatCollectionDate(statement.settlementOn)) + '</p>' : '') +
     '<div class="summary"><div>رصيد سابق<br><span class="total">' +
     escapeHtml(statement.openingBalance) + '</span></div>' +
     '<div>الشغل المستلم<br><span class="total">' + escapeHtml(statement.deliveredTotal) +
     '</span></div><div>صافي المدفوعات<br><span class="total">' +
-    escapeHtml(statement.paymentsTotal) + '</span></div><div>المتبقي<br><span class="total">' +
+    escapeHtml(statement.paymentsTotal) + '</span></div><div>الخصومات<br><span class="total">' +
+    escapeHtml(statement.discountsTotal ?? '0.00') +
+    '</span></div><div>المتبقي<br><span class="total">' +
     escapeHtml(statement.closingBalance) + '</span></div></div>' +
     '<table><thead><tr>' + columns.map(label => '<th>' + escapeHtml(label) + '</th>').join("") +
     '</tr></thead><tbody>' + rows + '</tbody></table>' +

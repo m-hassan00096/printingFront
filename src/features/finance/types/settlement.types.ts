@@ -1,6 +1,7 @@
 export type SettlementLineKind =
   | "delivered_item" | "delivery_cancellation"
-  | "collection" | "collection_reversal" | "refund" | "opening_balance";
+  | "collection" | "collection_reversal" | "refund" | "opening_balance"
+  | "settlement_discount";
 
 export type SettlementLine = {
   key: string;
@@ -26,6 +27,8 @@ export type CustomerSettlement = {
   openingBalance: string;
   deliveredTotal: string;
   paymentsTotal: string;
+  discountsTotal?: string;
+  settlementOn?: string;
   adjustmentsTotal: string;
   closingBalance: string;
   financeBalanceAsOf: string;
@@ -34,3 +37,43 @@ export type CustomerSettlement = {
 };
 
 export type SettlementPeriod = { from: string; to: string };
+
+export type SettlementRecordSummary = {
+  id: number;
+  number: string;
+  dateFrom: string;
+  dateTo: string;
+  settledOn: string;
+  createdAt: string;
+  createdByName: string | null;
+  balanceBefore: string;
+  balanceAfter: string;
+  discountAmount: string;
+  collectedAmount: string;
+  collectionReversed: boolean;
+  status: "settled" | "partial" | "unpaid" | "credit";
+};
+
+export type SettlementRecord = SettlementRecordSummary & {
+  note: string | null;
+  discountReason: string | null;
+  collectionId: number | null;
+  statement: CustomerSettlement;
+};
+
+export type SettlementRecordsPage = {
+  settlements: SettlementRecordSummary[];
+  nextDateFrom: string | null;
+  pagination: { currentPage: number; lastPage: number; perPage: number; total: number };
+};
+
+export type CreateSettlementRecordPayload = {
+  dateFrom: string;
+  dateTo: string;
+  discountAmount: string;
+  discountReason?: string;
+  collectedAmount: string;
+  paymentMethod?: 0 | 1 | 2;
+  paymentDestinationId?: number;
+  note?: string;
+};

@@ -114,6 +114,10 @@ function sheetXml(statement: CustomerSettlement): string {
   merge('A3', 'H3');
   rows.push(tableRow(4, [textCell(0, 4, 'رقم الهاتف: ' + (statement.customerPhone || '—'), 0)], 24));
   merge('A4', 'H4');
+  if (statement.settlementOn) {
+    rows.push(tableRow(5, [textCell(0, 5, 'تاريخ تنفيذ التصفية: ' + statement.settlementOn, 0)], 24));
+    merge('A5', 'H5');
+  }
 
   const cards: Array<{col: number; title: string; value: string}> = [
     { col: 0, title: 'رصيد أول الفترة', value: statement.openingBalance },
@@ -160,6 +164,7 @@ function sheetXml(statement: CustomerSettlement): string {
   };
   totalRow('إجمالي الشغل المستلم خلال الفترة', statement.deliveredTotal);
   totalRow('صافي التحصيلات خلال الفترة', statement.paymentsTotal);
+  totalRow('خصومات التصفية خلال الفترة', statement.discountsTotal ?? '0.00');
   if (Number(statement.adjustmentsTotal) !== 0) {
     totalRow('تسويات الرصيد الافتتاحي داخل الفترة', statement.adjustmentsTotal);
   }

@@ -28,12 +28,14 @@ const movementTypes = [
   { value: "4", label: "عكس تحصيل" },
   { value: "5", label: "رد رصيد دائن" },
   { value: "6", label: "رصيد افتتاحي" },
+  { value: "7", label: "خصم تصفية حساب" },
 ];
 
 export function FinancePage() {
   const permissions = useCurrentUser().data?.permissions ?? [];
   const canBalance = permissions.includes("finance.balances.view");
   const canLedger = permissions.includes("finance.ledger.view");
+  const canSettlement = canLedger || permissions.includes("finance.settlements.view");
   const canOpening = permissions.includes("finance.opening_balances.create");
   const canRefund = permissions.includes("finance.refunds.create");
   const canRefundHistory = permissions.includes("finance.refunds.view");
@@ -239,9 +241,9 @@ export function FinancePage() {
             </div>
           </div>
           <p className="mt-2 text-xs text-foreground/60">{copy.balanceSource}</p>
-          {(canLedger||canRefund||canRefundHistory||(canOpening&&openingStatus.isSuccess&&!hasOpening))&&
+          {(canSettlement||canRefund||canRefundHistory||(canOpening&&openingStatus.isSuccess&&!hasOpening))&&
             <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3" aria-label={copy.accountActions}>
-              {canLedger&&<Button size="sm" type="button" variant="outline" aria-expanded={showSettlement}
+              {canSettlement&&<Button size="sm" type="button" variant="outline" aria-expanded={showSettlement}
                 onClick={()=>{setShowSettlement(value=>!value);setHistoryExpanded(false);}}>
                 <FileText className="size-4"/> {showSettlement?"العودة لكشف الحساب":"تصفية حساب"}
               </Button>}
@@ -274,7 +276,7 @@ export function FinancePage() {
         {!canBalance && canLedger && ledger.isError &&
           <ErrorState error={ledger.error} retry={() => void ledger.refetch()}/>}
         {canRefundHistory&&historyExpanded&&<RefundsPanel key={customerId} customerId={customerId}/>}
-        {canLedger&&showSettlement&&<CustomerSettlementPanel key={customerId} customerId={customerId}/>}
+        {canSettlement&&showSettlement&&<CustomerSettlementPanel key={customerId} customerId={customerId}/>}
         {canLedger && !historyExpanded && !showSettlement && <section aria-label="كشف حساب العميل" className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <History className="size-4 text-primary"/>
