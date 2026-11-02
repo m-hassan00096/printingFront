@@ -186,9 +186,9 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
       </div>
     </section> : mode === "new" ? <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-2 sm:p-4"
-      onMouseDown={event => {if (event.target === event.currentTarget && !busy) setMode("history");}}>
+      >
       <section role="dialog" aria-modal="true" aria-label="تصفية حساب جديدة" dir="rtl"
-        className="flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-card shadow-2xl sm:max-h-[92vh]"
+        className="flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border bg-card shadow-2xl sm:max-h-[92vh]"
         onKeyDown={event => {if (event.key === "Escape" && !busy) setMode("history");}}>
         <header className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
           <div className="min-w-0">
@@ -197,22 +197,22 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
           </div>
           <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => setMode("history")}>إغلاق</Button>
         </header>
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3 sm:px-6 sm:py-4">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3 sm:px-6">
           {error && <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
             {error}
             {stale && <Button variant="outline" className="ms-3" size="sm"
               onClick={() => void refreshPreview()}>تحديث المراجعة</Button>}
           </div>}
-          <div className="mx-auto flex w-full max-w-3xl flex-wrap items-end justify-between gap-3 border-b border-border/60 pb-3">
-            <div className="w-full max-w-60">
+          <div className="mx-auto flex w-full max-w-[820px] flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
+            <div className="w-full max-w-56">
               <CreatedDatePicker label="الشغل المستلّم حتى" value={cutoff} max={cairoToday()} disabled={busy}
                 onChange={value => {
                   if (busy) return;
-                  setCutoff(value); setAmountInput(null); setDiscountInput('0.00');
-                  setDiscountReason(''); setDiscountOpen(false); setStale(false); setError("");
+                  setCutoff(value); setAmountInput(null); setPayment({method: 0, destination: ""});
+                  setDiscountInput('0.00'); setDiscountReason(''); setDiscountOpen(false); setStale(false); setError("");
                 }}/>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="text-xs text-muted-foreground">الدفعات محسوبة حتى اليوم</span>
               <Button variant="ghost" size="sm" disabled={busy || preview.isFetching || !validDate}
                 onClick={() => void refreshPreview()}>
@@ -224,18 +224,20 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
             : preview.isPending ? <LoadingState/>
             : preview.isError ? <ErrorState error={preview.error} retry={() => void preview.refetch()}/>
             : data && <>
-              <section className="mx-auto w-full max-w-3xl space-y-4" aria-label="إتمام التصفية">
-                <div className="space-y-1 rounded-xl border border-primary/15 bg-primary/5 px-4 py-4 text-center sm:px-6">
-                  <p className="text-sm text-muted-foreground">
-                    {due === 0 && data.balanceBefore.startsWith("-") ? "رصيد دائن للعميل ضمن التصفية" : "المستحق على العميل"}
-                  </p>
-                  <p className={"text-3xl font-extrabold tabular-nums sm:text-4xl " +
-                    (due === 0 && data.balanceBefore.startsWith("-") ? "text-emerald-700" : "text-primary")}>
-                    <MoneyAmount amount={due === 0 && data.balanceBefore.startsWith("-")
-                      ? absoluteAmount(data.balanceBefore) : data.dueNow}/>
-                  </p>
+              <section className="mx-auto w-full max-w-[820px] space-y-3" aria-label="إتمام التصفية">
+                <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {due === 0 && data.balanceBefore.startsWith("-") ? "رصيد دائن للعميل ضمن التصفية" : "المستحق على العميل"}
+                    </p>
+                    <p className={"text-2xl font-extrabold tabular-nums sm:text-3xl " +
+                      (due === 0 && data.balanceBefore.startsWith("-") ? "text-emerald-700" : "text-primary")}>
+                      <MoneyAmount amount={due === 0 && data.balanceBefore.startsWith("-")
+                        ? absoluteAmount(data.balanceBefore) : data.dueNow}/>
+                    </p>
+                  </div>
                   {data.outsideBalance !== "0.00" && data.outsideBalance !== "0" && <p
-                    className="mt-2 text-xs text-muted-foreground">
+                    className="mt-1 text-xs text-muted-foreground">
                     {balanceDescription(data.outsideBalance)} خارج هذه التصفية: <MoneyAmount amount={absoluteAmount(data.outsideBalance)}/>
                   </p>}
                 </div>
@@ -246,20 +248,19 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
                     لا يوجد شغل مستلّم أو رصيد افتتاحي لتصفيته.
                   </p>
                   : <>
-                    <section aria-label="تسجيل التصفية" className="space-y-3">
+                    <section aria-label="تسجيل التصفية" className="space-y-2.5">
                       <h3 className="text-sm font-bold text-foreground">تسجيل التصفية</h3>
                     {due === 0 ? <p className="text-center text-sm text-muted-foreground">
                       لا يوجد مبلغ مطلوب الآن. يمكنك حفظ مراجعة الحساب بدون تحصيل أو إيصال قبض جديد.
-                    </p> : <div className={cents !== null && cents > 0 && afterDiscount !== null && cents <= afterDiscount
-                      ? "grid items-start gap-4 md:grid-cols-2" : "space-y-2"}>
-                      <div className="space-y-2">
+                    </p> : <div className="grid items-start gap-3 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+                      <div className="min-w-0 space-y-2">
                         <label className="block space-y-1.5 text-sm font-semibold">
                           <span>المبلغ المستلم الآن</span>
                           <input aria-label="مبلغ التصفية المستلم" className={fieldClass} dir="ltr" inputMode="decimal"
                             placeholder="اكتب المبلغ المدفوع فعليًا" value={amount} disabled={busy}
                             onChange={event => {setAmountInput(event.target.value); setError("");}}/>
                         </label>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                           <Button type="button" variant="outline" size="sm" disabled={busy || !allowedDiscount}
                             onClick={() => setAmountInput(centsToMoney(afterDiscount ?? 0))}>دفع كامل المتبقي بعد الخصم</Button>
                           <Button type="button" variant="ghost" size="sm" disabled={busy}
@@ -270,16 +271,17 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
                             أدخل مبلغًا صحيحًا لا يتجاوز المستحق بعد الخصم.
                           </p>}
                       </div>
-                      {cents !== null && cents > 0 && afterDiscount !== null && cents <= afterDiscount &&
-                        <AccountPaymentFields value={payment} onChange={setPayment} disabled={busy}/>}
+                      <div className="min-w-0">
+                        <AccountPaymentFields value={payment} onChange={setPayment} disabled={busy || cents === 0} compact/>
+                      </div>
                     </div>}
                     {canDiscount && due !== null && due > 0 && <>
                       <button type="button" aria-expanded={discountOpen} aria-controls="settlement-discount-fields"
                         disabled={busy} onClick={() => {
                           if (discountOpen) {setDiscountInput('0.00'); setDiscountReason('');}
                           setDiscountOpen(!discountOpen); setError("");
-                        }} className="flex w-full items-center justify-between gap-3 border-t border-border/70 py-3 text-sm font-semibold text-foreground hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-                        <span>{discountOpen ? "إلغاء الخصم" : "إضافة خصم"}</span>
+                        }} className="flex w-full items-center justify-between gap-3 border-t border-border/70 py-2 text-sm font-medium text-foreground hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                        <span>{discountOpen ? (discountCents !== null && discountCents > 0 ? "إلغاء الخصم" : "إخفاء الخصم") : "إضافة خصم"}</span>
                         {discountOpen ? <ChevronDown className="size-4 rotate-180" aria-hidden="true"/> :
                           <Plus className="size-4" aria-hidden="true"/>}
                       </button>
@@ -316,17 +318,17 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
                       </div>}
                     </>}
                     </section>
-                    <section aria-label="ملخص التصفية المتوقع"
-                      className="grid gap-2 rounded-xl border border-border/70 bg-muted/40 px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                    <section aria-label="ملخص التصفية المتوقع" aria-live="polite"
+                      className="grid gap-x-4 gap-y-1 rounded-xl border border-border/70 bg-muted/40 px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
                       <div>
                         <p className="text-sm font-semibold">المتبقي المتوقع</p>
-                        {discountCents !== null && discountCents > 0 && <p className="mt-1 text-xs text-muted-foreground">
-                          خصم <MoneyAmount amount={centsToMoney(discountCents)}/> ·
-                          تحصيل {cents !== null ? <MoneyAmount amount={centsToMoney(cents)}/> : "غير محدد"}
+                        {projectedRemainder !== null && cents !== null && <p className="mt-1 text-xs text-muted-foreground">
+                          تحصيل <MoneyAmount amount={centsToMoney(cents)}/>
+                          {discountCents !== null && discountCents > 0 && <> · خصم <MoneyAmount amount={centsToMoney(discountCents)}/></>}
                         </p>}
                       </div>
                       <strong className={projectedRemainder !== null
-                        ? "text-xl font-bold text-primary" : "text-sm font-medium text-muted-foreground"}>
+                        ? "text-xl font-bold text-foreground" : "text-sm font-medium text-muted-foreground"}>
                         {projectedRemainder !== null ? <MoneyAmount amount={centsToMoney(projectedRemainder)}/>
                           : !discountAmountValid ? "راجع قيمة الخصم"
                           : cents === null ? "أدخل المبلغ أو اختر «بدون تحصيل»" : "راجع مبلغ التحصيل"}
@@ -341,15 +343,15 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
                         : "حفظ المراجعة بدون تحصيل لا يسدد المديونية؛ الرصيد المتبقي يظل مستحقًا."}
                     </p>}
                     <details className="border-t pt-2 text-sm">
-                      <summary className="cursor-pointer text-muted-foreground">إضافة ملاحظة (اختياري)</summary>
-                      <textarea aria-label="ملاحظة التصفية" className={fieldClass + " mt-2 min-h-20 py-2"}
+                      <summary className="cursor-pointer font-medium text-muted-foreground">إضافة ملاحظة (اختياري)</summary>
+                      <textarea aria-label="ملاحظة التصفية" className={fieldClass + " mt-2 min-h-16 py-2"}
                         value={note} maxLength={4000} disabled={busy} onChange={event => setNote(event.target.value)}/>
                     </details>
                   </>}
               </section>
-              <details className="mx-auto w-full max-w-3xl border-t pt-3 text-sm">
+              <details className="mx-auto w-full max-w-[820px] border-t pt-2 text-sm">
                 <summary className="cursor-pointer font-semibold text-primary">عرض تفاصيل الحساب والشغل</summary>
-                <div className="mt-3 space-y-4 border-t pt-3">
+                <div className="mt-3 space-y-3 border-t pt-3">
                   <p className="font-semibold">كيف اتحسب المبلغ المتبقي؟</p>
                   <dl className="space-y-2">
                     {[
@@ -400,7 +402,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
         </div>
         {canConfirm && data?.hasWork && validDate && <footer aria-label="إجراءات التصفية"
           className="shrink-0 border-t bg-card px-4 py-3 sm:px-6">
-          <Button type="button" className="mx-auto w-full max-w-3xl" disabled={!valid} onClick={() => void confirm()}>
+          <Button type="button" className="mx-auto w-full max-w-[820px]" disabled={!valid} onClick={() => void confirm()}>
             {busy ? "جاري التسجيل..." : cents === 0
               ? discountCents !== null && discountCents > 0 ? "حفظ الخصم بدون تحصيل" : "حفظ مراجعة الحساب بدون تحصيل"
               : cents !== null && cents > 0 && afterDiscount !== null && cents <= afterDiscount
