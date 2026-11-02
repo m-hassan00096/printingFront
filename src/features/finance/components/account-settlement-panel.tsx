@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ChevronDown, FileSpreadsheet, History, Plus, Printer, RefreshCw, TriangleAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
 import { formatEgp } from "@/shared/lib/format-egp";
-import { formatCollectionDate } from "@/features/collections/lib/collection-date-format";
 import { MoneyAmount } from "@/shared/components/money-amount";
 import { ErrorState, LoadingState, PaginationBar, fieldClass } from "@/features/identity/components/identity-ui";
 import { CreatedDatePicker } from "@/features/orders/components/created-date-picker";
@@ -27,8 +26,6 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
   const [discountInput, setDiscountInput] = useState('0.00');
   const [discountReason, setDiscountReason] = useState('');
   const [discountOpen, setDiscountOpen] = useState(false);
-  const [datePopoverOpen, setDatePopoverOpen] = useState(false);
-  const datePopoverRef = useRef<HTMLDivElement>(null);
   const [payment, setPayment] = useState<AccountPaymentValue>({method: 0, destination: ""});
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
@@ -39,25 +36,6 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
   const [openingRecord, setOpeningRecord] = useState(false);
   const keys = useRef(new Map<string, string>());
   const validDate = Boolean(cutoff && cutoff <= cairoToday());
-  useEffect(() => {
-    if (!datePopoverOpen) return;
-    function dismissOnOutsideClick(event: PointerEvent) {
-      const target = event.target;
-      if (target instanceof Node && datePopoverRef.current?.contains(target)) return;
-      // The existing calendar renders its own dialog in a portal outside this panel.
-      if (target instanceof Element && target.closest('[role="dialog"][aria-label="اختيار الشغل المستلّم حتى"]')) return;
-      setDatePopoverOpen(false);
-    }
-    function dismissOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setDatePopoverOpen(false);
-    }
-    document.addEventListener("pointerdown", dismissOnOutsideClick);
-    document.addEventListener("keydown", dismissOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", dismissOnOutsideClick);
-      document.removeEventListener("keydown", dismissOnEscape);
-    };
-  }, [datePopoverOpen]);
   const preview = useQuery({queryKey: ["finance", "settlement-preview", customerId, cutoff],
     queryFn: () => previewAccountSettlement(customerId, cutoff), enabled: mode === "new" && validDate && !record,
     refetchOnWindowFocus: false, retry: false});
@@ -141,9 +119,9 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
     }
   }
   function startNew() {
-    setRecord(null); setMode("new"); setAmountInput(null);
+    setRecord(null); setMode("new"); setCutoff(cairoToday()); setAmountInput(null);
     setPayment({method: 0, destination: ""}); setNote("");
-    setDiscountInput('0.00'); setDiscountReason(''); setDiscountOpen(false); setDatePopoverOpen(false);
+    setDiscountInput('0.00'); setDiscountReason(''); setDiscountOpen(false);
     setError(""); setStale(false);
   }
 
@@ -211,10 +189,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
       onMouseDown={event => {if (event.target === event.currentTarget && !busy) setMode("history");}}>
       <section role="dialog" aria-modal="true" aria-label="تصفية حساب جديدة" dir="rtl"
         className="flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-card shadow-2xl sm:max-h-[92vh]"
-        onKeyDown={event => {if (event.key === "Escape" && !busy) {
-          if (datePopoverOpen) setDatePopoverOpen(false);
-          else setMode("history");
-        }}}>
+        onKeyDown={event => {if (event.key === "Escape" && !busy) setMode("history");}}>
         <header className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
           <div className="min-w-0">
             <h2 className="truncate text-base font-bold sm:text-lg">تصفية حساب — {modalCustomerName}</h2>
@@ -228,41 +203,29 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
             {stale && <Button variant="outline" className="ms-3" size="sm"
               onClick={() => void refreshPreview()}>تحديث المراجعة</Button>}
           </div>}
-          <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-muted-foreground">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span>الشغل حتى <span dir="ltr" className="inline-block font-semibold text-foreground">
-                {cutoff ? formatCollectionDate(cutoff) : "—"}
-              </span></span>
-              <span aria-hidden="true">·</span>
-              <span>الدفعات حتى اليوم</span>
-              <div className="relative" ref={datePopoverRef}>
-                <button type="button" aria-expanded={datePopoverOpen} aria-controls="settlement-date-popover"
-                  disabled={busy} onClick={() => setDatePopoverOpen(open => !open)}
-                  className="inline-flex items-center gap-1 rounded-md px-1 py-1 font-semibold text-primary hover:bg-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
-                  تغيير التاريخ <ChevronDown className="size-3.5" aria-hidden="true"/>
-                </button>
-                {datePopoverOpen && <div id="settlement-date-popover" role="group" aria-label="تعديل تاريخ الشغل"
-                  className="absolute right-0 top-full z-30 mt-2 w-60 max-w-[calc(100vw-2rem)] rounded-lg border bg-card p-3 text-foreground shadow-lg">
-                  <CreatedDatePicker label="الشغل المستلّم حتى" value={cutoff} max={cairoToday()} disabled={busy}
-                    onChange={value => {
-                      if (busy) return;
-                      setDatePopoverOpen(false); setCutoff(value); setAmountInput(null); setDiscountInput('0.00');
-                      setDiscountReason(''); setDiscountOpen(false); setStale(false); setError("");
-                    }}/>
-                </div>}
-              </div>
+          <div className="mx-auto flex w-full max-w-3xl flex-wrap items-end justify-between gap-3 border-b border-border/60 pb-3">
+            <div className="w-full max-w-60">
+              <CreatedDatePicker label="الشغل المستلّم حتى" value={cutoff} max={cairoToday()} disabled={busy}
+                onChange={value => {
+                  if (busy) return;
+                  setCutoff(value); setAmountInput(null); setDiscountInput('0.00');
+                  setDiscountReason(''); setDiscountOpen(false); setStale(false); setError("");
+                }}/>
             </div>
-            <Button variant="ghost" size="sm" disabled={busy || preview.isFetching || !validDate}
-              onClick={() => void refreshPreview()}>
-              <RefreshCw className="size-3.5" aria-hidden="true"/> تحديث الحساب
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground">الدفعات محسوبة حتى اليوم</span>
+              <Button variant="ghost" size="sm" disabled={busy || preview.isFetching || !validDate}
+                onClick={() => void refreshPreview()}>
+                <RefreshCw className="size-3.5" aria-hidden="true"/> تحديث الحساب
+              </Button>
+            </div>
           </div>
           {!validDate ? <p role="alert" className="text-sm text-destructive">اختر تاريخًا صحيحًا لا يتجاوز اليوم.</p>
             : preview.isPending ? <LoadingState/>
             : preview.isError ? <ErrorState error={preview.error} retry={() => void preview.refetch()}/>
             : data && <>
               <section className="mx-auto w-full max-w-3xl space-y-4" aria-label="إتمام التصفية">
-                <div className="space-y-1 py-1 text-center">
+                <div className="space-y-1 rounded-xl border border-primary/15 bg-primary/5 px-4 py-4 text-center sm:px-6">
                   <p className="text-sm text-muted-foreground">
                     {due === 0 && data.balanceBefore.startsWith("-") ? "رصيد دائن للعميل ضمن التصفية" : "المستحق على العميل"}
                   </p>
@@ -271,11 +234,11 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
                     <MoneyAmount amount={due === 0 && data.balanceBefore.startsWith("-")
                       ? absoluteAmount(data.balanceBefore) : data.dueNow}/>
                   </p>
+                  {data.outsideBalance !== "0.00" && data.outsideBalance !== "0" && <p
+                    className="mt-2 text-xs text-muted-foreground">
+                    {balanceDescription(data.outsideBalance)} خارج هذه التصفية: <MoneyAmount amount={absoluteAmount(data.outsideBalance)}/>
+                  </p>}
                 </div>
-                {data.outsideBalance !== "0.00" && data.outsideBalance !== "0" && <p
-                  className="text-center text-xs text-muted-foreground">
-                  {balanceDescription(data.outsideBalance)} خارج هذه التصفية: <MoneyAmount amount={absoluteAmount(data.outsideBalance)}/>
-                </p>}
                 {!canConfirm ? <p className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">
                     يمكن مراجعة الحساب، لكن تسجيل التصفية يحتاج صلاحية تسجيل التحصيل.
                   </p>
@@ -283,6 +246,8 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
                     لا يوجد شغل مستلّم أو رصيد افتتاحي لتصفيته.
                   </p>
                   : <>
+                    <section aria-label="تسجيل التصفية" className="space-y-3">
+                      <h3 className="text-sm font-bold text-foreground">تسجيل التصفية</h3>
                     {due === 0 ? <p className="text-center text-sm text-muted-foreground">
                       لا يوجد مبلغ مطلوب الآن. يمكنك حفظ مراجعة الحساب بدون تحصيل أو إيصال قبض جديد.
                     </p> : <div className={cents !== null && cents > 0 && afterDiscount !== null && cents <= afterDiscount
@@ -313,12 +278,12 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
                         disabled={busy} onClick={() => {
                           if (discountOpen) {setDiscountInput('0.00'); setDiscountReason('');}
                           setDiscountOpen(!discountOpen); setError("");
-                        }} className="inline-flex items-center gap-2 rounded-md py-1 text-sm font-semibold text-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                        }} className="flex w-full items-center justify-between gap-3 border-t border-border/70 py-3 text-sm font-semibold text-foreground hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                        <span>{discountOpen ? "إلغاء الخصم" : "إضافة خصم"}</span>
                         {discountOpen ? <ChevronDown className="size-4 rotate-180" aria-hidden="true"/> :
                           <Plus className="size-4" aria-hidden="true"/>}
-                        {discountOpen ? "إلغاء الخصم" : "إضافة خصم"}
                       </button>
-                      {discountOpen && <div id="settlement-discount-fields" className={"grid gap-3 rounded-lg bg-muted/25 p-3 " +
+                      {discountOpen && <div id="settlement-discount-fields" className={"grid gap-3 rounded-lg border border-border/70 p-3 " +
                         (discountCents !== null && discountCents > 0 ? "sm:grid-cols-2" : "grid-cols-1")}>
                         <div className="space-y-1">
                           <label className="block space-y-1.5 text-sm font-semibold">
@@ -350,8 +315,9 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
                         </div>}
                       </div>}
                     </>}
+                    </section>
                     <section aria-label="ملخص التصفية المتوقع"
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/40 px-4 py-3">
+                      className="grid gap-2 rounded-xl border border-border/70 bg-muted/40 px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
                       <div>
                         <p className="text-sm font-semibold">المتبقي المتوقع</p>
                         {discountCents !== null && discountCents > 0 && <p className="mt-1 text-xs text-muted-foreground">
@@ -365,7 +331,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
                           : !discountAmountValid ? "راجع قيمة الخصم"
                           : cents === null ? "أدخل المبلغ أو اختر «بدون تحصيل»" : "راجع مبلغ التحصيل"}
                       </strong>
-                      <p className="w-full text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground sm:col-span-2">
                         نتيجة تقديرية فقط، لم تُسجَّل بعد.
                       </p>
                     </section>
