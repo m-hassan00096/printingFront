@@ -22,7 +22,12 @@ const adapter: AxiosAdapter = async config => {
   }
   if (url === "/selects") return response(config, [{label: "customers", options: [{value: 7, label: "شركة النور - 01012345678"}]}]);
   if (url === "/finance/customers/7/balance") return response(config, {customerId: 7, amount: "4950.00", type: 1, typeLabel: "مدين", openingBalanceExists: true, openingBalance: null});
-  if (url === "/finance/customers/7/ledger") return response(config, {entries: [], balance: {amount: "4950.00", type: 1, typeLabel: "مدين"}, openingBalanceExists: true, pagination: {currentPage: 1, perPage: 20, lastPage: 1, total: 0}});
+  if (url === "/finance/customers/7/ledger") return response(config, {entries: [{
+    id: 90, type: 2, typeLabel: "تحصيل", signedAmount: "-100.00", amount: "100.00", effectiveDate: "2026-10-26",
+    runningBalance: {amount: "4950.00", type: 1, typeLabel: "مدين"}, collectionId: 90, receiptNumber: "COL-90",
+    refundId: null, refundNumber: null, orderId: null, orderNumber: null, note: "ملاحظة تجريبية للحركة",
+  }], balance: {amount: "4950.00", type: 1, typeLabel: "مدين"}, openingBalanceExists: true,
+    pagination: {currentPage: 1, perPage: 20, lastPage: 1, total: 1}});
   if (url === "/finance/customers/7/settlement") return response(config, {
     customerId: 7, customerName: "شركة النور", customerPhone: "01012345678",
     dateFrom: params.get("dateFrom"), dateTo: params.get("dateTo"),
@@ -59,6 +64,17 @@ describe("Read-only delivered work statement", () => {
     await user.click(screen.getByRole("tab", {name: "كشف الحساب"}));
     expect(screen.getByRole("tabpanel", {name: "كشف الحساب"})).toBeTruthy();
     expect(screen.queryByRole("region", {name: "كشف الشغل المسلّم للعميل"})).toBeNull();
+  });
+  it("keeps the ledger readable with five columns and nested receipt and note details", async () => {
+    visit();
+    const ledger = await screen.findByRole("tabpanel", {name: "كشف الحساب"});
+    const table = await within(ledger).findByRole("table");
+    expect(within(table).getAllByRole("columnheader").map(header => header.textContent)).toEqual([
+      "التاريخ", "العملية والتفاصيل", "زيادة على الحساب (+)", "دفعة / تخفيض (−)", "الرصيد بعد الحركة",
+    ]);
+    expect(within(table).getByText("COL-90")).toBeTruthy();
+    await userEvent.setup().click(within(table).getByText("عرض الملاحظة"));
+    expect(await screen.findByText("ملاحظة تجريبية للحركة")).toBeTruthy();
   });
   it("includes in-period opening adjustments in the visible reconciliation summary", async () => {
     visit("customerId=7&view=delivered");
