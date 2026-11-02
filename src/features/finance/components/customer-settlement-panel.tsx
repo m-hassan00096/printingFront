@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { FileSpreadsheet, Printer, Search } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
@@ -9,23 +10,20 @@ import { formatCollectionDate } from "@/features/collections/lib/collection-date
 import { fetchCustomerSettlement } from "../api/settlement.api";
 import { printSettlement } from "../lib/settlement-export";
 import { exportSettlementXlsx } from "../lib/settlement-xlsx";
+import { deliveredWorkReport } from "../lib/delivered-work-report";
+import { cairoToday } from "../lib/account-display";
 import type { SettlementPeriod } from "../types/settlement.types";
 import { toast } from "sonner";
 
 function defaultPeriod(): SettlementPeriod {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Africa/Cairo", year: "numeric", month: "2-digit", day: "2-digit",
-  }).formatToParts(new Date());
-  const part = (name: string) => parts.find(item => item.type === name)?.value ?? "";
-  const to = part("year") + "-" + part("month") + "-" + part("day");
-  return { from: part("year") + "-" + part("month") + "-01", to };
+  const to = cairoToday();
+  return {from: to.slice(0, 8) + "01", to};
 }
 
-export function CustomerSettlementPanel({ customerId }: { customerId: number }) {
+export function CustomerSettlementPanel({customerId, canViewOrders = false}: {customerId: number; canViewOrders?: boolean}) {
   const [period, setPeriod] = useState<SettlementPeriod>(defaultPeriod);
-  const [applied, setApplied] = useState<SettlementPeriod | null>(null);
-  const valid = Boolean(period.from && period.to && period.from <= period.to &&
-    period.to <= defaultPeriod().to);
+  const [applied, setApplied] = useState<SettlementPeriod | null>(defaultPeriod);
+  const valid = Boolean(period.from && period.to && period.from <= period.to && period.to <= cairoToday());
   const report = useQuery({
     queryKey: ["finance", "settlement", customerId, applied?.from, applied?.to],
     queryFn: () => fetchCustomerSettlement(customerId, applied!),
@@ -33,107 +31,103 @@ export function CustomerSettlementPanel({ customerId }: { customerId: number }) 
     staleTime: 0,
   });
   const statement = applied && report.isSuccess ? report.data : null;
+  const deliveries = statement ? deliveredWorkReport(statement) : null;
+
   function change(which: keyof SettlementPeriod, date: string) {
-    setPeriod(previous => ({ ...previous, [which]: date }));
+    setPeriod(previous => ({...previous, [which]: date}));
     setApplied(null);
   }
   function show() {
     if (!valid) return;
-    if (applied?.from === period.from && applied?.to === period.to) {
-      void report.refetch();
-    } else {
-      setApplied({ ...period });
-    }
+    if (applied?.from === period.from && applied?.to === period.to) void report.refetch();
+    else setApplied({...period});
   }
 
-  return <section className="space-y-4 rounded-xl border bg-card p-4" aria-label="تصفية حساب العميل">
-    <div className="space-y-1">
-      <h2 className="font-bold">تصفية حساب</h2>
-      <p className="text-xs text-muted-foreground">
-        كشف للشغل الذي تم تسليمه فقط. لا ينشئ مديونية أو تحصيلًا جديدًا.
-      </p>
-    </div>
+  return <section className="space-y-4" aria-label="كشف الشغل المسلّم للعميل">
+    <p className="text-sm leading-6 text-muted-foreground">
+      الشغل الذي استلمه العميل بالفعل خلال الفترة. المدفوعات والمديونيات في «كشف الحساب»، والتحصيل والتقفيل في «تصفية الحساب».
+    </p>
 
     <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-      <CreatedDatePicker label="من تاريخ التصفية" value={period.from} max={period.to || undefined}
-        onChange={value => change("from", value)} />
-      <CreatedDatePicker label="إلى تاريخ التصفية" value={period.to}
-        min={period.from || undefined} max={defaultPeriod().to}
-        onChange={value => change("to", value)} />
-      <Button type="button" disabled={!valid || report.isFetching} onClick={show}>
-        <Search className="size-4" /> عرض الكشف
-      </Button>
+      <CreatedDatePicker label="من تاريخ الكشف" value={period.from} max={period.to || undefined} onChange={value => change("from", value)}/>
+      <CreatedDatePicker label="إلى تاريخ الكشف" value={period.to} min={period.from || undefined} max={cairoToday()} onChange={value => change("to", value)}/>
+      <Button disabled={!valid || report.isFetching} onClick={show}><Search className="size-4"/> عرض الشغل</Button>
     </div>
-    {!valid && <p className="text-sm text-destructive" role="alert">
-      اختر تاريخ بداية ونهاية صحيحين، لا يتجاوزان تاريخ اليوم.
-    </p>}
 
-    {applied && report.isPending && <LoadingState />}
-    {applied && report.isError && <ErrorState error={report.error} retry={() => void report.refetch()} />}
-    {!applied && <p className="rounded-lg border border-dashed p-5 text-center text-sm text-muted-foreground">
-      اختر الفترة واضغط «عرض الكشف».
-    </p>}
+    {!valid && <p role="alert" className="text-sm text-destructive">اختر فترة صحيحة لا تتجاوز اليوم.</p>}
+    {!applied && <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">الفترة تغيرت. اضغط «عرض الشغل» لتطبيقها.</p>}
+    {applied && report.isPending && <LoadingState/>}
+    {applied && report.isError && <ErrorState error={report.error} retry={() => void report.refetch()}/>}
 
-    {statement && <>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
-        <h3 className="text-sm font-bold">
-          الشغل المستلم من {formatCollectionDate(statement.dateFrom)} إلى {formatCollectionDate(statement.dateTo)}
-        </h3>
+    {statement && deliveries && <>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+        <h3 className="text-sm font-bold">الشغل من {formatCollectionDate(statement.dateFrom)} إلى {formatCollectionDate(statement.dateTo)}</h3>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => {
             if (!printSettlement(statement)) toast.error("اسمح للمتصفح بفتح نافذة الطباعة.");
-          }}><Printer className="size-4" /> طباعة / PDF</Button>
+          }}><Printer className="size-4"/> طباعة / PDF</Button>
           <Button variant="outline" size="sm" onClick={() => exportSettlementXlsx(statement)}>
-            <FileSpreadsheet className="size-4" /> تصدير Excel
+            <FileSpreadsheet className="size-4"/> تصدير Excel
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        {([
-          ["رصيد سابق", statement.openingBalance],
-          ["الشغل المستلم", statement.deliveredTotal],
-          ["صافي المدفوعات", statement.paymentsTotal],
-          ["المتبقي عن الشغل المستلم", statement.closingBalance],
-        ] as const).map(([title,amount])=><div key={title}
-          className="rounded-lg border bg-muted/20 p-3">
-          <p className="text-xs text-muted-foreground">{title}</p>
-          <p className="mt-1 text-base font-bold"><MoneyAmount amount={amount}/></p>
-        </div>)}
-      </div>
+      <dl className="grid gap-3 rounded-xl border bg-muted/20 p-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="ملخص الشغل المستلّم">
+        <div>
+          <dt className="text-sm text-muted-foreground">عدد الأوردرات المستلّمة</dt>
+          <dd className="mt-2 text-lg font-bold tabular-nums">{deliveries.deliveredOrderCount}</dd>
+        </div>
+        <div>
+          <dt className="text-sm text-muted-foreground">إجمالي الشغل المستلّم</dt>
+          <dd className="mt-2 font-bold"><MoneyAmount amount={deliveries.grossDelivered}/></dd>
+        </div>
+        <div>
+          <dt className="text-sm text-muted-foreground">إلغاءات التسليم</dt>
+          <dd className="mt-2 font-bold"><MoneyAmount amount={deliveries.cancelledDelivered}/></dd>
+        </div>
+        <div>
+          <dt className="text-sm font-semibold">صافي الشغل خلال الفترة</dt>
+          <dd className="mt-2 text-lg font-extrabold text-primary"><MoneyAmount amount={deliveries.netDelivered}/></dd>
+        </div>
+      </dl>
 
-      {statement.lines.length ? <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full min-w-[900px] text-right text-sm">
-          <thead className="bg-muted/60 text-xs">
-            <tr>{["التاريخ","البيان","المرجع","الكمية","سعر الوحدة","مدين","دائن","الرصيد"].map(name =>
-              <th key={name} className="px-3 py-3 font-bold">{name}</th>)}</tr>
-          </thead>
+      {deliveries.lines.length ? <div className="overflow-x-auto rounded-lg border">
+        <table className="w-full min-w-[760px] text-right text-sm" aria-label="تفاصيل الشغل المستلّم">
+          <thead className="bg-muted/50"><tr>
+            {["تاريخ الحركة", "رقم الأوردر", "الشغل / الحالة", "الكمية", "سعر القطعة", "القيمة"].map(title =>
+              <th key={title} scope="col" className="px-3 py-3 text-xs font-semibold">{title}</th>)}
+          </tr></thead>
           <tbody className="divide-y">
-            {statement.lines.map(line => {
-              const credit = line.signedAmount.startsWith("-");
-              return <tr key={line.key}>
-                <td className="whitespace-nowrap px-3 py-2">{formatCollectionDate(line.date)}</td>
-                <td className="max-w-[360px] px-3 py-2">{line.description}</td>
-                <td className="whitespace-nowrap px-3 py-2">{line.orderNumber ?? line.receiptNumber ?? "—"}</td>
-                <td className="px-3 py-2">{line.quantity ?? "—"}</td>
-                <td className="px-3 py-2">{line.unitPrice ? <MoneyAmount amount={line.unitPrice} maximumFractionDigits={4}/> : "—"}</td>
-                <td className="px-3 py-2">{credit ? "—" : <MoneyAmount amount={line.signedAmount}/>}</td>
-                <td className="px-3 py-2">{credit ? <MoneyAmount amount={line.signedAmount.slice(1)}/> : "—"}</td>
-                <td className="px-3 py-2 font-bold"><MoneyAmount amount={line.runningBalance}/></td>
-              </tr>;
-            })}
+            {deliveries.lines.map(line => <tr key={line.key} className={line.kind === "delivery_cancellation" ? "bg-muted/20" : ""}>
+              <td className="whitespace-nowrap px-3 py-3">{formatCollectionDate(line.date)}</td>
+              <td className="whitespace-nowrap px-3 py-3">
+                {canViewOrders && line.orderId
+                  ? <Link to={"/orders/" + line.orderId} className="text-primary underline underline-offset-2"><span dir="ltr">{line.orderNumber ?? "فتح الأوردر"}</span></Link>
+                  : <span dir="ltr">{line.orderNumber ?? "—"}</span>}
+              </td>
+              <td className="min-w-[250px] px-3 py-3">
+                {line.kind === "delivery_cancellation"
+                  ? <span className="font-semibold text-muted-foreground">إلغاء تسليم</span>
+                  : line.description}
+              </td>
+              <td className="px-3 py-3 tabular-nums">{line.quantity ?? "—"}</td>
+              <td className="whitespace-nowrap px-3 py-3">{line.unitPrice !== null
+                ? <MoneyAmount amount={line.unitPrice} maximumFractionDigits={4}/>
+                : "—"}</td>
+              <td className={"whitespace-nowrap px-3 py-3 font-semibold " + (line.kind === "delivery_cancellation" ? "text-destructive" : "")}>
+                <MoneyAmount amount={line.signedAmount}/>
+              </td>
+            </tr>)}
           </tbody>
+          <tfoot className="border-t bg-muted/30">
+            <tr><th scope="row" colSpan={5} className="px-3 py-3 text-right">صافي الشغل المستلّم</th>
+              <td className="whitespace-nowrap px-3 py-3 font-bold"><MoneyAmount amount={deliveries.netDelivered}/></td></tr>
+          </tfoot>
         </table>
-      </div> : <EmptyState title="لا توجد حركات" detail="لا توجد تسليمات أو تحصيلات في الفترة المختارة."/>}
-
-      {statement.adjustmentsTotal !== "0.00" && <p className="text-xs text-muted-foreground">
-        تشمل هذه الفترة تسوية رصيد افتتاحي بقيمة <MoneyAmount amount={statement.adjustmentsTotal}/>.
-      </p>}
-      <p className="text-xs text-muted-foreground">
-        للمراجعة الداخلية فقط: رصيد Finance حتى نهاية الفترة
-        {" "}<MoneyAmount amount={statement.financeBalanceAsOf}/>،
-        والفرق عن كشف الشغل المستلم <MoneyAmount amount={statement.undeliveredDifference}/>.
-        الفرق يشمل المديونيات المؤكدة التي لم تدخل ضمن التسليمات بعد.
+      </div> : <EmptyState title="لا يوجد شغل مستلّم في الفترة" detail="لا توجد تسليمات أو إلغاءات تسليم خلال الفترة المختارة."/>}
+      <p className="text-xs leading-5 text-muted-foreground">
+        الإلغاءات تخصم من قيمة التسليمات، بما فيها إلغاء تسليم تم في فترة سابقة.
+        هذا تقرير شغل وليس رصيد مديونية أو إيصال تحصيل. راجع «كشف الحساب» لمعرفة المبالغ المستحقة والمدفوعات.
       </p>
     </>}
   </section>;

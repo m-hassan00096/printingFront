@@ -3,9 +3,9 @@ import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { Button } from "@/shared/components/ui/button";
 import { useUiStore } from "@/shared/stores/ui-store";
 
-type TopbarProps = { title: string };
+type TopbarProps = { title: string; hidePageContext?: boolean };
 
-export function Topbar({ title }: TopbarProps) {
+export function Topbar({ title, hidePageContext = false }: TopbarProps) {
   const isSidebarCollapsed = useUiStore((state) => state.isSidebarCollapsed);
   const isMobileSidebarOpen = useUiStore((state) => state.isMobileSidebarOpen);
   const toggleSidebar = useUiStore((state) => state.toggleSidebar);
@@ -36,10 +36,10 @@ export function Topbar({ title }: TopbarProps) {
           {isSidebarCollapsed ? <PanelRightOpen className="size-5" /> : <PanelRightClose className="size-5" />}
         </Button>
 
-        <div className="min-w-0">
+        {!hidePageContext && <div className="min-w-0">
           <p className="hidden text-[10px] font-medium text-muted-foreground sm:block">مساحة العمل</p>
           <h1 className="truncate text-xs font-semibold text-[#525f78] sm:mt-0.5 sm:text-sm">{title}</h1>
-        </div>
+        </div>}
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
