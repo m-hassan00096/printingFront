@@ -18,8 +18,8 @@ import { absoluteAmount, balanceDescription, cairoToday } from "../lib/account-d
 import { renderAccountSettlementEvidence } from "../lib/account-settlement-print";
 import { exportAccountSettlementXlsx } from "../lib/account-settlement-xlsx";
 
-export function AccountSettlementPanel({customerId, canConfirm, canViewCollections, canDiscount = false}: {
-  customerId: number; canConfirm: boolean; canViewCollections: boolean; canDiscount?: boolean;
+export function AccountSettlementPanel({customerId, customerName, canConfirm, canViewCollections, canDiscount = false}: {
+  customerId: number; customerName?: string; canConfirm: boolean; canViewCollections: boolean; canDiscount?: boolean;
 }) {
   const qc = useQueryClient();
   const [cutoff, setCutoff] = useState(cairoToday);
@@ -43,6 +43,7 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
     queryFn: () => listAccountSettlements(customerId, page), enabled: mode === "history", retry: false});
   const mutation = useMutation({mutationFn: ({payload, key}: {payload: AccountSettlementInput; key: string}) => confirmAccountSettlement(customerId, payload, key), retry: false});
   const data = preview.data;
+  const modalCustomerName = data?.customerName || customerName || `عميل #${customerId}`;
   const due = data ? parseCents(data.dueNow) : null;
   const accountCents = data ? parseCents(data.accountBalance.startsWith('-') ? '0.00' : data.accountBalance) : null;
   const discountCents = parseCents(discountInput);
@@ -188,7 +189,7 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
         onKeyDown={event => {if (event.key === "Escape" && !busy) setMode("history");}}>
         <header className="flex shrink-0 items-center justify-between border-b p-4">
           <div>
-            <h2 className="font-bold">تصفية حساب جديدة</h2>
+            <h2 className="font-bold">تصفية حساب — {modalCustomerName}</h2>
             <p className="mt-1 text-xs text-muted-foreground">حدد الشغل، ثم اكتب خصمًا أو مبلغًا محصلًا إن وجد.</p>
           </div>
           <Button type="button" variant="ghost" size="sm" disabled={busy}
@@ -265,7 +266,7 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
                   <p className="text-xs text-muted-foreground">الخصم يقلل المديونية لكنه لا يُسجل ضمن الفلوس المحصّلة.</p>
                 </div>}
                 {due === 0 ? <p className="rounded-lg bg-muted/40 p-3 text-sm leading-6">
-                  لا يوجد مبلغ مطلوب تحصيله الآن. يمكنك حفظ إثبات التصفية بدون تسجيل فلوس جديدة.
+                  لا يوجد مبلغ مطلوب تحصيله الآن. يمكنك حفظ مراجعة الحساب بدون تحصيل، ولن يُنشأ إيصال قبض جديد.
                 </p> : <div className="space-y-2">
                   <label className="block space-y-1.5 text-sm font-semibold">
                     <span>المبلغ اللي استلمته من العميل الآن</span>
@@ -284,6 +285,11 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
                   {amountInput !== null && (cents === null || (afterDiscount !== null && cents > afterDiscount)) &&
                     <p role="alert" className="text-xs text-destructive">أدخل مبلغًا صحيحًا لا يتجاوز المستحق بعد الخصم، أو اختر صفرًا بدون تحصيل.</p>}
                 </div>}
+                {cents === 0 && <p className="text-xs text-muted-foreground">
+                  {discountCents !== null && discountCents > 0
+                    ? "سيُسجّل الخصم فقط دون أي مبلغ محصّل الآن."
+                    : "حفظ المراجعة بدون تحصيل لا يسدد المديونية؛ الرصيد المتبقي يظل مستحقًا."}
+                </p>}
                 {cents !== null && cents > 0 && afterDiscount !== null && cents <= afterDiscount &&
                   <AccountPaymentFields value={payment} onChange={setPayment} disabled={busy}/>} 
                 {afterDiscount !== null && cents !== null && due !== null && cents <= afterDiscount &&
@@ -298,12 +304,6 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
                   <textarea aria-label="ملاحظة التصفية" className={fieldClass + " mt-3 min-h-20 py-2"} value={note}
                     maxLength={4000} disabled={busy} onChange={event => setNote(event.target.value)}/>
                 </details>
-                <Button className="w-full" disabled={!valid} onClick={() => void confirm()}>
-                  {busy ? "جاري التسجيل..." : cents === 0 ? "حفظ التصفية بدون تحصيل" :
-                    cents !== null && cents > 0 && afterDiscount !== null && cents <= afterDiscount
-                      ? "تأكيد تحصيل " + formatEgp(centsToMoney(cents))
-                      : "تأكيد التصفية"}
-                </Button>
               </>}
           </section>
 
@@ -353,6 +353,14 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
           </details>
         </>}
         </div>
+        {canConfirm && data?.hasWork && validDate && <footer aria-label="إجراءات التصفية" className="shrink-0 border-t bg-card px-4 py-3 sm:px-5">
+          <Button type="button" className="w-full" disabled={!valid} onClick={() => void confirm()}>
+            {busy ? "جاري التسجيل..." : cents === 0
+              ? discountCents !== null && discountCents > 0 ? "حفظ الخصم بدون تحصيل" : "حفظ مراجعة الحساب بدون تحصيل"
+              : cents !== null && cents > 0 && afterDiscount !== null && cents <= afterDiscount
+                ? "تأكيد تحصيل " + formatEgp(centsToMoney(cents)) : "تأكيد التصفية"}
+          </Button>
+        </footer>}
       </section>
     </div> : history.isPending ? <LoadingState/> : history.isError ? <ErrorState error={history.error} retry={() => void history.refetch()}/>
       : <div className="space-y-3 rounded-xl border bg-card p-4">
