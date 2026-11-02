@@ -117,7 +117,7 @@ describe("Simplified client-facing settlement statement", () => {
     expect(sheet).toContain('<v>1000</v>');
     expect(sheet).toContain('<v>500</v>');
     expect(sheet).not.toContain("رقم إيصال الدفعة");
-    expect(sheet).not.toContain("تصفية مسجلة");
+    expect(sheet).not.toContain("رقم التصفية:");
   });
 
   it("shows a saved settlement using its original snapshot and separates actual payment from discount", () => {
