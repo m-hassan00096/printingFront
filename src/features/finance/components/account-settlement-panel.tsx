@@ -4,6 +4,8 @@ import { CheckCircle2, History, Printer, RefreshCw, TriangleAlert } from "lucide
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
+import { formatEgp } from "@/shared/lib/format-egp";
+import { formatCollectionDate } from "@/features/collections/lib/collection-date-format";
 import { MoneyAmount } from "@/shared/components/money-amount";
 import { ErrorState, LoadingState, PaginationBar, fieldClass } from "@/features/identity/components/identity-ui";
 import { CreatedDatePicker } from "@/features/orders/components/created-date-picker";
@@ -132,11 +134,11 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
       </p>}
       <dl className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-lg border p-4">
-          <dt className="text-sm text-muted-foreground">الفلوس اللي استلمناها في التصفية</dt>
+          <dt className="text-sm text-muted-foreground">المبلغ المحصّل في هذه التصفية</dt>
           <dd className="mt-2 text-xl font-bold"><MoneyAmount amount={record.amountCollected}/></dd>
         </div>
         <div className="rounded-lg border p-4">
-          <dt className="text-sm text-muted-foreground">{balanceDescription(record.balanceAfter)} بعد التصفية</dt>
+          <dt className="text-sm text-muted-foreground">{record.balanceAfter.startsWith("-") ? "رصيد للعميل بعد التصفية" : "المتبقي بعد التصفية"}</dt>
           <dd className="mt-2 text-xl font-bold"><MoneyAmount amount={absoluteAmount(record.balanceAfter)}/></dd>
         </div>
       </dl>
@@ -150,15 +152,26 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
         {!record.collectionId && <span className="self-center text-sm text-muted-foreground">لم يُسجّل تحصيل جديد في هذه العملية.</span>}
       </div>
     </section> : mode === "new" ? <>
-      <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4">
-        <div className="min-w-56 flex-1">
-          <CreatedDatePicker label="الشغل المستلّم حتى" value={cutoff} max={cairoToday()}
-            onChange={value => {if (busy) return; setCutoff(value); setAmountInput(null); setStale(false); setError("");}}/>
+      <div className="mx-auto w-full max-w-4xl rounded-lg border bg-muted/20 px-4 py-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <p className="text-sm leading-7 text-muted-foreground">
+            الشغل حتى <span dir="ltr" className="inline-block font-semibold text-foreground">{cutoff ? formatCollectionDate(cutoff) : "—"}</span>
+            <span className="mx-2" aria-hidden="true">·</span>
+            الدفعات حتى اليوم
+          </p>
+          <div className="flex flex-wrap items-start gap-3">
+            <details className="min-w-28 text-sm">
+              <summary className="cursor-pointer py-1.5 font-semibold text-primary">تغيير التاريخ</summary>
+              <div className="mt-2 min-w-48">
+                <CreatedDatePicker label="الشغل المستلّم حتى" value={cutoff} max={cairoToday()} disabled={busy}
+                  onChange={value => {if (busy) return; setCutoff(value); setAmountInput(null); setStale(false); setError("");}}/>
+              </div>
+            </details>
+            <Button variant="outline" size="sm" disabled={busy || preview.isFetching || !validDate} onClick={() => void refreshPreview()}>
+              <RefreshCw className="size-4"/> تحديث الحساب
+            </Button>
+          </div>
         </div>
-        <Button variant="outline" disabled={busy || preview.isFetching || !validDate} onClick={() => void refreshPreview()}>
-          <RefreshCw className="size-4"/> تحديث الحساب
-        </Button>
-        <p className="basis-full text-xs text-muted-foreground">الشغل حتى التاريخ المختار، والدفعات حتى اليوم. لو اتسجّلت دفعة جديدة، حدّث الحساب قبل التأكيد.</p>
       </div>
 
       {!validDate ? <p role="alert" className="text-sm text-destructive">اختر تاريخًا صحيحًا لا يتجاوز اليوم.</p>
@@ -168,13 +181,15 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
           <section className="mx-auto w-full max-w-4xl space-y-4 rounded-xl border bg-card p-4 sm:p-6" aria-label="إتمام التصفية">
             <div className="space-y-1">
               <p className="text-sm font-semibold text-muted-foreground">
-                {due === 0 && data.balanceBefore.startsWith("-") ? "للعميل رصيد عن هذا النطاق" : "المتبقي عن الشغل المستلّم"}
+                {due === 0 && data.balanceBefore.startsWith("-") ? "للعميل رصيد ضمن التصفية" : "المبلغ المتبقي للتصفية"}
               </p>
               <p className={"text-3xl font-extrabold tabular-nums " + (due === 0 && data.balanceBefore.startsWith("-") ? "text-emerald-700" : "text-primary")}>
                 <MoneyAmount amount={due === 0 && data.balanceBefore.startsWith("-") ? absoluteAmount(data.balanceBefore) : data.dueNow}/>
               </p>
               <p className="text-xs leading-5 text-muted-foreground">
-                ده مبلغ التصفية فقط. مديونيات الأوردرات المؤكدة غير المستلّمة تفضل موجودة في الحساب الكلي.
+                {due === 0 && data.balanceBefore.startsWith("-")
+                  ? "الرصيد الدائن لا يُرد تلقائيًا؛ رد أي مبلغ يعتمد على الرصيد الكلي."
+                  : "يشمل الرصيد السابق والشغل المستلّم بعد خصم الدفعات. الأوردرات غير المستلّمة خارج هذه التصفية."}
               </p>
             </div>
             {data.outsideBalance !== "0.00" && data.outsideBalance !== "0" && <p className="rounded-lg bg-muted/40 p-3 text-sm">
@@ -213,7 +228,9 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
                 </details>
                 <Button className="w-full" disabled={!valid} onClick={() => void confirm()}>
                   {busy ? "جاري التسجيل..." : due === 0 ? "حفظ إثبات التصفية بدون تحصيل" :
-                    cents !== null && due !== null && cents < due ? "تسجيل دفعة جزئية" : "تأكيد التحصيل وتقفيل التصفية"}
+                    cents !== null && cents > 0 && due !== null && cents <= due
+                      ? "تأكيد تحصيل " + formatEgp(centsToMoney(cents))
+                      : "تأكيد التحصيل"}
                 </Button>
               </>}
           </section>
