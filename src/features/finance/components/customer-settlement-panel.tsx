@@ -26,7 +26,7 @@ export function CustomerSettlementPanel({customerId}: {customerId: number}) {
   const statement = applied && report.isSuccess ? report.data : null;
   function change(which: keyof SettlementPeriod, date: string) {setPeriod(previous => ({...previous, [which]: date})); setApplied(null);}
   function show() {if (!valid) return; if (applied?.from === period.from && applied?.to === period.to) void report.refetch(); else setApplied({...period});}
-  return <section className="space-y-4 rounded-xl border bg-card p-4 sm:p-5" aria-label="كشف الشغل المسلّم للعميل">
+  return <section className="space-y-4" aria-label="كشف الشغل المسلّم للعميل">
     <header><h2 className="text-lg font-bold">كشف حساب الشغل المستلّم</h2><p className="mt-1 text-sm text-muted-foreground">كشف المبالغ المتعلقة بالشغل اللي العميل استلمه. التقفيل الفعلي من «تصفية الحساب».</p></header>
     <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
       <CreatedDatePicker label="من تاريخ الكشف" value={period.from} max={period.to || undefined} onChange={value => change("from", value)}/>
