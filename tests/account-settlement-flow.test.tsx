@@ -233,6 +233,81 @@ describe("Financial settlement workspace", () => {
     expect(posts()[0].body).toMatchObject({customerId: 7, amount: "125.50", paymentMethod: 0, collectedOn: cairoToday()});
     expect(posts()[0].key).toBeTruthy();
   });
+  it("opens saved history first and does not request a financial preview until the modal is opened", async () => {
+    visit();
+    expect(await screen.findByText("لا توجد تصفيات مسجلة لهذا العميل.")).toBeTruthy();
+    expect(calls.filter(x => x.url.endsWith("/settlements/preview"))).toHaveLength(0);
+    await openCreate();
+    expect(await screen.findByRole("region", {name: "إتمام التصفية"})).toBeTruthy();
+    expect(calls.some(x => x.url.endsWith("/settlements/preview"))).toBe(true);
+    expect(posts()).toHaveLength(0);
+  });
+
+  it("saves an agreed fixed discount of 100 without recording any cash", async () => {
+    visit(); await openCreate();
+    const user = userEvent.setup();
+    const field = await screen.findByRole("textbox", {name: "خصم ثابت"});
+    await user.clear(field);
+    await user.type(field, "100.00");
+    expect(screen.queryByRole("button", {name: "حفظ التصفية بدون تحصيل"})).toBeNull();
+    await user.type(screen.getByRole("textbox", {name: "سبب الخصم"}), "اتفاق مع العميل");
+    await user.click(screen.getByRole("button", {name: "بدون تحصيل الآن"}));
+    expect(screen.getByText(/المتبقي بعد الخصم والتحصيل/)).toBeTruthy();
+    await user.click(screen.getByRole("button", {name: "حفظ التصفية بدون تحصيل"}));
+    const saved = await screen.findByRole("region", {name: "نتيجة التصفية"});
+    expect(within(saved).getByText("100.00 ج.م")).toBeTruthy();
+    expect(within(saved).getByText("200.00 ج.م")).toBeTruthy();
+    expect(posts()).toHaveLength(1);
+    expect(posts()[0].body).toMatchObject({
+      amount: "0.00", discountAmount: "100.00", discountReason: "اتفاق مع العميل",
+    });
+    expect(screen.getByText("لم يُسجّل تحصيل جديد في هذه العملية.")).toBeTruthy();
+    await user.click(screen.getByRole("button", {name: "التصفيات السابقة"}));
+    const history = await screen.findByRole("table");
+    expect(within(history).getByRole("columnheader", {name: "الخصم"})).toBeTruthy();
+    expect(within(history).getByText("100.00 ج.م")).toBeTruthy();
+  });
+
+  it("reduces remaining debt by the sum of a fixed discount and a real partial payment", async () => {
+    visit(); await openCreate();
+    const user = userEvent.setup();
+    const discount = await screen.findByRole("textbox", {name: "خصم ثابت"});
+    await user.clear(discount);
+    await user.type(discount, "100.00");
+    await user.type(screen.getByRole("textbox", {name: "سبب الخصم"}), "تعويض عن التأخير");
+    const cash = screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"});
+    await user.type(cash, "50.00");
+    expect(screen.getByText(/المتبقي بعد الخصم والتحصيل/)).toBeTruthy();
+    await user.click(screen.getByRole("button", {name: "تأكيد تحصيل 50.00 ج.م"}));
+    await screen.findByRole("region", {name: "نتيجة التصفية"});
+    expect(posts()).toHaveLength(1);
+    expect(posts()[0].body).toMatchObject({
+      amount: "50.00", discountAmount: "100.00",
+      discountReason: "تعويض عن التأخير", paymentMethod: 0,
+    });
+    expect(screen.getByText("150.00 ج.م")).toBeTruthy();
+  });
+
+  it("blocks discount amounts above the debt and hides discount from unauthorized staff", async () => {
+    visit(true, false); await openCreate();
+    expect(screen.queryByRole("textbox", {name: "خصم ثابت"})).toBeNull();
+    expect(posts()).toHaveLength(0);
+  });
+
+  it("allows an explicit zero-cash partial settlement without inventing a receipt", async () => {
+    visit(); await openCreate();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", {name: "بدون تحصيل الآن"}));
+    const save = screen.getByRole("button", {name: "حفظ التصفية بدون تحصيل"});
+    expect(save.hasAttribute("disabled")).toBe(false);
+    await user.click(save);
+    const result = await screen.findByRole("region", {name: "نتيجة التصفية"});
+    expect(within(result).getByText("300.00 ج.م")).toBeTruthy();
+    expect(posts()).toHaveLength(1);
+    expect(posts()[0].body).toMatchObject({amount: "0.00"});
+    expect(posts()[0].body.discountAmount).toBeUndefined();
+  });
+
   it("prints escaped immutable evidence with an explicit warning after a later reversal", async () => {
     preview.customerName = '<script>alert(1)</script>';
     visit(); await openCreate();
