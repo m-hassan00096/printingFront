@@ -133,7 +133,7 @@ describe("Financial settlement workspace", () => {
     expect(within(dialog).getByText("المستحق على العميل")).toBeTruthy();
     expect(within(dialog).getByRole("textbox", {name: "مبلغ التصفية المستلم"})).toBeTruthy();
     expect(within(dialog).queryByRole("textbox", {name: "خصم ثابت"})).toBeNull();
-    expect(within(dialog).queryByRole("combobox", {name: "طريقة التحصيل"})).toBeNull();
+    expect(within(dialog).getByRole("combobox", {name: "طريقة التحصيل"})).toBeTruthy();
     const addDiscount = within(dialog).getByRole("button", {name: "إضافة خصم"});
     expect(addDiscount.getAttribute("aria-expanded")).toBe("false");
     const details = within(dialog).getByText("عرض تفاصيل الحساب والشغل").closest("details");
@@ -402,7 +402,7 @@ describe("Financial settlement workspace", () => {
 
   it("reveals payment method only for actual cash and requires bank destination", async () => {
     visit(); await openCreate(); const user = userEvent.setup();
-    expect(screen.queryByRole("combobox", {name: "طريقة التحصيل"})).toBeNull();
+    expect(screen.getByRole("combobox", {name: "طريقة التحصيل"})).toBeTruthy();
     const cash = screen.getByRole<HTMLInputElement>("textbox", {name: "مبلغ التصفية المستلم"});
     await user.type(cash, "200.00");
     await user.selectOptions(screen.getByRole("combobox", {name: "طريقة التحصيل"}), "1");
@@ -411,7 +411,7 @@ describe("Financial settlement workspace", () => {
     await user.selectOptions(screen.getByRole("combobox", {name: "حساب التحصيل"}), "3");
     expect(screen.getByRole("button", {name: "تأكيد تحصيل 200.00 ج.م"}).hasAttribute("disabled")).toBe(false);
     await user.clear(cash); await user.type(cash, "0");
-    expect(screen.queryByRole("combobox", {name: "طريقة التحصيل"})).toBeNull();
+    expect((screen.getByRole("combobox", {name: "طريقة التحصيل"}) as HTMLSelectElement).disabled).toBe(true);
     expect(posts()).toHaveLength(0);
   });
 
