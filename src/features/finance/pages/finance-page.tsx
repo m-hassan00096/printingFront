@@ -6,7 +6,7 @@ import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { SearchableSelect } from "@/features/orders/components/searchable-select";
-import { ErrorState, LoadingState, EmptyState, PaginationBar, SectionHeader, fieldClass } from "@/features/identity/components/identity-ui";
+import { ErrorState, LoadingState, EmptyState, PaginationBar, fieldClass } from "@/features/identity/components/identity-ui";
 import { formatCollectionDate } from "@/features/collections/lib/collection-date-format";
 import { CreatedDatePicker } from "@/features/orders/components/created-date-picker";
 import { uiMessages } from "@/shared/translations/ar/ui";
@@ -105,15 +105,19 @@ export function FinancePage() {
   ] : [];
 
   return <div className="space-y-4">
-    <SectionHeader title="حسابات العملاء" detail="اعرف الرصيد، سجّل تحصيل، وراجع حساب الشغل المستلّم في مكان واحد."
-      actions={<Button type="button" variant="outline" onClick={refresh}><RefreshCw className="size-4"/> تحديث</Button>}/>
-    {(canAccountDetails || canRefundHistory) && <div role="tablist" aria-label={copy.moduleTabs} className="flex flex-wrap items-center gap-6 border-b border-border">
+    <div className="flex flex-wrap items-center justify-between gap-4">
+      <h2 className="text-2xl font-bold tracking-tight">حسابات العملاء</h2>
+      <Button type="button" variant="outline" onClick={refresh}><RefreshCw className="size-4"/> تحديث</Button>
+    </div>
+    {(canAccountDetails || canRefundHistory) && <div className="pb-2">
+      <div role="tablist" aria-label={copy.moduleTabs} className="flex flex-wrap items-center gap-6 border-b border-border">
       {canAccountDetails && <button type="button" role="tab" id="finance-accounts-tab" aria-controls="finance-accounts-panel" aria-selected={!globalRefunds} onClick={() => selectFinanceTab("accounts")}
         className={"-mb-px border-b-2 px-1 pb-3 pt-2 text-sm font-semibold transition-colors focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary " +
           (!globalRefunds ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>{copy.accountsTab}</button>}
       {canRefundHistory && <button type="button" role="tab" id="finance-refunds-tab" aria-controls="finance-refunds-panel" aria-selected={globalRefunds} onClick={() => selectFinanceTab("refunds")}
         className={"-mb-px border-b-2 px-1 pb-3 pt-2 text-sm font-semibold transition-colors focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary " +
           (globalRefunds ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>{copy.globalRefundsTab}</button>}
+      </div>
     </div>}
     {canAccountDetails && <div role="tabpanel" id="finance-accounts-panel" aria-labelledby="finance-accounts-tab" hidden={globalRefunds} className="space-y-4">
       {!globalRefunds && <>
