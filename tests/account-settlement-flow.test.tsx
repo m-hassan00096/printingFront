@@ -177,7 +177,7 @@ describe("Financial settlement workspace", () => {
   it("keeps read-only reviewers from payment controls and all POST requests", async () => {
     visit(false);
     await screen.findByRole("region", {name: "إتمام التصفية"});
-    expect(screen.getByText(/تأكيد التصفية يحتاج صلاحية تسجيل التحصيل/)).toBeTruthy();
+    expect(screen.getByText(/تسجيل التصفية يحتاج صلاحية تسجيل التحصيل/)).toBeTruthy();
     expect(screen.queryByRole("textbox", {name: "مبلغ التصفية المستلم"})).toBeNull();
     expect(posts()).toHaveLength(0);
   });
