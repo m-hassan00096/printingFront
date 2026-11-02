@@ -32,14 +32,17 @@ const adapter: AxiosAdapter = async config => {
     if (fail === "conflict") throw new AxiosError("Changed account", "ERR_BAD_REQUEST", config, undefined, {...ok(config, null), status: 409, data: {success: false, message: "تغيّر حساب العميل. حدّث المراجعة."}});
     if (fail === "network") throw new AxiosError("Network unavailable", "ERR_NETWORK", config);
     const amount = String(body.amount);
-    const after = (Number(preview.balanceBefore) - Number(amount)).toFixed(2);
+    const discount = String(body.discountAmount ?? '0.00');
+    const after = (Number(preview.balanceBefore) - Number(amount) - Number(discount)).toFixed(2);
     const status = Number(after) > 0 ? "partial" : Number(after) < 0 ? "credit" : "closed";
     lastRecord = {id: 5, number: "SET-2026-00005", customerId: 7, dateTo: preview.dateTo, settledOn: cairoToday(),
-      status, originalStatus: status, statusLabel: status === "partial" ? "دفعة جزئية — يوجد متبقٍ" : status === "credit" ? "رصيد دائن محفوظ" : "مقفولة بالكامل ضمن النطاق",
-      needsReview: false, balanceBefore: preview.balanceBefore, amountCollected: amount, balanceAfter: after,
-      accountBalanceAfter: (Number(preview.accountBalance) - Number(amount)).toFixed(2), collectionId: Number(amount) > 0 ? 90 : null,
+      status, originalStatus: status, statusLabel: status === "partial" ? "تصفية جزئية — يوجد متبقٍ" : status === "credit" ? "رصيد دائن محفوظ" : "مقفولة بالكامل ضمن النطاق",
+      needsReview: false, balanceBefore: preview.balanceBefore, amountCollected: amount,
+      discountAmount: discount, discountReason: body.discountReason ? String(body.discountReason) : null,
+      discountLedgerEntryId: Number(discount) > 0 ? 91 : null, balanceAfter: after,
+      accountBalanceAfter: (Number(preview.accountBalance) - Number(amount) - Number(discount)).toFixed(2), collectionId: Number(amount) > 0 ? 90 : null,
       receiptNumber: Number(amount) > 0 ? "COL-90" : null, createdAt: "2026-11-01T20:00:00Z", createdBy: 1, note: null,
-      snapshot: {before: {...preview}, after: {...preview, balanceBefore: after}, receiptNumber: Number(amount) > 0 ? "COL-90" : null}};
+      snapshot: {before: {...preview}, after: {...preview, balanceBefore: after, discountsTotal: (Number(preview.discountsTotal) + Number(discount)).toFixed(2)},  receiptNumber: Number(amount) > 0 ? "COL-90" : null}};
     saved = true;
     return ok(config, lastRecord);
   }
@@ -54,14 +57,14 @@ function shell(children: React.ReactNode) {
   const client = new QueryClient({defaultOptions: {queries: {retry: false}, mutations: {retry: false}}});
   return render(<QueryClientProvider client={client}><MemoryRouter>{children}</MemoryRouter></QueryClientProvider>);
 }
-function visit(canConfirm = true) {return shell(<AccountSettlementPanel customerId={7} canConfirm={canConfirm} canViewCollections={true}/>);}
+function visit(canConfirm = true) {return shell(<AccountSettlementPanel customerId={7} canConfirm={canConfirm} canDiscount={true} canViewCollections={true}/>);}
 const posts = () => calls.filter(call => call.method === "post");
 beforeEach(() => {
   apiClient.defaults.adapter = adapter;
   calls = []; fail = "none"; saved = false;
   preview = {customerId: 7, customerName: "شركة النور", customerPhone: "01012345678", dateTo: cairoToday(), paymentsThrough: cairoToday(),
     scope: "cumulative_delivered_work", previewHash: "a".repeat(64), openingBalance: "0.00", deliveredTotal: "1000.00",
-    grossCollections: "700.00", collectionReversals: "0.00", refundsTotal: "0.00", netPayments: "700.00", advancesForOtherWork: "0.00",
+    grossCollections: "700.00", collectionReversals: "0.00", refundsTotal: "0.00", netPayments: "700.00", discountsTotal: "0.00", advancesForOtherWork: "0.00",
     balanceBefore: "300.00", dueNow: "300.00", creditInScope: "0.00", accountBalance: "2300.00", outsideBalance: "2000.00", hasWork: true,
     items: [{id: 1, orderId: 10, orderNumber: "ORD-10", deliveryDate: cairoToday(), description: "استيكر", specifications: null,
       quantity: 10, unitPrice: "100.0000", amount: "1000.00", pricingMethod: "square_meter", widthCm: "20.0000", heightCm: "15.0000"}], payments: []};
@@ -71,7 +74,7 @@ afterEach(() => {apiClient.defaults.adapter = original;});
 describe("Financial settlement workspace", () => {
   it("does not post while previewing and confirms only the unpaid balance with one settlement request", async () => {
     visit();
-    const confirm = await screen.findByRole("button", {name: "تأكيد التحصيل"});
+    const confirm = await screen.findByRole("button", {name: "تأكيد التصفية"});
     expect(posts()).toHaveLength(0);
     const amount = screen.getByRole<HTMLInputElement>("textbox", {name: "مبلغ التصفية المستلم"});
     expect(amount.value).toBe("");
@@ -88,12 +91,12 @@ describe("Financial settlement workspace", () => {
   });
   it("only posts after explicit entry, and the full-balance shortcut is not a payment", async () => {
     visit(); const user = userEvent.setup();
-    const confirm = await screen.findByRole("button", {name: "تأكيد التحصيل"});
+    const confirm = await screen.findByRole("button", {name: "تأكيد التصفية"});
     const amount = screen.getByRole<HTMLInputElement>("textbox", {name: "مبلغ التصفية المستلم"});
     expect(amount.value).toBe("");
     expect(confirm.hasAttribute("disabled")).toBe(true);
     expect(posts()).toHaveLength(0);
-    await user.click(screen.getByRole("button", {name: "دفع كامل المتبقي"}));
+    await user.click(screen.getByRole("button", {name: "دفع كامل المتبقي بعد الخصم"}));
     expect(amount.value).toBe("300.00");
     expect(posts()).toHaveLength(0);
     await user.click(confirm);
@@ -154,14 +157,14 @@ describe("Financial settlement workspace", () => {
     expect(screen.getByRole("button", {name: "تأكيد تحصيل 100.00 ج.م"})).toBeTruthy();
     await user.click(screen.getByRole("button", {name: "تأكيد تحصيل 100.00 ج.م"}));
     const result = await screen.findByRole("region", {name: "نتيجة التصفية"});
-    expect(within(result).getByText("دفعة جزئية — يوجد متبقٍ")).toBeTruthy();
+    expect(within(result).getByText("تصفية جزئية — يوجد متبقٍ")).toBeTruthy();
     expect(within(result).getByText("200.00 ج.م")).toBeTruthy();
   });
   it("blocks overpayment and requires an active noncash destination", async () => {
     visit(); const user = userEvent.setup();
     const amount = await screen.findByRole("textbox", {name: "مبلغ التصفية المستلم"});
     await user.clear(amount); await user.type(amount, "301.00");
-    expect(screen.getByRole("button", {name: "تأكيد التحصيل"}).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("button", {name: "تأكيد التصفية"}).hasAttribute("disabled")).toBe(true);
     await user.clear(amount); await user.type(amount, "300.00");
     await user.selectOptions(screen.getByRole("combobox", {name: "طريقة التحصيل"}), "1");
     expect(screen.getByRole("button", {name: "تأكيد تحصيل 300.00 ج.م"}).hasAttribute("disabled")).toBe(true);
@@ -174,7 +177,7 @@ describe("Financial settlement workspace", () => {
   it("documents already-paid work without creating another collection", async () => {
     preview = {...preview, dueNow: "0.00", balanceBefore: "0.00", netPayments: "1000.00"};
     visit();
-    const button = await screen.findByRole("button", {name: "حفظ إثبات التصفية بدون تحصيل"});
+    const button = await screen.findByRole("button", {name: "حفظ التصفية بدون تحصيل"});
     expect(screen.queryByRole("textbox", {name: "مبلغ التصفية المستلم"})).toBeNull();
     await userEvent.setup().click(button);
     await screen.findByRole("region", {name: "نتيجة التصفية"});
