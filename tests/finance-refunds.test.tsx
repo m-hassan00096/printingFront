@@ -47,6 +47,20 @@ beforeEach(() => {apiClient.defaults.adapter = adapter; permissions = ["finance.
 afterEach(() => {apiClient.defaults.adapter = original;});
 
 describe("Finance refunds within the account workspace", () => {
+  it("keeps the finance title only in the page, removes redundant header labels and adds space below tabs", async () => {
+    permissions = ["finance.balances.view", "finance.ledger.view", "finance.refunds.view"];
+    visit("/finance?customerId=7");
+    const banner = screen.getByRole("banner");
+    expect(within(banner).queryByText("مساحة العمل")).toBeNull();
+    expect(within(banner).queryByText("الحسابات")).toBeNull();
+    expect(screen.getByRole("heading", {level: 1, name: "حسابات العملاء"})).toBeTruthy();
+    expect(screen.queryByText("اعرف الرصيد، سجّل تحصيل، وراجع حساب الشغل المستلّم في مكان واحد.")).toBeNull();
+    const tabs = screen.getByRole("tablist", {name: "أقسام حسابات العملاء"});
+    expect(tabs.parentElement?.className).toContain("pb-2");
+    await userEvent.setup().click(within(tabs).getByRole("tab", {name: "سجل الردود العام"}));
+    expect(tabs.parentElement?.className).toContain("pb-2");
+    expect(within(banner).queryByText("مساحة العمل")).toBeNull();
+  });
   it("lists refunds with filters and immutable details without fetching unauthorized accounts", async () => {
     permissions = ["finance.refunds.view"]; visit("/finance");
     expect(await screen.findByText("REF-2026-00091")).toBeTruthy();
