@@ -107,6 +107,11 @@ describe("Financial settlement workspace", () => {
     await user.click(breakdown);
     expect(breakdown.closest("details")?.open).toBe(true);
     expect(screen.getByText("صافي دفعات العميل السابقة")).toBeTruthy();
+    expect(screen.queryByText("تفصيل الدفعات والمقدمات")).toBeNull();
+    expect(screen.queryByText("التحصيلات المسجلة:")).toBeNull();
+    const ledgerLink = screen.getByRole("link", {name: "عرض حركات الدفعات في كشف الحساب"});
+    expect(ledgerLink.getAttribute("href")).toBe("/finance?customerId=7&view=ledger");
+    expect(posts()).toHaveLength(0);
     const work = screen.getByText("الشغل المشمول (1 بند)");
     expect(work.closest("details")?.open).toBe(false);
     await user.click(work);
