@@ -68,7 +68,9 @@ describe("native delivered-work XLSX export",()=>{
     expect(sheet).not.toContain("2222");
     expect(sheet).not.toContain("3888");
     expect(sheet).not.toContain("رصيد نهاية الفترة");
-    expect(sheet).not.toContain("إيصال");
+    expect(sheet).not.toContain("رقم الأوردر / الإيصال");
+    expect(sheet).not.toContain("COL-25");
+    expect(sheet).not.toContain("تحصيل نقدي");
   });
 
   it("keeps cancellation history as negative work and excludes unrelated cash rows",()=>{
