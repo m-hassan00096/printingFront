@@ -97,7 +97,7 @@ function StatementDetails({ record, canSeeReconciliation }: {
           })}
         </tbody>
       </table>
-    </div> : <EmptyState title="لا توجد حركات" detail="لا توجد تسليمات أو تحصيلات خلال الفترة."/ >}
+    </div> : <EmptyState title="لا توجد حركات" detail="لا توجد تسليمات أو تحصيلات خلال الفترة."/>}
 
     {canSeeReconciliation && <p className="text-xs text-muted-foreground">
       للمراجعة الداخلية فقط: رصيد Finance حتى نهاية الفترة

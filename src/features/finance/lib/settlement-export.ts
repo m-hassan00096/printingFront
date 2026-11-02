@@ -42,7 +42,9 @@ export function printSettlement(statement: CustomerSettlement): boolean {
     escapeHtml(statement.openingBalance) + '</span></div>' +
     '<div>الشغل المستلم<br><span class="total">' + escapeHtml(statement.deliveredTotal) +
     '</span></div><div>صافي المدفوعات<br><span class="total">' +
-    escapeHtml(statement.paymentsTotal) + '</span></div><div>المتبقي<br><span class="total">' +
+    escapeHtml(statement.paymentsTotal) + '</span></div><div>الخصومات<br><span class="total">' +
+    escapeHtml(statement.discountsTotal ?? '0.00') +
+    '</span></div><div>المتبقي<br><span class="total">' +
     escapeHtml(statement.closingBalance) + '</span></div></div>' +
     '<table><thead><tr>' + columns.map(label => '<th>' + escapeHtml(label) + '</th>').join("") +
     '</tr></thead><tbody>' + rows + '</tbody></table>' +

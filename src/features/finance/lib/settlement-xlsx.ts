@@ -160,6 +160,7 @@ function sheetXml(statement: CustomerSettlement): string {
   };
   totalRow('إجمالي الشغل المستلم خلال الفترة', statement.deliveredTotal);
   totalRow('صافي التحصيلات خلال الفترة', statement.paymentsTotal);
+  totalRow('خصومات التصفية خلال الفترة', statement.discountsTotal ?? '0.00');
   if (Number(statement.adjustmentsTotal) !== 0) {
     totalRow('تسويات الرصيد الافتتاحي داخل الفترة', statement.adjustmentsTotal);
   }
