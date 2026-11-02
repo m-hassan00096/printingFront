@@ -183,26 +183,29 @@ export function FinancePage() {
             </div>
             {ledger.isPending ? <LoadingState/> : ledger.isError ? <ErrorState error={ledger.error} retry={() => void ledger.refetch()}/> : ledger.data?.entries.length ? <div className="overflow-hidden rounded-xl border bg-card">
               <header className="flex justify-between border-b px-4 py-3"><h3 className="font-bold">سجل الحركات</h3><span className="text-sm text-muted-foreground">{ledger.data.pagination.total.toLocaleString("ar-EG")} حركة</span></header>
-              <div className="overflow-x-auto"><table className="w-full min-w-[1000px] text-right text-sm"><thead className="bg-muted/50"><tr>
-                {["التاريخ", "الحركة", "زيادة على الحساب (+)", "دفعة / تخفيض (−)", "الرصيد بعد الحركة", "المرجع", "ملاحظات"].map(title => <th key={title} className="whitespace-nowrap px-3 py-3 text-xs font-semibold">{title}</th>)}
+              <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-right text-sm"><thead className="bg-muted/50"><tr>
+                {["التاريخ", "العملية والتفاصيل", "زيادة على الحساب (+)", "دفعة / تخفيض (−)", "الرصيد بعد الحركة"].map(title => <th key={title} className="whitespace-nowrap px-3 py-3 text-xs font-semibold">{title}</th>)}
               </tr></thead><tbody className="divide-y">
                 {ledger.data.entries.map(entry => {
                   const credit = entry.signedAmount.startsWith("-");
                   const reference = entry.collectionId && entry.receiptNumber ? entry.receiptNumber : entry.refundId && entry.refundNumber ? entry.refundNumber : entry.orderNumber ?? null;
                   return <tr key={entry.id} className="hover:bg-muted/20">
                     <td className="whitespace-nowrap px-3 py-3"><span dir="ltr" className="inline-block">{formatCollectionDate(entry.effectiveDate)}</span></td>
-                    <td className="px-3 py-3 font-medium">{entry.type === 4 ? "إلغاء تحصيل سابق" : entry.type === 5 ? "رد مبلغ للعميل" : entry.typeLabel}</td>
-                    <td className="px-3 py-3">{credit ? "—" : <MoneyAmount amount={entry.amount}/>}</td><td className="px-3 py-3">{credit ? <MoneyAmount amount={entry.amount}/> : "—"}</td>
+                    <td className="min-w-[220px] px-3 py-3">
+                      <p className="font-semibold">{entry.type === 4 ? "إلغاء تحصيل سابق" : entry.type === 5 ? "رد مبلغ للعميل" : entry.typeLabel}</p>
+                      {reference && <div className="mt-1 space-y-1 text-xs">
+                        {entry.collectionId && canViewCollections ? <Link className="text-primary underline" to={`/collections?receiptId=${entry.collectionId}`}><span dir="ltr" className="inline-block">{reference}</span></Link> :
+                          entry.refundId && canRefundHistory ? <button className="text-primary underline" onClick={() => setRefundDetailsId(entry.refundId)}><span dir="ltr">{reference}</span></button> :
+                          entry.orderId && canViewOrders ? <Link className="text-primary underline" to={`/orders/${entry.orderId}`}><span dir="ltr" className="inline-block">{reference}</span></Link> : <span dir="ltr" className="inline-block">{reference}</span>}
+                        {entry.collectionId && entry.orderId && entry.orderNumber && canViewOrders && <Link className="block text-muted-foreground underline" to={`/orders/${entry.orderId}`}>{copy.relatedOrder}: <span dir="ltr" className="inline-block">{entry.orderNumber}</span></Link>}
+                      </div>}
+                      {entry.note && <button className="mt-1 text-xs text-muted-foreground underline" onClick={() => setSelectedNote(entry.note)} aria-label={copy.showNote}>عرض الملاحظة</button>}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3">{credit ? "—" : <MoneyAmount amount={entry.amount}/>}</td>
+                    <td className="whitespace-nowrap px-3 py-3">{credit ? <MoneyAmount amount={entry.amount}/> : "—"}</td>
                     <td className={"whitespace-nowrap px-3 py-3 font-semibold " + (entry.runningBalance.type === 1 ? "text-destructive" : entry.runningBalance.type === 2 ? "text-emerald-700" : "")}>
                       {accountTypeLabel(entry.runningBalance.type)} · <MoneyAmount amount={entry.runningBalance.amount}/>
                     </td>
-                    <td className="px-3 py-3">{reference ? <div className="space-y-1">
-                      {entry.collectionId && canViewCollections ? <Link className="text-primary underline" to={`/collections?receiptId=${entry.collectionId}`}><span dir="ltr" className="inline-block">{reference}</span></Link> :
-                        entry.refundId && canRefundHistory ? <button className="text-primary underline" onClick={() => setRefundDetailsId(entry.refundId)}><span dir="ltr">{reference}</span></button> :
-                        entry.orderId && canViewOrders ? <Link className="text-primary underline" to={`/orders/${entry.orderId}`}><span dir="ltr" className="inline-block">{reference}</span></Link> : <span dir="ltr" className="inline-block">{reference}</span>}
-                      {entry.collectionId && entry.orderId && entry.orderNumber && canViewOrders && <Link className="block text-xs text-muted-foreground underline" to={`/orders/${entry.orderId}`}>{copy.relatedOrder}: <span dir="ltr" className="inline-block">{entry.orderNumber}</span></Link>}
-                    </div> : "—"}</td>
-                    <td className="max-w-56 px-3 py-3">{entry.note ? <button className="max-w-44 truncate text-right text-muted-foreground underline" onClick={() => setSelectedNote(entry.note)} aria-label={copy.showNote}>{entry.note}</button> : "—"}</td>
                   </tr>;
                 })}
               </tbody></table></div>
