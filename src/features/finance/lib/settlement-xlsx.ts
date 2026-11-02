@@ -1,5 +1,5 @@
 import type { CustomerSettlement } from "../types/settlement.types";
-import { balanceDescription } from "./account-display";
+import { deliveredWorkReport } from "./delivered-work-report";
 
 /** Native UTF-8 OOXML. Export is a historical report, never evidence of cash settlement. */
 const MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -7,7 +7,7 @@ const XMLNS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 const NUM_FMT = 164, UNIT_FMT = 165, DATE_FMT = 166;
 const moneyFormat = '#,##0.00;[Red](#,##0.00);0.00';
 const unitFormat = '#,##0.0000;[Red](#,##0.0000);0.0000';
-const labels = ["التاريخ", "البيان", "رقم الأوردر / الإيصال", "الكمية", "سعر القطعة", "زيادة على الحساب", "دفعة / تخفيض", "الرصيد"];
+const labels = ["التاريخ", "رقم الأوردر", "الشغل / الحالة", "الكمية", "سعر القطعة", "القيمة"];
 function xmlText(value: string): string {
   return [...value].filter(char => {
     const point = char.codePointAt(0) ?? 0;
@@ -50,46 +50,64 @@ function stylesXml(): string {
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="' + XMLNS + '">' + formats + fonts + fills + borders + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="' + xs.length + '">' + xs.join('') + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 }
 function sheetXml(statement: CustomerSettlement): string {
+  const work = deliveredWorkReport(statement);
   const rows: string[] = [], merges: string[] = [];
-  const merge = (from: string, to: string): void => {merges.push(from + ':' + to);};
-  rows.push(tableRow(1, [textCell(0,1,'طَبعة | كشف الشغل المسلّم للعميل',1)],42)); merge('A1','H1');
-  rows.push(tableRow(2, [textCell(0,2,'العميل: ' + statement.customerName,2)],29)); merge('A2','H2');
-  rows.push(tableRow(3, [textCell(0,3,'الفترة: ' + statement.dateFrom + ' إلى ' + statement.dateTo,2)],27)); merge('A3','H3');
-  rows.push(tableRow(4, [textCell(0,4,'رقم الهاتف: ' + (statement.customerPhone || '—'),0)],24)); merge('A4','H4');
-  // Four inputs and a final balance strip: the opening adjustment can never be
-  // hidden below the ledger while the closing balance includes it.
-  const cards = [
-    {col:0,title:'رصيد بداية الفترة',value:statement.openingBalance},
-    {col:2,title:'رصيد افتتاحي سُجل داخل الفترة',value:statement.adjustmentsTotal},
-    {col:4,title:'صافي الشغل المسلّم',value:statement.deliveredTotal},
-    {col:6,title:'صافي دفعات العميل',value:statement.paymentsTotal},
+  const merge = (from: string, to: string): void => {merges.push(from + ":" + to);};
+
+  rows.push(tableRow(1, [textCell(0,1,"طَبعة | تقرير الشغل المستلّم للعميل",1)],42)); merge("A1","F1");
+  rows.push(tableRow(2, [textCell(0,2,"العميل: " + statement.customerName,2)],29)); merge("A2","F2");
+  rows.push(tableRow(3, [textCell(0,3,"الفترة: " + statement.dateFrom + " إلى " + statement.dateTo,2)],27)); merge("A3","F3");
+  rows.push(tableRow(4, [textCell(0,4,"رقم الهاتف: " + (statement.customerPhone || "—"),0)],24)); merge("A4","F4");
+
+  // Only deliveries and their cancellations. No opening balance, receipts or
+  // customer debt ever appear in this exported delivered-work report.
+  const summaries = [
+    {col:0,title:"عدد الأوردرات المستلّمة",value:String(work.deliveredOrderCount)},
+    {col:2,title:"إجمالي الشغل المستلّم",value:work.grossDelivered},
+    {col:4,title:"إلغاءات التسليم",value:work.cancelledDelivered},
   ];
-  rows.push(tableRow(6, cards.map(card => textCell(card.col,6,card.title,8)),30));
-  rows.push(tableRow(7, cards.map(card => numberCell(card.col,7,card.value,9)),33));
-  for (const card of cards) {merge(ref(card.col,6),ref(card.col+1,6)); merge(ref(card.col,7),ref(card.col+1,7));}
-  rows.push(tableRow(8,[textCell(0,8,'رصيد نهاية الفترة — ' + balanceDescription(statement.closingBalance),10),numberCell(7,8,statement.closingBalance,11)],36)); merge('A8','G8');
-  rows.push(tableRow(9,labels.map((label,col) => textCell(col,9,label,3)),32));
-  rows.push(tableRow(10,[textCell(1,10,'رصيد بداية الفترة',4),numberCell(7,10,statement.openingBalance,5)],27));
-  for (const [index,line] of statement.lines.entries()) {
-    const row = index + 11, negative = line.signedAmount.startsWith('-');
-    rows.push(tableRow(row,[dateCell(0,row,line.date),textCell(1,row,line.description),textCell(2,row,line.orderNumber ?? line.receiptNumber ?? ''),
-      ...(line.quantity === null ? [] : [numberCell(3,row,line.quantity,7)]), ...(line.unitPrice === null ? [] : [numberCell(4,row,line.unitPrice,12)]),
-      numberCell(negative ? 6 : 5,row,Math.abs(Number(line.signedAmount))),numberCell(7,row,line.runningBalance)],28));
+  rows.push(tableRow(6,summaries.map(x=>textCell(x.col,6,x.title,8)),30));
+  rows.push(tableRow(7,summaries.map(x=>numberCell(x.col,7,x.value,x.col===0 ? 7 : 9)),33));
+  for (const card of summaries) {merge(ref(card.col,6),ref(card.col+1,6));merge(ref(card.col,7),ref(card.col+1,7));}
+  rows.push(tableRow(8,[textCell(0,8,"صافي الشغل المستلّم",10),numberCell(5,8,work.netDelivered,11)],36));merge("A8","E8");
+  rows.push(tableRow(10,labels.map((label,col)=>textCell(col,10,label,3)),32));
+
+  for (const [index,line] of work.lines.entries()) {
+    const row = 11 + index;
+    rows.push(tableRow(row,[
+      dateCell(0,row,line.date),
+      textCell(1,row,line.orderNumber ?? "—"),
+      textCell(2,row,line.kind === "delivery_cancellation" ? "إلغاء تسليم" : line.description),
+      ...(line.quantity === null ? [] : [numberCell(3,row,line.quantity,7)]),
+      ...(line.unitPrice === null ? [] : [numberCell(4,row,line.unitPrice,12)]),
+      numberCell(5,row,line.signedAmount,5),
+    ],28));
   }
-  let footer = 12 + statement.lines.length;
-  const total = (title: string, value: string, final = false): void => {
-    rows.push(tableRow(footer,[textCell(0,footer,title,final ? 10 : 8),numberCell(7,footer,value,final ? 11 : 9)],final ? 36 : 27));
-    merge('A'+footer,'G'+footer); footer++;
-  };
-  total('رصيد بداية الفترة',statement.openingBalance);
-  total('رصيد افتتاحي سُجل داخل الفترة',statement.adjustmentsTotal);
-  total('صافي الشغل المسلّم خلال الفترة',statement.deliveredTotal);
-  total('صافي دفعات العميل خلال الفترة',statement.paymentsTotal);
-  total('رصيد نهاية الفترة (ج.م)',statement.closingBalance,true);
-  rows.push(tableRow(footer+1,[textCell(0,footer+1,'رصيد النهاية = رصيد البداية + الرصيد الافتتاحي داخل الفترة + صافي الشغل المسلّم - صافي الدفعات.',0)],35)); merge('A'+(footer+1),'H'+(footer+1));
-  rows.push(tableRow(footer+2,[textCell(0,footer+2,'هذا كشف تاريخي للمراجعة، وليس إيصال سداد أو إثبات تقفيل مالي. يشمل دفعات العميل والمقدمات حتى نهاية الفترة.',0)],35)); merge('A'+(footer+2),'H'+(footer+2));
-  const columns = [19,63,26,13,19,21,21,24].map((width,index) => '<col min="' + (index+1) + '" max="' + (index+1) + '" width="' + width + '" customWidth="1"/>').join('');
-  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="' + XMLNS + '"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" rightToLeft="1" showGridLines="0"><pane ySplit="9" topLeftCell="A10" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="20"/><cols>' + columns + '</cols><sheetData>' + rows.join('') + '</sheetData><mergeCells count="' + merges.length + '">' + merges.map(value => '<mergeCell ref="' + value + '"/>').join('') + '</mergeCells><printOptions horizontalCentered="1"/><pageMargins left="0.3" right="0.3" top="0.45" bottom="0.45" header="0.2" footer="0.2"/><pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>';
+
+  const footer = 11 + work.lines.length;
+  rows.push(tableRow(footer,[
+    textCell(0,footer,"صافي الشغل المستلّم خلال الفترة",10),
+    numberCell(5,footer,work.netDelivered,11),
+  ],36));merge("A"+footer,"E"+footer);
+  rows.push(tableRow(footer+1,[textCell(0,footer+1,
+    "الإلغاءات تخصم من الشغل المستلّم، وقد تخص تسليمات تمت قبل بداية الفترة.",0)],32));
+  merge("A"+(footer+1),"F"+(footer+1));
+  rows.push(tableRow(footer+2,[textCell(0,footer+2,
+    "تقرير الشغل المستلّم فقط، وليس كشف مديونية أو إيصال سداد أو إثبات تقفيل مالي. الدفعات تُراجع من كشف الحساب.",0)],37));
+  merge("A"+(footer+2),"F"+(footer+2));
+
+  const columns = [19,27,63,13,20,24].map((width,index) =>
+    '<col min="' + (index+1) + '" max="' + (index+1) + '" width="' + width + '" customWidth="1"/>').join("");
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="' + XMLNS + '"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>' +
+    '<sheetViews><sheetView workbookViewId="0" rightToLeft="1" showGridLines="0">' +
+    '<pane ySplit="10" topLeftCell="A11" activePane="bottomLeft" state="frozen"/>' +
+    '</sheetView></sheetViews><sheetFormatPr defaultRowHeight="20"/><cols>' + columns +
+    '</cols><sheetData>' + rows.join("") + '</sheetData><mergeCells count="' + merges.length +
+    '">' + merges.map(value=>'<mergeCell ref="'+value+'"/>').join("") +
+    '</mergeCells><printOptions horizontalCentered="1"/>' +
+    '<pageMargins left="0.3" right="0.3" top="0.45" bottom="0.45" header="0.2" footer="0.2"/>' +
+    '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>';
 }
 function zipStored(files: Array<{name: string; content: string}>): Uint8Array {
   const encoder = new TextEncoder();
@@ -133,7 +151,7 @@ export function buildSettlementXlsx(statement: CustomerSettlement): Uint8Array {
   return zipStored([
     {name:'[Content_Types].xml',content:declaration+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'},
     {name:'_rels/.rels',content:declaration+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
-    {name:'xl/workbook.xml',content:declaration+'<workbook xmlns="'+XMLNS+'" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView/></bookViews><sheets><sheet name="كشف الشغل المسلّم" sheetId="1" r:id="rId1"/></sheets></workbook>'},
+    {name:'xl/workbook.xml',content:declaration+'<workbook xmlns="'+XMLNS+'" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView/></bookViews><sheets><sheet name="الشغل المستلّم" sheetId="1" r:id="rId1"/></sheets></workbook>'},
     {name:'xl/_rels/workbook.xml.rels',content:declaration+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'},
     {name:'xl/styles.xml',content:stylesXml()}, {name:'xl/worksheets/sheet1.xml',content:sheetXml(statement)},
   ]);
@@ -141,6 +159,6 @@ export function buildSettlementXlsx(statement: CustomerSettlement): Uint8Array {
 export function exportSettlementXlsx(statement: CustomerSettlement): void {
   const bytes=buildSettlementXlsx(statement), blob=new Blob([bytes.buffer as ArrayBuffer],{type:MIME});
   const url=URL.createObjectURL(blob), link=document.createElement('a');
-  link.href=url; link.download='tabaa-delivered-statement-'+statement.customerId+'-'+statement.dateTo+'.xlsx';
+  link.href=url; link.download='tabaa-delivered-work-'+statement.customerId+'-'+statement.dateTo+'.xlsx';
   document.body.append(link); link.click(); link.remove(); window.setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
