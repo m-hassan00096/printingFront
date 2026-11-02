@@ -25,6 +25,7 @@ function preview(config: InternalAxiosRequestConfig, withNewMovements = false) {
   return {
     customerId: 7, customerName: "شركة النور", customerPhone: "01012345678",
     dateFrom: from, dateTo: to,
+    settlementOn: withNewMovements ? "2026-11-02" : undefined,
     openingBalance: "200.00", deliveredTotal: "350.00",
     paymentsTotal: withNewMovements ? "100.00" : "50.00",
     discountsTotal: withNewMovements ? "100.00" : "0.00",
@@ -93,6 +94,7 @@ const adapter: AxiosAdapter = async config => {
       savedRecord = {
         id: 12, number: "SET-2026-00012",
         dateFrom: String(body.dateFrom), dateTo: String(body.dateTo),
+        settledOn: "2026-11-02", collectionReversed: false,
         createdAt: "2026-11-02 16:00:00",
         balanceBefore: "500.00", balanceAfter: "350.00",
         collectedAmount: String(body.collectedAmount), discountAmount: String(body.discountAmount),

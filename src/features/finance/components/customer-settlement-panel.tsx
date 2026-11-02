@@ -38,6 +38,7 @@ function StatementDetails({ record, canSeeReconciliation }: {
         <h3 className="font-bold">{record.number}</h3>
         <p className="text-sm text-muted-foreground">
           تشمل من {formatCollectionDate(record.dateFrom)} حتى {formatCollectionDate(record.dateTo)}
+          {" "}· تاريخ التصفية {formatCollectionDate(record.settledOn)}
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -49,6 +50,10 @@ function StatementDetails({ record, canSeeReconciliation }: {
         </Button>
       </div>
     </div>
+
+    {record.collectionReversed && <p role="status" className="rounded-lg border p-3 text-sm font-semibold text-destructive">
+      تم عكس التحصيل المرتبط بهذه التصفية لاحقًا. الكشف التالي يوضح المبالغ المسجلة وقت حفظها، وليس الرصيد الحالي.
+    </p>}
 
     <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
       {([
@@ -100,7 +105,7 @@ function StatementDetails({ record, canSeeReconciliation }: {
     </div> : <EmptyState title="لا توجد حركات" detail="لا توجد تسليمات أو تحصيلات خلال الفترة."/>}
 
     {canSeeReconciliation && <p className="text-xs text-muted-foreground">
-      للمراجعة الداخلية فقط: رصيد Finance حتى نهاية الفترة
+      للمراجعة الداخلية فقط: رصيد Finance حتى نهاية الفترة قبل تسجيل التصفية
       {" "}<MoneyAmount amount={statement.financeBalanceAsOf}/>،
       والفرق عن كشف الشغل المستلم <MoneyAmount amount={statement.undeliveredDifference}/>.
     </p>}
@@ -163,13 +168,16 @@ export function CustomerSettlementPanel({ customerId }: { customerId: number }) 
               <tbody className="divide-y">
                 {records.data.settlements.map(record => <tr key={record.id}>
                   <td className="whitespace-nowrap px-3 py-2 font-semibold" dir="ltr">{record.number}</td>
-                  <td className="whitespace-nowrap px-3 py-2">{formatCollectionDate(record.createdAt.slice(0, 10))}</td>
+                  <td className="whitespace-nowrap px-3 py-2">{formatCollectionDate(record.settledOn)}</td>
                   <td className="whitespace-nowrap px-3 py-2">{formatCollectionDate(record.dateFrom)}</td>
                   <td className="whitespace-nowrap px-3 py-2">{formatCollectionDate(record.dateTo)}</td>
                   <td className="px-3 py-2"><MoneyAmount amount={record.discountAmount}/></td>
                   <td className="px-3 py-2"><MoneyAmount amount={record.collectedAmount}/></td>
                   <td className="px-3 py-2 font-bold"><MoneyAmount amount={record.balanceAfter}/></td>
-                  <td className="whitespace-nowrap px-3 py-2">{statusText[record.status]}</td>
+                  <td className="whitespace-nowrap px-3 py-2">
+                    {statusText[record.status]}
+                    {record.collectionReversed && <span className="block text-xs text-destructive">تحصيل معكوس</span>}
+                  </td>
                   <td className="px-3 py-2"><Button type="button" size="sm" variant="outline"
                     onClick={() => setSelectedId(record.id)}><Eye className="size-4"/> عرض التفاصيل</Button></td>
                 </tr>)}

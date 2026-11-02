@@ -157,6 +157,9 @@ export function CreateSettlementDialog({ customerId, nextDateFrom, canDiscount, 
             min={period.from || nextDateFrom || undefined} max={today}
             onChange={value => changePeriod("to", value)} disabled={busy}/>
         </div>
+        <p className="text-xs text-muted-foreground">
+          الخصم والتحصيل يتسجلوا بتاريخ اليوم الفعلي، حتى لو فترة الشغل المختارة أقدم.
+        </p>
         {!periodValid && <p role="alert" className="text-xs text-destructive">
           {nextDateFrom && nextDateFrom > today
             ? "آخر تصفية تشمل اليوم بالفعل. يمكن إنشاء التصفية التالية من الغد."

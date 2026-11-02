@@ -28,6 +28,7 @@ export type CustomerSettlement = {
   deliveredTotal: string;
   paymentsTotal: string;
   discountsTotal?: string;
+  settlementOn?: string;
   adjustmentsTotal: string;
   closingBalance: string;
   financeBalanceAsOf: string;
@@ -42,11 +43,13 @@ export type SettlementRecordSummary = {
   number: string;
   dateFrom: string;
   dateTo: string;
+  settledOn: string;
   createdAt: string;
   balanceBefore: string;
   balanceAfter: string;
   discountAmount: string;
   collectedAmount: string;
+  collectionReversed: boolean;
   status: "settled" | "partial" | "unpaid";
 };
 
