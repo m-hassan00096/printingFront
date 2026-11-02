@@ -122,8 +122,8 @@ describe("Financial settlement workspace", () => {
     const editDate = await screen.findByText("تغيير التاريخ");
     const dateSection = editDate.closest("details");
     expect(dateSection?.open).toBe(false);
-    expect(screen.getByText("المبلغ المتبقي للتصفية")).toBeTruthy();
-    expect(screen.getByText(/يشمل الرصيد السابق والشغل المستلّم بعد خصم الدفعات/)).toBeTruthy();
+    expect(await screen.findByText("المبلغ المتبقي للتصفية")).toBeTruthy();
+    expect(await screen.findByText(/يشمل الرصيد السابق والشغل المستلّم بعد خصم الدفعات/)).toBeTruthy();
     expect(screen.getByRole<HTMLInputElement>("textbox", {name: "مبلغ التصفية المستلم"}).value).toBe("");
     await user.click(editDate);
     expect(dateSection?.open).toBe(true);
