@@ -68,91 +68,96 @@ function unzip(archive: Uint8Array): Map<string, string> {
 }
 const xmlSheet = (bytes: Uint8Array) => unzip(bytes).get("xl/worksheets/sheet1.xml")!;
 
-describe("Client-facing financial settlement statement", () => {
-  it("exports a single Arabic RTL draft workbook from actual backend balance, with work and cash movements", () => {
+describe("Simplified client-facing settlement statement", () => {
+  it("shows only the customer's due, net previous payments and delivered work, without ledger noise", () => {
     const files = unzip(buildCustomerSettlementStatementXlsx({kind: "draft", preview}));
     expect(files.size).toBe(6);
     expect(files.get("xl/workbook.xml")).toContain('sheet name="كشف حساب التصفية"');
     const sheet = files.get("xl/worksheets/sheet1.xml")!;
     expect(sheet).toContain('rightToLeft="1"');
     expect(sheet).toContain('showGridLines="0"');
+    expect(sheet).toContain("طَبعة | كشف حساب العميل");
     expect(sheet).toContain("كشف للمراجعة قبل التصفية");
-    expect(sheet).toContain("لم يتم تسجيل تصفية أو تحصيل جديد");
+    expect(sheet).toContain("لم يتم تسجيل تحصيل أو خصم جديد");
+    expect(sheet).toContain("المبلغ المستحق عليك");
+    expect(sheet).toContain("ملخص حسابك");
+    expect(sheet).toContain("مدفوعات سابقة (صافي)");
+    expect(sheet).toContain("المستحق قبل هذه التصفية");
+    expect(sheet).toContain("تفاصيل الشغل الذي استلمته");
     expect(sheet).toContain("=5+6 &amp; &lt;أحمد&gt;");
     expect(sheet).toContain("@SUM(A1) &lt;بنر&gt;");
     expect(sheet).toContain("لون: أسود &amp; أبيض");
     expect(sheet).toContain("200.0000 × 150.0000 سم");
     expect(sheet).toContain("ORD-11");
-    expect(sheet).toContain("COL-90");
-    expect(sheet).toContain("عكس تحصيل");
-    expect(sheet).toContain("رد للعميل");
-    expect(sheet).toContain("دفعة مرتبطة بشغل غير مستلّم");
-    expect(sheet).toContain("صافي التحصيلات السابقة بعد الردود والإلغاءات");
     expect(sheet).toContain('<v>2500</v>');
     expect(sheet).toContain('<v>3000</v>');
     expect(sheet).toContain('<v>500</v>');
-    expect(sheet).toContain('<v>700</v>');
-    expect(sheet).toContain('<v>100</v>');
-    expect(sheet).toMatch(/<c r="A\d+" s="6"><v>\d+<\/v><\/c>/);
-    expect(sheet).not.toContain("مبلغ محصّل فعليًا عند التصفية");
-    expect(sheet).not.toContain("الخصم والتحصيل أعلاه مقترحان");
+    expect(sheet).toMatch(/<c r="F\d+" s="6"><v>\d+<\/v><\/c>/);
+    expect(sheet).not.toContain("COL-90");
+    expect(sheet).not.toContain("عكس تحصيل");
+    expect(sheet).not.toContain("رد للعميل");
+    expect(sheet).not.toContain("تفاصيل حركات التحصيل");
+    expect(sheet).not.toContain("دفعة مرتبطة بشغل غير مستلّم");
+    expect(sheet).not.toContain("خصومات سابقة");
     expect(sheet).not.toContain("<f>");
     expect(sheet).not.toContain("previewHash");
-    expect(sheet).not.toContain("ملاحظة داخلية");
     expect(new DOMParser().parseFromString(sheet, "application/xml").querySelector("parsererror")).toBeNull();
   });
 
-  it("marks entered amounts as unposted proposals, not completed receipts, in an exported draft", () => {
+  it("clearly marks a draft proposal as unpaid and unposted", () => {
     const proposal = {discount: "1000.00", collected: "500.00", remaining: "1000.00",
       reason: "اتفاق مع العميل"};
     const sheet = xmlSheet(buildCustomerSettlementStatementXlsx({kind: "draft", preview, proposal}));
-    expect(sheet).toContain("خصم مقترح — لم يُسجّل");
-    expect(sheet).toContain("تحصيل متوقع — لم يُستلم ولم يُسجّل");
-    expect(sheet).toContain("رصيد متوقع فقط إذا اعتُمد المقترح");
+    expect(sheet).toContain("المتبقي المتوقع بعد المقترح");
+    expect(sheet).toContain("خصم مقترح (غير مسجل)");
+    expect(sheet).toContain("دفعة مقترحة (غير مدفوعة)");
+    expect(sheet).toContain("المتبقي المتوقع");
     expect(sheet).toContain("اتفاق مع العميل");
-    expect(sheet).toContain("لا يمثلان إيصال قبض أو إبراء ذمة");
+    expect(sheet).toContain("مجرد اقتراح");
     expect(sheet).toContain('<v>1000</v>');
     expect(sheet).toContain('<v>500</v>');
+    expect(sheet).not.toContain("رقم إيصال الدفعة");
     expect(sheet).not.toContain("تصفية مسجلة");
   });
 
-  it("exports a saved settlement from its immutable before-snapshot with actual cash and discount, not today's balance", () => {
+  it("shows a saved settlement using its original snapshot and separates actual payment from discount", () => {
     const sheet = xmlSheet(buildCustomerSettlementStatementXlsx({kind: "saved", record}));
-    expect(sheet).toContain("تصفية مسجلة: SET-2026-00005");
-    expect(sheet).toContain("كشف تاريخي وقت تسجيل التصفية");
-    expect(sheet).toContain("خصم هذه التصفية (ليس تحصيلًا)");
-    expect(sheet).toContain("المبلغ المحصّل فعليًا عند التصفية");
-    expect(sheet).toContain("الرصيد المتبقي وقت تسجيل التصفية");
-    expect(sheet).toContain("خصم &amp; اتفاق");
+    expect(sheet).toContain("رقم التصفية: SET-2026-00005");
+    expect(sheet).toContain("كشف للحساب وقت تسجيل التصفية");
+    expect(sheet).toContain("خصم في هذه التصفية");
+    expect(sheet).toContain("المدفوع في هذه التصفية");
+    expect(sheet).toContain("المتبقي بعد التصفية");
+    expect(sheet).toContain("المتبقي عليك بعد التصفية");
     expect(sheet).toContain("COL-94");
     expect(sheet).toContain('<v>2500</v>');
     expect(sheet).toContain('<v>1000</v>');
     expect(sheet).toContain('<v>500</v>');
+    expect(sheet).not.toContain("COL-90");
     expect(sheet).not.toContain("ملاحظة داخلية");
-    expect(sheet).not.toContain("إنشاء إيصال");
     expect(sheet).not.toContain("خصم مقترح");
     expect(new DOMParser().parseFromString(sheet, "application/xml").querySelector("parsererror")).toBeNull();
   });
 
-  it("warns when a recorded settlement is later reversed while preserving the original snapshot", () => {
+  it("warns when a historical settlement needs review after later financial changes", () => {
     const sheet = xmlSheet(buildCustomerSettlementStatementXlsx({
       kind: "saved", record: {...record, needsReview: true, status: "needs_review"},
     }));
-    expect(sheet).toContain("هذه التصفية التاريخية تحتاج مراجعة بسبب تغيير لاحق");
+    expect(sheet).toContain("هذا الحساب التاريخي يحتاج مراجعة بسبب معاملة لاحقة");
+    expect(sheet).toContain("قد يتغير الرصيد مع معاملات لاحقة");
     expect(sheet).toContain('<v>1000</v>');
-    expect(sheet).toContain("قد تختلف مديونية العميل الحالية");
   });
 
-  it("handles credit balances, zero work, empty payments, and invalid numeric values", () => {
+  it("handles credit, empty work and missing snapshots without fabricated amounts", () => {
     const empty: AccountSettlementPreview = {
       ...preview, items: [], payments: [], openingBalance: "-75.00",
       deliveredTotal: "0.00", netPayments: "0.00", balanceBefore: "-75.00",
       dueNow: "0.00", creditInScope: "75.00",
     };
     const sheet = xmlSheet(buildCustomerSettlementStatementXlsx({kind: "draft", preview: empty}));
-    expect(sheet).toContain("لا توجد بنود شغل مستلّم");
-    expect(sheet).toContain("لا توجد حركات تحصيل أو رد");
+    expect(sheet).toContain("رصيد لصالحك");
+    expect(sheet).toContain("لا يوجد شغل مستلّم في هذا الكشف");
     expect(sheet).toContain('<v>-75</v>');
+    expect(sheet).toContain('<v>75</v>');
     expect(() => buildCustomerSettlementStatementXlsx({
       kind: "draft", preview: {...preview, netPayments: "1e999"},
     })).toThrow("Invalid customer statement number");
