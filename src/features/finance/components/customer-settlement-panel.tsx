@@ -27,7 +27,7 @@ export function CustomerSettlementPanel({customerId}: {customerId: number}) {
   function change(which: keyof SettlementPeriod, date: string) {setPeriod(previous => ({...previous, [which]: date})); setApplied(null);}
   function show() {if (!valid) return; if (applied?.from === period.from && applied?.to === period.to) void report.refetch(); else setApplied({...period});}
   return <section className="space-y-4 rounded-xl border bg-card p-4 sm:p-5" aria-label="كشف الشغل المسلّم للعميل">
-    <header><h2 className="text-lg font-bold">كشف الشغل المسلّم للعميل</h2><p className="mt-1 text-sm text-muted-foreground">كشف فترة للمراجعة والطباعة فقط. تسجيل التحصيل والتقفيل يتم من تبويب «التصفية المالية».</p></header>
+    <header><h2 className="text-lg font-bold">كشف حساب الشغل المستلّم</h2><p className="mt-1 text-sm text-muted-foreground">كشف المبالغ المتعلقة بالشغل اللي العميل استلمه. التقفيل الفعلي من «تصفية الحساب».</p></header>
     <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
       <CreatedDatePicker label="من تاريخ الكشف" value={period.from} max={period.to || undefined} onChange={value => change("from", value)}/>
       <CreatedDatePicker label="إلى تاريخ الكشف" value={period.to} min={period.from || undefined} max={cairoToday()} onChange={value => change("to", value)}/>
