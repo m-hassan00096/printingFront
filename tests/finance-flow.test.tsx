@@ -115,7 +115,8 @@ describe("Finance account page against Laravel existing contracts",()=>{
     permissions=["finance.balances.view","finance.ledger.view","finance.refunds.create"];
     visit();
     const card=await screen.findByRole("region",{name:"بيانات حساب العميل"});
-    expect(within(card).getByRole("combobox",{name:"اختيار حساب العميل"})).toBeTruthy();
+    expect(within(card).getByRole("navigation",{name:"مسار حساب العميل"})).toBeTruthy();
+    expect(within(card).queryByRole("combobox",{name:"اختيار حساب العميل"})).toBeNull();
     expect(screen.queryByRole("region",{name:"اختيار حساب العميل"})).toBeNull();
     const button=within(card).getByRole("button",{name:"رد رصيد للعميل"});
     await within(card).findByText("لا يمكن رد رصيد: العميل عليه مديونية حاليًا.");
@@ -140,23 +141,26 @@ describe("Finance account page against Laravel existing contracts",()=>{
     await waitFor(()=>expect(calls.some(c=>c.url==="/finance/customer-balances"&&c.params.get("filter[search]")==="أحمد")).toBe(true));
     await user.click(within(section).getByRole("button",{name:"كشف الحساب"}));
     expect(await screen.findByText("سداد دين")).toBeTruthy();
-    expect(screen.getByRole("button",{name:"العودة إلى الحسابات"})).toBeTruthy();
-    expect(screen.getByRole("combobox",{name:"اختيار حساب العميل"})).toBeTruthy();
+    expect(within(screen.getByRole("navigation",{name:"مسار حساب العميل"})).getByRole("button",{name:"حسابات العملاء"})).toBeTruthy();
+    expect(screen.queryByRole("combobox",{name:"اختيار حساب العميل"})).toBeNull();
   });
   it("navigates back to the account list and allows switching customers",async()=>{
     visit("");const user=userEvent.setup();
     const section=await screen.findByRole("region",{name:"قائمة حسابات العملاء"});
     await user.click((await within(section).findAllByRole("button",{name:"كشف الحساب"}))[0]);
     await screen.findByText("سداد دين");
-    await user.click(screen.getByRole("combobox",{name:"اختيار حساب العميل"}));
-    expect(await screen.findByRole("option",{name:/مؤسسة النور/})).toBeTruthy();
-    await user.click(screen.getByRole("button",{name:"العودة إلى الحسابات"}));
-    expect(await screen.findByRole("region",{name:"قائمة حسابات العملاء"})).toBeTruthy();
+    expect(screen.queryByRole("combobox",{name:"اختيار حساب العميل"})).toBeNull();
+    const crumb = screen.getByRole("navigation",{name:"مسار حساب العميل"});
+    await user.click(within(crumb).getByRole("button",{name:"حسابات العملاء"}));
+    const overview = await screen.findByRole("region",{name:"قائمة حسابات العملاء"});
+    expect(await within(overview).findByText("مؤسسة النور")).toBeTruthy();
   });
   it("hides a previously registered opening balance, without relying on a disabled submit",async()=>{
     hasOpening=true;
     visit();
-    expect(await screen.findByText("500.00 ج.م")).toBeTruthy();
+    await screen.findByRole("region",{name:"بيانات حساب العميل"});
+    expect(screen.queryByText("500.00 ج.م")).toBeNull();
+    expect(screen.queryByText("بيانات الحساب وتغيير العميل")).toBeNull();
     expect(screen.queryByRole("button",{name:"رصيد افتتاحي"})).toBeNull();
     expect(calls.some(c=>c.url==="/finance/customers/7/opening-balance-status")).toBe(true);
   });
@@ -185,6 +189,11 @@ describe("Finance account page against Laravel existing contracts",()=>{
     await user.click(await screen.findByRole("option",{name:/أحمد خالد/}));
     expect(await screen.findByText("سداد دين")).toBeTruthy();
     expect(screen.queryByText("ملف العميل")).toBeNull();
+    const crumb = screen.getByRole("navigation",{name:"مسار حساب العميل"});
+    expect(within(crumb).getByRole("button",{name:"اختيار عميل"})).toBeTruthy();
+    expect(screen.queryByRole("combobox",{name:"اختيار حساب العميل"})).toBeNull();
+    await user.click(within(crumb).getByRole("button",{name:"اختيار عميل"}));
+    expect(await screen.findByRole("combobox",{name:"اختيار حساب العميل"})).toBeTruthy();
     expect(calls.some(c=>c.url==="/finance/customers/7/balance")).toBe(false);
   });
 });
