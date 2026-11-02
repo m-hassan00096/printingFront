@@ -115,3 +115,16 @@ Backend PR #23 exercises customer-select permission boundaries, including inacti
 - The table and output formats show delivery date, order reference (a link only with `orders.view`), item description including dimensions when recorded, quantity, agreed per-piece price, signed value, and negative cancellation rows. Area-unit rates must **not** be presented as the per-piece price.
 - The **Print / PDF** and **Excel** outputs use the exact same filtered delivery rows and amounts as the UI, with no client debt or payment columns. Escaping is preserved for untrusted customer/item names and Excel values remain numeric, without spreadsheet formulas.
 - Historical finance ledgers, deposits, collection on order/delivery, refunds, accounting settlement confirmation and print evidence remain unchanged. Their independent regressions must continue passing.
+
+
+## Integrated customer-account settlement and fixed discount (2026-11-02)
+
+- **Basis:** the original V2 finance workspace (#25) with three distinct account detail tabs: ledger, delivered work, settlement. It is intentionally **not** replaced by the parallel V2 discount screen (#26).
+- Opening **تصفية الحساب** first displays the saved immutable settlement history. **تصفية جديدة** opens one compact modal containing the cumulative delivered-work cutoff, real current customer funds, fixed discount, optional cash collection and an optional explanatory breakdown.
+- Previous **discountsTotal** is shown separately from **netPayments**; neither the UI nor print evidence should treat a fixed discount as money received.
+- The fixed-discount field is visible only with \`finance.settlements.discount\`. A nonzero discount needs a reason, cannot exceed the delivered-work balance or real account debit, and cannot create customer credit.
+- The actual received amount always starts blank when the balance is positive. **بدون تحصيل الآن** explicitly records a zero-cash settlement: the remaining debt stays outstanding. **دفع كامل المتبقي بعد الخصم** only fills the amount; it never posts on its own.
+- Saving the settlement calls the **existing** POST \`/finance/customers/:customer/settlements\`, using the current \`previewHash\` and stable \`Idempotency-Key\`. The server atomically applies discount and optional real receipt dated today. Never call any separate discount or second settlement API.
+- Historical evidence keeps the discount, its reason, real cash, receipt, original balance and remaining balance separately; reversal/cancellation warnings from the original backend V2 are preserved. The ledger filter adds the discount movement type.
+- Requires backend integrated PR #42 (migration and permission seeders) deployed before the frontend PR #27. Old V2 PRs #25/#40 and the parallel drafts #26/#41 must **not** be merged independently.
+- Verify actual currency arithmetic, staff roles, cash receipts, historical snapshots, mobile RTL and printed evidence in staging before deployment.
