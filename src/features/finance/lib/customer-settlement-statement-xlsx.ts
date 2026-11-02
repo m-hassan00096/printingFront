@@ -14,7 +14,6 @@ export type CustomerSettlementStatement =
 const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 const DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
-const COLS = ["A", "B", "C", "D", "E", "F"] as const;
 const xml = (value: string): string => [...value].filter(char => {
   const cp = char.codePointAt(0) ?? 0;
   return cp === 9 || cp === 10 || cp === 13 || (cp >= 32 && cp <= 0xd7ff) ||
