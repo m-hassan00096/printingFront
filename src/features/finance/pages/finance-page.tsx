@@ -178,16 +178,20 @@ export function FinancePage() {
           {canOpening && openingStatus.isError && <ErrorState error={openingStatus.error} retry={() => void openingStatus.refetch()}/>}
           {canBalance && balance.isError && <ErrorState error={balance.error} retry={() => void balance.refetch()}/>}
           {!canBalance && canLedger && ledger.isError && <ErrorState error={ledger.error} retry={() => void ledger.refetch()}/>}
-          {accountViews.length > 0 && <div role="tablist" aria-label="تفاصيل حساب العميل" className="flex flex-wrap gap-1 rounded-xl border bg-card p-1">
-            {accountViews.map(tab => <button key={tab.key} role="tab" id={`account-${tab.key}-tab`} aria-controls={`account-${tab.key}-panel`} aria-selected={view === tab.key} onClick={() => changeView(tab.key)}
-              className={"rounded-lg px-4 py-2.5 text-sm font-bold " + (view === tab.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>{tab.title}</button>)}
-          </div>}
+          {(accountViews.length > 0 || (view === "refunds" && canRefundHistory)) && <div className="pt-2">
+            <section aria-label="تفاصيل الحساب" className="overflow-hidden rounded-xl border bg-card">
+              {accountViews.length > 0 && <div role="tablist" aria-label="تفاصيل حساب العميل" className="flex flex-wrap gap-6 border-b px-4 sm:px-5">
+                {accountViews.map(tab => <button type="button" key={tab.key} role="tab" id={`account-${tab.key}-tab`} aria-controls={`account-${tab.key}-panel`} aria-selected={view === tab.key} onClick={() => changeView(tab.key)}
+                  className={"-mb-px border-b-2 px-1 py-3 text-sm font-semibold transition-colors focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary " +
+                    (view === tab.key ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>{tab.title}</button>)}
+              </div>}
+              <div className="space-y-4 p-4 sm:p-5">
           {view === "refunds" && canRefundHistory && <><Button size="sm" variant="ghost" onClick={() => changeView("ledger")}>{copy.backToLedger}</Button><RefundsPanel key={customerId} customerId={customerId}/></>}
           {canLedger && view === "delivered" && <div role="tabpanel" id="account-delivered-panel" aria-labelledby="account-delivered-tab"><CustomerSettlementPanel key={customerId} customerId={customerId}/></div>}
           {canLedger && view === "settlements" && <div role="tabpanel" id="account-settlements-panel" aria-labelledby="account-settlements-tab"><AccountSettlementPanel key={customerId} customerId={customerId} canConfirm={canCollect} canViewCollections={canViewCollections}/></div>}
           {canLedger && view === "ledger" && <section role="tabpanel" id="account-ledger-panel" aria-labelledby="account-ledger-tab" className="space-y-3">
-            <div><h2 className="font-bold">كشف الحساب</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">الأحدث أولًا. الرصيد بعد الحركة تراكمي من كامل الحساب، وليس مجموع الصفوف المعروضة بعد الفلترة.</p></div>
-            <div className="grid gap-3 rounded-xl border bg-card p-3 md:grid-cols-3">
+            <p className="text-xs leading-5 text-muted-foreground">الأحدث أولًا. الرصيد بعد الحركة تراكمي من كامل الحساب، وليس مجموع الصفوف المعروضة بعد الفلترة.</p>
+            <div className="grid gap-3 rounded-lg border bg-muted/20 p-3 md:grid-cols-3">
               <CreatedDatePicker label="من تاريخ" value={filters.dateFrom} max={filters.dateTo || undefined} onChange={value => changeFilter("dateFrom", value)}/>
               <CreatedDatePicker label="إلى تاريخ" value={filters.dateTo} min={filters.dateFrom || undefined} onChange={value => changeFilter("dateTo", value)}/>
               <label className="space-y-1 text-xs font-semibold">نوع الحركة<select className={fieldClass} aria-label="نوع الحركة المالية" value={filters.type} onChange={event => changeFilter("type", event.target.value)}>{movementTypes.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
@@ -224,6 +228,9 @@ export function FinancePage() {
             </div> : <EmptyState title="لا توجد حركات مالية" detail="لا توجد حركات للعميل ضمن الفلاتر الحالية."/>}
             {ledger.data && ledger.data.pagination.lastPage > 1 && <PaginationBar pagination={ledger.data.pagination} onPage={page => setFilters(previous => ({...previous, page}))}/>}
           </section>}
+              </div>
+            </section>
+          </div>}
           {!canBalance && !canLedger && <p className="rounded-xl border bg-card p-4 text-sm">لا تملك صلاحية عرض الأرصدة أو كشف الحساب. يمكنك تنفيذ الإجراءات المالية المسموح بها فقط.</p>}
         </>}
       </>}
