@@ -3,12 +3,12 @@ import { getOrderPaymentOptions } from "@/features/orders/api/order-options.api"
 import { fieldClass } from "@/features/identity/components/identity-ui";
 
 export type AccountPaymentValue = {method: 0 | 1 | 2; destination: string};
-export function AccountPaymentFields({value, onChange, disabled = false}: {
-  value: AccountPaymentValue; onChange: (value: AccountPaymentValue) => void; disabled?: boolean;
+export function AccountPaymentFields({value, onChange, disabled = false, compact = false}: {
+  value: AccountPaymentValue; onChange: (value: AccountPaymentValue) => void; disabled?: boolean; compact?: boolean;
 }) {
   const choices = useQuery({queryKey: ["collections", "destinations"], queryFn: getOrderPaymentOptions, enabled: value.method !== 0});
   const destinations = value.method === 1 ? choices.data?.banks ?? [] : choices.data?.wallets ?? [];
-  return <div className="grid gap-3 sm:grid-cols-2">
+  return <div className={compact ? "grid gap-2" : "grid gap-3 sm:grid-cols-2"}>
     <label className="space-y-1 text-sm font-semibold">طريقة التحصيل
       <select aria-label="طريقة التحصيل" value={value.method} disabled={disabled} className={fieldClass}
         onChange={event => onChange({method: Number(event.target.value) as 0 | 1 | 2, destination: ""})}>
