@@ -236,8 +236,9 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
           </section>
 
           <details className="mx-auto w-full max-w-4xl rounded-xl border bg-card p-4 text-sm">
-            <summary className="cursor-pointer font-semibold">تفاصيل حساب التصفية</summary>
-            <div className="mt-4 space-y-3 border-t pt-4">
+            <summary className="cursor-pointer font-semibold">تفاصيل التصفية</summary>
+            <div className="mt-4 space-y-4 border-t pt-4">
+              <p className="font-semibold">كيف اتحسب المبلغ المتبقي؟</p>
               <dl className="space-y-3">
                 {[
                   ["الرصيد الافتتاحي", data.openingBalance],
@@ -265,21 +266,20 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
                   <p>المقدمات محسوبة بالفعل ولا تُخصم مرة ثانية. التصفية على حساب العميل الجاري، وليست توزيع دفعات على فواتير منفردة.</p>
                 </div>
               </details>
-            </div>
-          </details>
-
-          <details className="mx-auto w-full max-w-4xl rounded-xl border bg-card p-4 text-sm">
-            <summary className="cursor-pointer font-semibold">مراجعة الشغل المشمول ({data.items.length} بند)</summary>
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[600px] text-right text-sm">
-                <thead><tr>{["الأوردر", "الشغل", "الكمية", "القيمة"].map(title => <th className="p-2" key={title}>{title}</th>)}</tr></thead>
-                <tbody>{data.items.map(item => <tr className="border-t" key={item.id}>
-                  <td className="p-2" dir="ltr">{item.orderNumber}</td>
-                  <td className="p-2">{item.description}{item.widthCm && item.heightCm && <span className="block text-xs text-muted-foreground">{item.widthCm} × {item.heightCm} سم</span>}</td>
-                  <td className="p-2">{item.quantity}</td>
-                  <td className="p-2"><MoneyAmount amount={item.amount}/></td>
-                </tr>)}</tbody>
-              </table>
+              <details className="border-t pt-3">
+                <summary className="cursor-pointer font-semibold text-muted-foreground">الشغل المشمول ({data.items.length} بند)</summary>
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full min-w-[600px] text-right text-sm">
+                    <thead><tr>{["الأوردر", "الشغل", "الكمية", "القيمة"].map(title => <th className="p-2" key={title}>{title}</th>)}</tr></thead>
+                    <tbody>{data.items.map(item => <tr className="border-t" key={item.id}>
+                      <td className="p-2" dir="ltr">{item.orderNumber}</td>
+                      <td className="p-2">{item.description}{item.widthCm && item.heightCm && <span className="block text-xs text-muted-foreground">{item.widthCm} × {item.heightCm} سم</span>}</td>
+                      <td className="p-2">{item.quantity}</td>
+                      <td className="p-2"><MoneyAmount amount={item.amount}/></td>
+                    </tr>)}</tbody>
+                  </table>
+                </div>
+              </details>
             </div>
           </details>
         </>}
@@ -289,16 +289,23 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
             ? <p className="py-8 text-center text-sm text-muted-foreground">لا توجد تصفيات مسجلة لهذا العميل.</p>
             : <>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[700px] text-right text-sm">
-                    <thead><tr>{["رقم التصفية", "تاريخ التنفيذ", "الشغل حتى", "المحصّل", "النتيجة", ""].map((title, index) => <th key={index} className="p-3">{title}</th>)}</tr></thead>
+                  <table className="w-full min-w-[850px] text-right text-sm">
+                    <thead><tr>{["رقم التصفية", "تاريخ التنفيذ", "الشغل حتى", "المحصّل", "المتبقي بعد العملية", "النتيجة", ""].map((title, index) => <th key={index} className="p-3">{title}</th>)}</tr></thead>
                     <tbody>{history.data.settlements.map(item => <tr className="border-t" key={item.id}>
                       <td className="p-3" dir="ltr">{item.number}</td><td className="p-3">{item.settledOn}</td><td className="p-3">{item.dateTo}</td>
                       <td className="p-3"><MoneyAmount amount={item.amountCollected}/></td>
+                      <td className="whitespace-nowrap p-3">
+                        <span>{item.balanceAfter.startsWith("-") ? "للعميل رصيد " : ""}</span>
+                        <MoneyAmount amount={absoluteAmount(item.balanceAfter)}/>
+                      </td>
                       <td className={"p-3 " + (item.needsReview ? "text-destructive" : "")}>{item.statusLabel}</td>
                       <td className="p-3"><Button variant="outline" size="sm" disabled={openingRecord} onClick={() => void openRecord(item.id)}>عرض الإثبات</Button></td>
                     </tr>)}</tbody>
                   </table>
                 </div>
+                <p className="text-xs leading-5 text-muted-foreground">
+                  المتبقي الظاهر هو رصيد التصفية وقت تسجيلها، وليس بالضرورة رصيد العميل الحالي. التصفيات التي تحتاج مراجعة لا تؤكد السداد الحالي.
+                </p>
                 {history.data.pagination.lastPage > 1 && <PaginationBar pagination={history.data.pagination} onPage={setPage}/>}
               </>}
         </div>}
