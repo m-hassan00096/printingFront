@@ -53,7 +53,7 @@ describe("Finance refunds within the account workspace", () => {
     const banner = await screen.findByRole("banner");
     expect(within(banner).queryByText("مساحة العمل")).toBeNull();
     expect(within(banner).queryByText("الحسابات")).toBeNull();
-    expect(screen.getByRole("heading", {level: 1, name: "حسابات العملاء"})).toBeTruthy();
+    expect(await screen.findByRole("heading", {level: 1, name: "حسابات العملاء"})).toBeTruthy();
     expect(screen.queryByText("اعرف الرصيد، سجّل تحصيل، وراجع حساب الشغل المستلّم في مكان واحد.")).toBeNull();
     const tabs = screen.getByRole("tablist", {name: "أقسام حسابات العملاء"});
     expect(tabs.parentElement?.className).toContain("pb-2");
