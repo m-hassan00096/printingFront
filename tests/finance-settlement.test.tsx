@@ -95,6 +95,7 @@ const adapter: AxiosAdapter = async config => {
         id: 12, number: "SET-2026-00012",
         dateFrom: String(body.dateFrom), dateTo: String(body.dateTo),
         settledOn: "2026-11-02", collectionReversed: false,
+        createdByName: "Admin",
         createdAt: "2026-11-02 16:00:00",
         balanceBefore: "500.00", balanceAfter: "350.00",
         collectedAmount: String(body.collectedAmount), discountAmount: String(body.discountAmount),

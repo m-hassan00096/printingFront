@@ -40,6 +40,7 @@ function StatementDetails({ record, canSeeReconciliation }: {
         <p className="text-sm text-muted-foreground">
           تشمل من {formatCollectionDate(record.dateFrom)} حتى {formatCollectionDate(record.dateTo)}
           {" "}· تاريخ التصفية {formatCollectionDate(record.settledOn)}
+          {record.createdByName && <> · بواسطة {record.createdByName}</>}
         </p>
       </div>
       <div className="flex flex-wrap gap-2">

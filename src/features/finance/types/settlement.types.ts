@@ -45,6 +45,7 @@ export type SettlementRecordSummary = {
   dateTo: string;
   settledOn: string;
   createdAt: string;
+  createdByName: string | null;
   balanceBefore: string;
   balanceAfter: string;
   discountAmount: string;
