@@ -126,7 +126,7 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
       </div>
     </header>
 
-    {error && <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+    {error && mode !== "new" && <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
       {error}
       {stale && <Button variant="outline" className="ms-3" size="sm" onClick={() => void refreshPreview()}>تحديث المراجعة</Button>}
     </div>}
@@ -180,6 +180,11 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
             onClick={() => setMode("history")}>إغلاق</Button>
         </header>
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
+        {error && <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+          {error}
+          {stale && <Button variant="outline" className="ms-3" size="sm"
+            onClick={() => void refreshPreview()}>تحديث المراجعة</Button>}
+        </div>
       <div className="mx-auto w-full max-w-4xl rounded-lg border bg-muted/20 px-4 py-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <p className="text-sm leading-7 text-muted-foreground">
