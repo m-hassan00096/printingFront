@@ -179,7 +179,7 @@ export function FinancePage() {
           {canBalance && balance.isError && <ErrorState error={balance.error} retry={() => void balance.refetch()}/>}
           {!canBalance && canLedger && ledger.isError && <ErrorState error={ledger.error} retry={() => void ledger.refetch()}/>}
           {(accountViews.length > 0 || (view === "refunds" && canRefundHistory)) && <div className="pt-2">
-            <section aria-label="تفاصيل الحساب" className="overflow-hidden rounded-xl border bg-card">
+            <section aria-label="تفاصيل الحساب" className="rounded-xl border bg-card">
               {accountViews.length > 0 && <div role="tablist" aria-label="تفاصيل حساب العميل" className="flex flex-wrap gap-6 border-b px-4 sm:px-5">
                 {accountViews.map(tab => <button type="button" key={tab.key} role="tab" id={`account-${tab.key}-tab`} aria-controls={`account-${tab.key}-panel`} aria-selected={view === tab.key} onClick={() => changeView(tab.key)}
                   className={"-mb-px border-b-2 px-1 py-3 text-sm font-semibold transition-colors focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary " +
