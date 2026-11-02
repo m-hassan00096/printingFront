@@ -92,8 +92,6 @@ export function FinancePage() {
     void Promise.all(["finance", "customers", "collections"].map(name => qc.invalidateQueries({queryKey: [name]})));
   }
   const hasOpening = openingStatus.isSuccess && openingStatus.data.openingBalanceExists;
-  const openingAlreadyRegistered = canOpening && openingStatus.isSuccess ? openingStatus.data.openingBalanceExists :
-    canBalance ? balance.data?.openingBalanceExists : canLedger ? ledger.data?.openingBalanceExists : undefined;
   const canRefundSelected = canRefund && customerId > 0 && ((!canBalance && !canLedger) || (balanceReady && actualBalance?.type === 2));
   const refundUnavailableReason = !canRefund || !customerId || canRefundSelected ? "" :
     !balanceReady ? (balance.isError || ledger.isError ? copy.refundBalanceError : copy.refundBalanceLoading) :
@@ -127,40 +125,56 @@ export function FinancePage() {
         {customerId > 0 && <>
           <section aria-label="بيانات حساب العميل" className="rounded-xl border bg-card p-4 sm:p-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="min-w-0"><p className="text-xs text-muted-foreground">{copy.selectedCustomer}</p><h2 className="mt-1 text-xl font-bold">{customerName}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">{copy.phone}: <span dir="ltr" className="inline-block">{customerPhone ?? copy.notAvailable}</span></p>
-                {canCustomerProfile && <Link to={`/customers/${customerId}`} className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline">{copy.customerRecord}<ArrowUpLeft className="size-3.5"/></Link>}
+              <div className="min-w-0">
+                <nav aria-label="مسار حساب العميل" className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
+                  <button type="button" onClick={() => chooseCustomer("")} className="font-semibold text-primary hover:underline focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+                    {canBalance ? "حسابات العملاء" : "اختيار عميل"}
+                  </button>
+                  <span aria-hidden="true">/</span>
+                  <span aria-current="page">حساب العميل</span>
+                </nav>
+                <h2 className="text-xl font-bold">{customerName}</h2>
+                <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                  <p className="text-muted-foreground">{copy.phone}: <span dir="ltr" className="inline-block">{customerPhone ?? copy.notAvailable}</span></p>
+                  {canCustomerProfile && <Link to={"/customers/" + customerId} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                    {copy.customerRecord}<ArrowUpLeft className="size-3.5"/>
+                  </Link>}
+                </div>
               </div>
-              <div className="space-y-1 text-start sm:text-end"><p className="text-sm text-muted-foreground">رصيد الحساب الكلي — حتى الآن</p>
+              <div className="space-y-1 text-start sm:text-end">
+                <p className="text-xs text-muted-foreground">الرصيد الكلي — حتى الآن</p>
                 {((canBalance && balance.isPending) || (!canBalance && canLedger && ledger.isPending)) ? <p className="text-sm">جاري تحميل الرصيد...</p> : actualBalance && balanceReady ?
                   <p className={"text-2xl font-extrabold " + (actualBalance.type === 1 ? "text-destructive" : actualBalance.type === 2 ? "text-emerald-700" : "text-foreground")}>
                     <span className="me-2 text-base">{accountTypeLabel(actualBalance.type)}</span><MoneyAmount amount={actualBalance.amount}/>
                   </p> : <p className="text-sm text-muted-foreground">{canBalance || canLedger ? "تعذّر عرض الرصيد" : "لا تملك صلاحية عرض الرصيد"}</p>}
-                <p className="max-w-md text-xs leading-5 text-muted-foreground">يشمل مديونية الأوردرات المؤكدة حتى لو لم تُسلّم. التقفيل المالي يعرض نطاقه والمتبقي خارجه بشكل منفصل.</p>
+                <p className="text-xs text-muted-foreground">يشمل الأوردرات المؤكدة حتى غير المستلّمة.</p>
               </div>
             </div>
-            <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-3" aria-label={copy.accountActions}>
-              {canCollect && <Button onClick={() => setCollecting(true)}><Plus className="size-4"/> تسجيل تحصيل</Button>}
-                      {(canRefund || canRefundHistory || canOpening) && <details className="relative"><summary className="cursor-pointer rounded-lg border px-3 py-2 text-sm font-semibold">إجراءات أخرى</summary>
-                <div className="absolute start-0 z-20 mt-2 w-72 space-y-2 rounded-xl border bg-card p-3 shadow-lg">
-                  {canRefund && <><Button className="w-full justify-start" size="sm" variant="outline" disabled={!canRefundSelected} title={refundUnavailableReason || undefined} onClick={() => setRefunding(true)}><RotateCcw className="size-4"/>{copy.refundAction}</Button>
-                    <p role="status" className="text-xs leading-5 text-muted-foreground">{canRefundSelected && actualBalance?.type === 2 ? <>{copy.refundableAmount}: <MoneyAmount amount={actualBalance.amount}/></> : refundUnavailableReason || copy.refundValidatedByServer}</p></>}
-                  {canRefundHistory && <Button className="w-full justify-start" size="sm" variant="outline" onClick={() => changeView("refunds")}><History className="size-4"/>{copy.customerRefundsAction}</Button>}
-                  {canOpening && openingStatus.isSuccess && !hasOpening && <Button className="w-full justify-start" size="sm" variant="outline" onClick={() => setOpening(true)}><Plus className="size-4"/>{copy.openingAction}</Button>}
-                </div>
-              </details>}
-              {canBalance && <Button className="ms-auto" size="sm" variant="ghost" onClick={() => chooseCustomer("")}>{copy.backToAccounts}</Button>}
-            </div>
-            <details className="mt-3 border-t pt-3 text-sm"><summary className="cursor-pointer text-muted-foreground">بيانات الحساب وتغيير العميل</summary>
-              <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2"><span className="text-xs font-semibold">{copy.changeCustomer}</span><SearchableSelect label="اختيار حساب العميل" placeholder={copy.accountsSearch} value={rawId} options={customers.data ?? []} onChange={chooseCustomer} loading={customers.isPending} disabled={customers.isError}/></div>
-                <div><p className="text-xs text-muted-foreground">{copy.opening}</p>
-                  {canBalance && balance.isSuccess && balance.data.openingBalance ? <p className="mt-2 font-semibold">{accountTypeLabel(balance.data.openingBalance.type)} · <MoneyAmount amount={balance.data.openingBalance.amount}/></p> :
-                    <p className="mt-2">{openingAlreadyRegistered === undefined ? "غير متاح" : openingAlreadyRegistered ? copy.openingRecorded : copy.openingNotRecorded}</p>}
-                  <p className="mt-1 text-xs text-muted-foreground">معلومة إعداد تاريخية، وليست مبلغًا إضافيًا يُضاف إلى الرصيد الحالي مرة ثانية.</p>
-                </div>
-              </div>
-            </details>
+            {(canCollect || canRefund || canRefundHistory || (canOpening && openingStatus.isSuccess && !hasOpening)) &&
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-3" aria-label={copy.accountActions}>
+                {canCollect && <Button onClick={() => setCollecting(true)}><Plus className="size-4"/> تسجيل تحصيل</Button>}
+                {(canRefund || canRefundHistory || (canOpening && openingStatus.isSuccess && !hasOpening)) &&
+                  <details className="relative">
+                    <summary className="cursor-pointer rounded-lg border px-3 py-2 text-sm font-semibold">إجراءات أخرى</summary>
+                    <div className="absolute start-0 z-20 mt-2 w-72 space-y-2 rounded-xl border bg-card p-3 shadow-lg">
+                      {canRefund && <>
+                        <Button className="w-full justify-start" size="sm" variant="outline" disabled={!canRefundSelected} title={refundUnavailableReason || undefined} onClick={() => setRefunding(true)}>
+                          <RotateCcw className="size-4"/>{copy.refundAction}
+                        </Button>
+                        <p role="status" className="text-xs leading-5 text-muted-foreground">
+                          {canRefundSelected && actualBalance?.type === 2 ? <>{copy.refundableAmount}: <MoneyAmount amount={actualBalance.amount}/></> : refundUnavailableReason || copy.refundValidatedByServer}
+                        </p>
+                      </>}
+                      {canRefundHistory && <Button className="w-full justify-start" size="sm" variant="outline" onClick={() => changeView("refunds")}>
+                        <History className="size-4"/>{copy.customerRefundsAction}
+                      </Button>}
+                      {canOpening && openingStatus.isSuccess && !hasOpening &&
+                        <Button className="w-full justify-start" size="sm" variant="outline" onClick={() => setOpening(true)}>
+                          <Plus className="size-4"/>{copy.openingAction}
+                        </Button>}
+                    </div>
+                  </details>}
+              </div>}
           </section>
           {customers.isError && <ErrorState error={customers.error} retry={() => void customers.refetch()}/>}
           {canOpening && openingStatus.isError && <ErrorState error={openingStatus.error} retry={() => void openingStatus.refetch()}/>}
