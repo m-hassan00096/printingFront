@@ -284,7 +284,7 @@ describe("Financial settlement workspace", () => {
     expect(screen.queryByRole("button", {name: "حفظ الخصم بدون تحصيل"})).toBeNull();
     await user.type(screen.getByRole("textbox", {name: "سبب الخصم"}), "اتفاق مع العميل");
     await user.click(screen.getByRole("button", {name: "بدون تحصيل الآن"}));
-    expect(screen.getByText(/المتبقي بعد الخصم والتحصيل/)).toBeTruthy();
+    expect(screen.getByText(/المتبقي المتوقع بعد الخصم والتحصيل/)).toBeTruthy();
     await user.click(screen.getByRole("button", {name: "حفظ الخصم بدون تحصيل"}));
     const saved = await screen.findByRole("region", {name: "نتيجة التصفية"});
     expect(within(saved).getByText("100.00 ج.م")).toBeTruthy();
@@ -371,7 +371,7 @@ describe("Financial settlement workspace", () => {
     await user.type(screen.getByRole("textbox", {name: "سبب الخصم"}), "تعويض عن التأخير");
     const cash = screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"});
     await user.type(cash, "50.00");
-    expect(screen.getByText(/المتبقي بعد الخصم والتحصيل/)).toBeTruthy();
+    expect(screen.getByText(/المتبقي المتوقع بعد الخصم والتحصيل/)).toBeTruthy();
     await user.click(screen.getByRole("button", {name: "تأكيد الخصم والتحصيل"}));
     await screen.findByRole("region", {name: "نتيجة التصفية"});
     expect(posts()).toHaveLength(1);
