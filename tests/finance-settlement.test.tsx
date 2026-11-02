@@ -54,7 +54,10 @@ describe("Read-only delivered work statement", () => {
     await user.click(tab);
     const panel = screen.getByRole("region", {name: "كشف الشغل المسلّم للعميل"});
     expect(await within(panel).findByText("كروت شخصية — وجهين")).toBeTruthy();
-    expect(within(panel).getByText("COL-90")).toBeTruthy();
+    expect(within(panel).queryByText("COL-90")).toBeNull();
+    expect(within(panel).queryByText("رصيد افتتاحي")).toBeNull();
+    expect(within(panel).queryByText("4,950.00 ج.م")).toBeNull();
+    expect(within(panel).getByRole("table", {name: "تفاصيل الشغل المستلّم"})).toBeTruthy();
     expect(within(panel).getByRole("button", {name: "طباعة / PDF"})).toBeTruthy();
     expect(within(panel).getByRole("button", {name: "تصدير Excel"})).toBeTruthy();
     const call = calls.find(item => item.url.endsWith("/settlement"))!;
@@ -106,14 +109,32 @@ describe("Read-only delivered work statement", () => {
     await userEvent.setup().click(within(table).getByRole("button", {name: "عرض الملاحظة كاملة"}));
     expect(within(screen.getByRole("dialog", {name: "تفاصيل الحركة المالية"})).getByText("ملاحظة تجريبية للحركة")).toBeTruthy();
   });
-  it("includes in-period opening adjustments in the visible reconciliation summary", async () => {
+  it("shows the delivery total alone rather than duplicating the customer's debt and cash statement", async () => {
     visit("customerId=7&view=delivered");
-    await screen.findByText("كروت شخصية — وجهين");
-    const summary = screen.getByLabelText("ملخص حساب الفترة");
-    expect(within(summary).getByText("رصيد افتتاحي سُجل داخل الفترة")).toBeTruthy();
-    expect(within(summary).getByText("5,000.00 ج.م")).toBeTruthy();
-    expect(within(summary).getByText("4,950.00 ج.م")).toBeTruthy();
-    expect(screen.getByText(/هذا رصيد تاريخي وليس أمرًا بتحصيله الآن/)).toBeTruthy();
+    const panel = await screen.findByRole("region", {name: "كشف الشغل المسلّم للعميل"});
+    expect(await within(panel).findByText("كروت شخصية — وجهين")).toBeTruthy();
+    const summary = within(panel).getByLabelText("ملخص الشغل المستلّم");
+    expect(within(summary).getByText("عدد الأوردرات المستلّمة")).toBeTruthy();
+    expect(within(summary).getByText("إجمالي الشغل المستلّم")).toBeTruthy();
+    expect(within(summary).getByText("صافي الشغل خلال الفترة")).toBeTruthy();
+    expect(within(summary).queryByText("رصيد افتتاحي سُجل داخل الفترة")).toBeNull();
+    expect(within(summary).queryByText("5,000.00 ج.م")).toBeNull();
+    expect(within(summary).queryByText("4,950.00 ج.م")).toBeNull();
+    expect(within(panel).queryByText("COL-90")).toBeNull();
+    const table = within(panel).getByRole("table", {name: "تفاصيل الشغل المستلّم"});
+    expect(within(table).getAllByRole("columnheader").map(x => x.textContent)).toEqual([
+      "تاريخ الحركة", "رقم الأوردر", "الشغل / الحالة", "الكمية", "سعر القطعة", "القيمة",
+    ]);
+    expect(within(table).getByText("ORD-10")).toBeTruthy();
+    expect(within(table).queryByText("تحصيل من العميل")).toBeNull();
+    expect(within(table).queryByText("رصيد افتتاحي")).toBeNull();
+  });
+  it("links delivered orders only when the staff has the order-read permission", async () => {
+    permissions = ["finance.balances.view", "finance.ledger.view", "orders.view"];
+    visit("customerId=7&view=delivered");
+    const table = await screen.findByRole("table", {name: "تفاصيل الشغل المستلّم"});
+    const order = within(table).getByRole("link", {name: "ORD-10"});
+    expect(order.getAttribute("href")).toBe("/orders/10");
   });
   it("requires ledger permission even for a direct delivered-report URL", async () => {
     permissions = ["finance.balances.view"];
