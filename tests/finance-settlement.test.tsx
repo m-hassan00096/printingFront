@@ -28,6 +28,17 @@ const adapter: AxiosAdapter = async config => {
     refundId: null, refundNumber: null, orderId: null, orderNumber: null, note: "ملاحظة تجريبية للحركة",
   }], balance: {amount: "4950.00", type: 1, typeLabel: "مدين"}, openingBalanceExists: true,
     pagination: {currentPage: 1, perPage: 20, lastPage: 1, total: 1}});
+  if (url === "/finance/customers/7/settlements/preview") return response(config, {
+    customerId: 7, customerName: "شركة النور", customerPhone: "01012345678",
+    dateTo: params.get("dateTo"), paymentsThrough: params.get("dateTo"),
+    scope: "cumulative_delivered_work", previewHash: "a".repeat(64),
+    openingBalance: "5000.00", deliveredTotal: "50.00",
+    grossCollections: "4500.00", collectionReversals: "1400.00", refundsTotal: "0.00",
+    netPayments: "3100.00", advancesForOtherWork: "0.00",
+    balanceBefore: "1950.00", dueNow: "1950.00", creditInScope: "0.00",
+    accountBalance: "4950.00", outsideBalance: "3000.00",
+    hasWork: true, items: [], payments: [],
+  });
   if (url === "/finance/customers/7/settlement") return response(config, {
     customerId: 7, customerName: "شركة النور", customerPhone: "01012345678",
     dateFrom: params.get("dateFrom"), dateTo: params.get("dateTo"),
@@ -135,6 +146,22 @@ describe("Read-only delivered work statement", () => {
     const table = await screen.findByRole("table", {name: "تفاصيل الشغل المستلّم"});
     const order = within(table).getByRole("link", {name: "ORD-10"});
     expect(order.getAttribute("href")).toBe("/orders/10");
+  });
+  it("opens the same customer's ledger from payment details without reposting or re-entering the customer", async () => {
+    visit("customerId=7&view=settlements");
+    const user = userEvent.setup();
+    await user.click(await screen.findByText("تفاصيل التصفية"));
+    expect(screen.getByText("صافي دفعات العميل السابقة")).toBeTruthy();
+    expect(screen.queryByText("تفصيل الدفعات والمقدمات")).toBeNull();
+    const link = screen.getByRole("link", {name: "عرض حركات الدفعات في كشف الحساب"});
+    expect(link.getAttribute("href")).toBe("/finance?customerId=7&view=ledger");
+    await user.click(link);
+    const ledger = await screen.findByRole("tabpanel", {name: "كشف الحساب"});
+    expect(screen.getByRole("tab", {name: "كشف الحساب"}).getAttribute("aria-selected")).toBe("true");
+    expect(await within(ledger).findByText("COL-90")).toBeTruthy();
+    expect(window.location.search).toContain("customerId=7");
+    expect(window.location.search).toContain("view=ledger");
+    expect(calls.some(call => call.method === "post")).toBe(false);
   });
   it("requires ledger permission even for a direct delivered-report URL", async () => {
     permissions = ["finance.balances.view"];
