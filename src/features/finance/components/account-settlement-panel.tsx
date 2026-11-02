@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, FileSpreadsheet, History, Printer, RefreshCw, TriangleAlert } from "lucide-react";
+import { CheckCircle2, ChevronDown, FileSpreadsheet, History, Plus, Printer, RefreshCw, TriangleAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
@@ -26,6 +26,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
   const [amountInput, setAmountInput] = useState<string | null>(null);
   const [discountInput, setDiscountInput] = useState('0.00');
   const [discountReason, setDiscountReason] = useState('');
+  const [discountOpen, setDiscountOpen] = useState(false);
   const [payment, setPayment] = useState<AccountPaymentValue>({method: 0, destination: ""});
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
@@ -121,7 +122,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
   function startNew() {
     setRecord(null); setMode("new"); setAmountInput(null);
     setPayment({method: 0, destination: ""}); setNote("");
-    setDiscountInput('0.00'); setDiscountReason('');
+    setDiscountInput('0.00'); setDiscountReason(''); setDiscountOpen(false);
     setError(""); setStale(false);
   }
 
@@ -185,200 +186,221 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
         {!record.collectionId && <span className="self-center text-sm text-muted-foreground">لم يُسجّل تحصيل جديد في هذه العملية.</span>}
       </div>
     </section> : mode === "new" ? <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-3 sm:p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-2 sm:p-4"
       onMouseDown={event => {if (event.target === event.currentTarget && !busy) setMode("history");}}>
       <section role="dialog" aria-modal="true" aria-label="تصفية حساب جديدة" dir="rtl"
-        className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-card shadow-2xl"
+        className="flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl bg-card shadow-2xl sm:max-h-[92vh]"
         onKeyDown={event => {if (event.key === "Escape" && !busy) setMode("history");}}>
-        <header className="flex shrink-0 items-center justify-between border-b p-4">
-          <div>
-            <h2 className="font-bold">تصفية حساب — {modalCustomerName}</h2>
-            <p className="mt-1 text-xs text-muted-foreground">راجع المستحق، ثم أدخل الخصم والمبلغ المحصّل فعلًا إن وجد.</p>
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-bold sm:text-lg">تصفية حساب — {modalCustomerName}</h2>
+            <p className="mt-1 text-xs text-muted-foreground">راجع المستحق وسجّل المبلغ الذي استلمته فعليًا.</p>
           </div>
-          <Button type="button" variant="ghost" size="sm" disabled={busy}
-            onClick={() => setMode("history")}>إغلاق</Button>
+          <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => setMode("history")}>إغلاق</Button>
         </header>
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 sm:p-4">
-        {error && <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-          {error}
-          {stale && <Button variant="outline" className="ms-3" size="sm"
-            onClick={() => void refreshPreview()}>تحديث المراجعة</Button>}
-        </div>}
-      <div className="mx-auto w-full max-w-4xl rounded-lg border bg-muted/20 px-4 py-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <p className="text-sm leading-7 text-muted-foreground">
-            الشغل حتى <span dir="ltr" className="inline-block font-semibold text-foreground">{cutoff ? formatCollectionDate(cutoff) : "—"}</span>
-            <span className="mx-2" aria-hidden="true">·</span>
-            الدفعات حتى اليوم
-          </p>
-          <div className="flex flex-wrap items-start gap-3">
-            <details className="min-w-28 text-sm">
-              <summary className="cursor-pointer py-1.5 font-semibold text-primary">تغيير التاريخ</summary>
-              <div className="mt-2 min-w-48">
-                <CreatedDatePicker label="الشغل المستلّم حتى" value={cutoff} max={cairoToday()} disabled={busy}
-                  onChange={value => {if (busy) return; setCutoff(value); setAmountInput(null); setStale(false); setError("");}}/>
-              </div>
-            </details>
-            <Button variant="outline" size="sm" disabled={busy || preview.isFetching || !validDate} onClick={() => void refreshPreview()}>
-              <RefreshCw className="size-4"/> تحديث الحساب
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {!validDate ? <p role="alert" className="text-sm text-destructive">اختر تاريخًا صحيحًا لا يتجاوز اليوم.</p>
-        : preview.isPending ? <LoadingState/>
-        : preview.isError ? <ErrorState error={preview.error} retry={() => void preview.refetch()}/>
-        : data && <>
-          <section className="mx-auto w-full max-w-4xl space-y-3 rounded-xl border bg-card p-4" aria-label="إتمام التصفية">
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-muted-foreground">
-                {due === 0 && data.balanceBefore.startsWith("-") ? "للعميل رصيد ضمن التصفية" : "المبلغ المتبقي للتصفية"}
-              </p>
-              <p className={"text-3xl font-extrabold tabular-nums " + (due === 0 && data.balanceBefore.startsWith("-") ? "text-emerald-700" : "text-primary")}>
-                <MoneyAmount amount={due === 0 && data.balanceBefore.startsWith("-") ? absoluteAmount(data.balanceBefore) : data.dueNow}/>
-              </p>
-              <p className="text-xs leading-5 text-muted-foreground">
-                {due === 0 && data.balanceBefore.startsWith("-")
-                  ? "الرصيد الدائن لا يُرد تلقائيًا؛ رد أي مبلغ يعتمد على الرصيد الكلي."
-                  : "يشمل الرصيد السابق والشغل المستلّم بعد خصم الدفعات. الأوردرات غير المستلّمة خارج هذه التصفية."}
-              </p>
-            </div>
-            {data.outsideBalance !== "0.00" && data.outsideBalance !== "0" && <p className="rounded-lg bg-muted/40 p-3 text-sm">
-              {balanceDescription(data.outsideBalance)} خارج التصفية: <strong><MoneyAmount amount={absoluteAmount(data.outsideBalance)}/></strong>
-            </p>}
-            {!canConfirm ? <p className="text-sm text-muted-foreground">يمكنك مراجعة الحساب، لكن تسجيل التصفية يحتاج صلاحية تسجيل التحصيل.</p>
-              : !data.hasWork ? <p className="text-sm text-muted-foreground">لا يوجد شغل مستلّم أو رصيد افتتاحي لتصفيته.</p>
-              : <>
-                <div className={canDiscount && due !== null && due > 0 ? "grid items-start gap-3 md:grid-cols-2" : "space-y-3"}>
-                  {canDiscount && due !== null && due > 0 && <div className="space-y-2 rounded-lg border p-3">
-                    <label className="block space-y-1.5 text-sm font-semibold">
-                      <span>خصم من حساب العميل (اختياري)</span>
-                      <input aria-label="خصم ثابت" aria-invalid={!discountAmountValid}
-                        aria-describedby={!discountAmountValid ? "settlement-discount-amount-error" : undefined}
-                        className={fieldClass} dir="ltr" inputMode="decimal" placeholder="0.00"
-                        value={discountInput} disabled={busy}
-                        onChange={event => {setDiscountInput(event.target.value); setError("");}}/>
-                    </label>
-                    {!discountAmountValid && <p id="settlement-discount-amount-error" role="alert" className="text-xs text-destructive">
-                      أدخل خصمًا صحيحًا لا يتجاوز المستحق للتصفية أو مديونية العميل الحالية.
-                    </p>}
-                    {discountCents !== null && discountCents > 0 && <label className="block space-y-1.5 text-sm font-semibold">
-                      <span>سبب الخصم *</span>
-                      <input aria-label="سبب الخصم" aria-invalid={!discountReasonValid}
-                        aria-describedby={!discountReasonValid ? "settlement-discount-reason-error" : undefined}
-                        className={fieldClass} value={discountReason}
-                        maxLength={1000} disabled={busy} placeholder="مثال: خصم متفق عليه مع العميل"
-                        onChange={event => {setDiscountReason(event.target.value); setError("");}}/>
-                    </label>}
-                    {discountCents !== null && discountCents > 0 && !discountReasonValid && <p
-                      id="settlement-discount-reason-error" role="alert" className="text-xs text-destructive">
-                      اكتب سبب الخصم قبل التأكيد (3 أحرف على الأقل).
-                    </p>}
-                    <p className="text-xs text-muted-foreground">الخصم يقلل المديونية، ولا يُعتبر تحصيلًا نقديًا.</p>
-                  </div>}
-                  {due === 0 ? <p className="rounded-lg border bg-muted/20 p-3 text-sm leading-6">
-                    لا يوجد مبلغ مطلوب تحصيله الآن. يمكنك حفظ مراجعة الحساب بدون تحصيل، ولن يُنشأ إيصال قبض جديد.
-                  </p> : <div className="space-y-3 rounded-lg border p-3">
-                    <label className="block space-y-1.5 text-sm font-semibold">
-                      <span>المبلغ المستلم من العميل الآن</span>
-                      <input aria-label="مبلغ التصفية المستلم" className={fieldClass} dir="ltr" inputMode="decimal"
-                        placeholder="اكتب المبلغ المدفوع فعليًا" value={amount} disabled={busy}
-                        onChange={event => {setAmountInput(event.target.value); setError("");}}/>
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => setAmountInput('0.00')}>بدون تحصيل الآن</Button>
-                      <Button type="button" variant="outline" size="sm" disabled={busy || !allowedDiscount}
-                        onClick={() => setAmountInput(centsToMoney(afterDiscount ?? 0))}>دفع كامل المتبقي بعد الخصم</Button>
-                    </div>
-                    {amountInput !== null && (cents === null || (afterDiscount !== null && cents > afterDiscount)) &&
-                      <p role="alert" className="text-xs text-destructive">أدخل مبلغًا صحيحًا لا يتجاوز المستحق بعد الخصم، أو اختر صفرًا بدون تحصيل.</p>}
-                    {cents !== null && cents > 0 && afterDiscount !== null && cents <= afterDiscount &&
-                      <AccountPaymentFields value={payment} onChange={setPayment} disabled={busy}/>}
-                    <p className="text-xs text-muted-foreground">لن يُسجَّل أي مبلغ قبل تأكيد العملية.</p>
-                  </div>}
-                </div>
-                {cents === 0 && <p className="text-xs text-muted-foreground">
-                  {discountCents !== null && discountCents > 0
-                    ? "سيُسجّل الخصم فقط، دون إنشاء إيصال تحصيل."
-                    : "حفظ المراجعة بدون تحصيل لا يسدد المديونية؛ الرصيد المتبقي يظل مستحقًا."}
-                </p>}
-                <section aria-label="ملخص التصفية المتوقع" className="space-y-2 rounded-lg bg-muted/40 p-3 text-sm">
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-muted-foreground">الخصم المقترح</span>
-                      <strong>{discountAmountValid && discountCents !== null ? <MoneyAmount amount={centsToMoney(discountCents)}/> : "—"}</strong>
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-muted-foreground">التحصيل المقترح</span>
-                      <strong>{cents !== null ? <MoneyAmount amount={centsToMoney(cents)}/> : "لم يُحدد بعد"}</strong>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 border-t pt-2">
-                    <span className="font-semibold">المتبقي المتوقع بعد الخصم والتحصيل</span>
-                    <strong className="text-lg text-primary">
-                      {projectedRemainder !== null ? <MoneyAmount amount={centsToMoney(projectedRemainder)}/> : "—"}
-                    </strong>
-                  </div>
-                  <p className="text-xs leading-5 text-muted-foreground">
-                    نتيجة تقديرية فقط، لم تُسجَّل بعد. الشغل غير المستلّم خارج هذه التصفية.
-                  </p>
-                </section>
-                <details className="border-t pt-3 text-sm">
-                  <summary className="cursor-pointer font-semibold text-muted-foreground">إضافة ملاحظة (اختياري)</summary>
-                  <textarea aria-label="ملاحظة التصفية" className={fieldClass + " mt-3 min-h-20 py-2"} value={note}
-                    maxLength={4000} disabled={busy} onChange={event => setNote(event.target.value)}/>
-                </details>
-              </>}
-          </section>
-
-          <details className="mx-auto w-full max-w-4xl rounded-xl border bg-card p-4 text-sm">
-            <summary className="cursor-pointer font-semibold">تفاصيل التصفية</summary>
-            <div className="mt-4 space-y-4 border-t pt-4">
-              <p className="font-semibold">كيف اتحسب المبلغ المتبقي؟</p>
-              <dl className="space-y-3">
-                {[
-                  ["الرصيد الافتتاحي", data.openingBalance],
-                  ["الشغل المستلّم", data.deliveredTotal],
-                  ["صافي دفعات العميل السابقة", data.netPayments],
-                  ["الخصومات السابقة", data.discountsTotal ?? '0.00'],
-                ].map(([title, value]) => <div key={title} className="flex items-center justify-between gap-3">
-                  <dt>{title}</dt><dd className="font-semibold"><MoneyAmount amount={value}/></dd>
-                </div>)}
-                <div className="flex items-center justify-between gap-3 border-t pt-3">
-                  <dt className="font-bold">{balanceDescription(data.balanceBefore)} ضمن التصفية</dt>
-                  <dd className="font-bold"><MoneyAmount amount={absoluteAmount(data.balanceBefore)}/></dd>
-                </div>
-              </dl>
-              <p className="rounded-lg bg-muted/40 p-3 text-sm leading-6">
-                الحساب الكلي حتى الآن: {balanceDescription(data.accountBalance)} <MoneyAmount amount={absoluteAmount(data.accountBalance)}/>.
-                الدفعات محسوبة حتى {data.paymentsThrough}، والخصومات حركات مستقلة لا تُعد تحصيلًا، والتصفية لا تُنشئ مديونية جديدة.
-              </p>
-              <div className="border-t pt-3">
-                <Link to={"/finance?customerId=" + customerId + "&view=ledger"}
-                  className="inline-flex items-center text-sm font-semibold text-primary underline underline-offset-4 hover:text-primary/80 focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-                  عرض حركات الدفعات في كشف الحساب
-                </Link>
-              </div>
-              <details className="border-t pt-3">
-                <summary className="cursor-pointer font-semibold text-muted-foreground">الشغل المشمول ({data.items.length} بند)</summary>
-                <div className="mt-3 overflow-x-auto">
-                  <table className="w-full min-w-[600px] text-right text-sm">
-                    <thead><tr>{["الأوردر", "الشغل", "الكمية", "القيمة"].map(title => <th className="p-2" key={title}>{title}</th>)}</tr></thead>
-                    <tbody>{data.items.map(item => <tr className="border-t" key={item.id}>
-                      <td className="p-2" dir="ltr">{item.orderNumber}</td>
-                      <td className="p-2">{item.description}{item.widthCm && item.heightCm && <span className="block text-xs text-muted-foreground">{item.widthCm} × {item.heightCm} سم</span>}</td>
-                      <td className="p-2">{item.quantity}</td>
-                      <td className="p-2"><MoneyAmount amount={item.amount}/></td>
-                    </tr>)}</tbody>
-                  </table>
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3 sm:px-6 sm:py-4">
+          {error && <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+            {error}
+            {stale && <Button variant="outline" className="ms-3" size="sm"
+              onClick={() => void refreshPreview()}>تحديث المراجعة</Button>}
+          </div>}
+          <div className="mx-auto flex max-w-4xl flex-wrap items-start justify-between gap-x-4 gap-y-2 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span>الشغل حتى <span dir="ltr" className="inline-block font-semibold text-foreground">
+                {cutoff ? formatCollectionDate(cutoff) : "—"}
+              </span></span>
+              <span aria-hidden="true">·</span>
+              <span>الدفعات حتى اليوم</span>
+              <details className="text-xs">
+                <summary className="cursor-pointer font-semibold text-primary">تغيير التاريخ</summary>
+                <div className="mt-2 w-56 rounded-lg border bg-card p-2">
+                  <CreatedDatePicker label="الشغل المستلّم حتى" value={cutoff} max={cairoToday()} disabled={busy}
+                    onChange={value => {
+                      if (busy) return;
+                      setCutoff(value); setAmountInput(null); setDiscountInput('0.00');
+                      setDiscountReason(''); setDiscountOpen(false); setStale(false); setError("");
+                    }}/>
                 </div>
               </details>
             </div>
-          </details>
-        </>}
+            <Button variant="ghost" size="sm" disabled={busy || preview.isFetching || !validDate}
+              onClick={() => void refreshPreview()}>
+              <RefreshCw className="size-3.5" aria-hidden="true"/> تحديث الحساب
+            </Button>
+          </div>
+          {!validDate ? <p role="alert" className="text-sm text-destructive">اختر تاريخًا صحيحًا لا يتجاوز اليوم.</p>
+            : preview.isPending ? <LoadingState/>
+            : preview.isError ? <ErrorState error={preview.error} retry={() => void preview.refetch()}/>
+            : data && <>
+              <section className="mx-auto w-full max-w-4xl space-y-4" aria-label="إتمام التصفية">
+                <div className="space-y-1 py-1 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    {due === 0 && data.balanceBefore.startsWith("-") ? "رصيد دائن للعميل ضمن التصفية" : "المستحق على العميل"}
+                  </p>
+                  <p className={"text-3xl font-extrabold tabular-nums sm:text-4xl " +
+                    (due === 0 && data.balanceBefore.startsWith("-") ? "text-emerald-700" : "text-primary")}>
+                    <MoneyAmount amount={due === 0 && data.balanceBefore.startsWith("-")
+                      ? absoluteAmount(data.balanceBefore) : data.dueNow}/>
+                  </p>
+                </div>
+                {data.outsideBalance !== "0.00" && data.outsideBalance !== "0" && <p
+                  className="text-center text-xs text-muted-foreground">
+                  {balanceDescription(data.outsideBalance)} خارج هذه التصفية: <MoneyAmount amount={absoluteAmount(data.outsideBalance)}/>
+                </p>}
+                {!canConfirm ? <p className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">
+                    يمكن مراجعة الحساب، لكن تسجيل التصفية يحتاج صلاحية تسجيل التحصيل.
+                  </p>
+                  : !data.hasWork ? <p className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">
+                    لا يوجد شغل مستلّم أو رصيد افتتاحي لتصفيته.
+                  </p>
+                  : <>
+                    {due === 0 ? <p className="text-center text-sm text-muted-foreground">
+                      لا يوجد مبلغ مطلوب الآن. يمكنك حفظ مراجعة الحساب بدون تحصيل أو إيصال قبض جديد.
+                    </p> : <div className={cents !== null && cents > 0 && afterDiscount !== null && cents <= afterDiscount
+                      ? "grid items-start gap-4 md:grid-cols-2" : "space-y-2"}>
+                      <div className="space-y-2">
+                        <label className="block space-y-1.5 text-sm font-semibold">
+                          <span>المبلغ المستلم الآن</span>
+                          <input aria-label="مبلغ التصفية المستلم" className={fieldClass} dir="ltr" inputMode="decimal"
+                            placeholder="اكتب المبلغ المدفوع فعليًا" value={amount} disabled={busy}
+                            onChange={event => {setAmountInput(event.target.value); setError("");}}/>
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          <Button type="button" variant="outline" size="sm" disabled={busy || !allowedDiscount}
+                            onClick={() => setAmountInput(centsToMoney(afterDiscount ?? 0))}>دفع كامل المتبقي بعد الخصم</Button>
+                          <Button type="button" variant="ghost" size="sm" disabled={busy}
+                            onClick={() => setAmountInput('0.00')}>بدون تحصيل الآن</Button>
+                        </div>
+                        {amountInput !== null && (cents === null || (afterDiscount !== null && cents > afterDiscount)) &&
+                          <p role="alert" className="text-xs text-destructive">
+                            أدخل مبلغًا صحيحًا لا يتجاوز المستحق بعد الخصم.
+                          </p>}
+                      </div>
+                      {cents !== null && cents > 0 && afterDiscount !== null && cents <= afterDiscount &&
+                        <AccountPaymentFields value={payment} onChange={setPayment} disabled={busy}/>}
+                    </div>}
+                    {canDiscount && due !== null && due > 0 && <>
+                      <button type="button" aria-expanded={discountOpen} aria-controls="settlement-discount-fields"
+                        disabled={busy} onClick={() => {
+                          if (discountOpen) {setDiscountInput('0.00'); setDiscountReason('');}
+                          setDiscountOpen(!discountOpen); setError("");
+                        }} className="inline-flex items-center gap-2 rounded-md py-1 text-sm font-semibold text-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                        {discountOpen ? <ChevronDown className="size-4 rotate-180" aria-hidden="true"/> :
+                          <Plus className="size-4" aria-hidden="true"/>}
+                        {discountOpen ? "إلغاء الخصم" : "إضافة خصم"}
+                      </button>
+                      {discountOpen && <div id="settlement-discount-fields" className="grid gap-3 rounded-lg bg-muted/25 p-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <label className="block space-y-1.5 text-sm font-semibold">
+                            <span>قيمة الخصم (ج.م)</span>
+                            <input aria-label="خصم ثابت" aria-invalid={!discountAmountValid}
+                              aria-describedby={!discountAmountValid ? "settlement-discount-amount-error" : undefined}
+                              className={fieldClass} dir="ltr" inputMode="decimal" placeholder="0.00"
+                              value={discountInput} disabled={busy}
+                              onChange={event => {setDiscountInput(event.target.value); setError("");}}/>
+                          </label>
+                          {!discountAmountValid && <p id="settlement-discount-amount-error" role="alert"
+                            className="text-xs text-destructive">
+                            أدخل خصمًا صحيحًا لا يتجاوز المستحق أو مديونية العميل.
+                          </p>}
+                        </div>
+                        {discountCents !== null && discountCents > 0 && <div className="space-y-1">
+                          <label className="block space-y-1.5 text-sm font-semibold">
+                            <span>سبب الخصم *</span>
+                            <input aria-label="سبب الخصم" aria-invalid={!discountReasonValid}
+                              aria-describedby={!discountReasonValid ? "settlement-discount-reason-error" : undefined}
+                              className={fieldClass} value={discountReason} maxLength={1000} disabled={busy}
+                              placeholder="مثال: خصم متفق عليه مع العميل"
+                              onChange={event => {setDiscountReason(event.target.value); setError("");}}/>
+                          </label>
+                          {!discountReasonValid && <p id="settlement-discount-reason-error" role="alert"
+                            className="text-xs text-destructive">
+                            اكتب سبب الخصم قبل التأكيد (3 أحرف على الأقل).
+                          </p>}
+                        </div>}
+                      </div>}
+                    </>}
+                    <section aria-label="ملخص التصفية المتوقع"
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/40 px-4 py-3">
+                      <div>
+                        <p className="text-sm font-semibold">المتبقي المتوقع</p>
+                        {discountCents !== null && discountCents > 0 && <p className="mt-1 text-xs text-muted-foreground">
+                          خصم <MoneyAmount amount={centsToMoney(discountCents)}/> ·
+                          تحصيل {cents !== null ? <MoneyAmount amount={centsToMoney(cents)}/> : "غير محدد"}
+                        </p>}
+                      </div>
+                      <strong className="text-xl font-bold text-primary">
+                        {projectedRemainder !== null ? <MoneyAmount amount={centsToMoney(projectedRemainder)}/> : "لم يُحدد بعد"}
+                      </strong>
+                      <p className="w-full text-xs text-muted-foreground">
+                        نتيجة تقديرية فقط، لم تُسجَّل بعد.
+                      </p>
+                    </section>
+                    {cents === 0 && <p className="text-xs text-muted-foreground">
+                      {discountCents !== null && discountCents > 0
+                        ? "سيُسجّل الخصم فقط، دون إنشاء إيصال تحصيل."
+                        : "حفظ المراجعة بدون تحصيل لا يسدد المديونية؛ الرصيد المتبقي يظل مستحقًا."}
+                    </p>}
+                    <details className="border-t pt-2 text-sm">
+                      <summary className="cursor-pointer text-muted-foreground">إضافة ملاحظة (اختياري)</summary>
+                      <textarea aria-label="ملاحظة التصفية" className={fieldClass + " mt-2 min-h-20 py-2"}
+                        value={note} maxLength={4000} disabled={busy} onChange={event => setNote(event.target.value)}/>
+                    </details>
+                  </>}
+              </section>
+              <details className="mx-auto w-full max-w-4xl border-t pt-3 text-sm">
+                <summary className="cursor-pointer font-semibold text-primary">عرض تفاصيل الحساب والشغل</summary>
+                <div className="mt-3 space-y-4 border-t pt-3">
+                  <p className="font-semibold">كيف اتحسب المبلغ المتبقي؟</p>
+                  <dl className="space-y-2">
+                    {[
+                      ["الرصيد الافتتاحي", data.openingBalance],
+                      ["الشغل المستلّم", data.deliveredTotal],
+                      ["صافي دفعات العميل السابقة", data.netPayments],
+                      ["الخصومات السابقة", data.discountsTotal ?? "0.00"],
+                    ].map(([title, value]) => <div key={title} className="flex items-center justify-between gap-3">
+                      <dt>{title}</dt><dd className="font-semibold"><MoneyAmount amount={value}/></dd>
+                    </div>)}
+                    <div className="flex items-center justify-between gap-3 border-t pt-3">
+                      <dt className="font-bold">{balanceDescription(data.balanceBefore)} ضمن التصفية</dt>
+                      <dd className="font-bold"><MoneyAmount amount={absoluteAmount(data.balanceBefore)}/></dd>
+                    </div>
+                  </dl>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    الحساب الكلي حتى الآن: {balanceDescription(data.accountBalance)} <MoneyAmount amount={absoluteAmount(data.accountBalance)}/>.
+                    الدفعات محسوبة حتى {data.paymentsThrough}، والخصومات حركات مستقلة لا تُعد تحصيلًا.
+                    الأوردرات غير المستلّمة خارج هذه التصفية.
+                  </p>
+                  <Link to={"/finance?customerId=" + customerId + "&view=ledger"}
+                    className="inline-flex items-center text-sm font-semibold text-primary underline underline-offset-4">
+                    عرض حركات الدفعات في كشف الحساب
+                  </Link>
+                  <details className="border-t pt-3">
+                    <summary className="cursor-pointer font-semibold text-muted-foreground">
+                      الشغل المشمول ({data.items.length} بند)
+                    </summary>
+                    <div className="mt-3 overflow-x-auto">
+                      <table className="w-full min-w-[600px] text-right text-sm">
+                        <thead><tr>{["الأوردر", "الشغل", "الكمية", "القيمة"].map(title =>
+                          <th className="p-2" key={title}>{title}</th>)}</tr></thead>
+                        <tbody>{data.items.map(item => <tr className="border-t" key={item.id}>
+                          <td className="p-2" dir="ltr">{item.orderNumber}</td>
+                          <td className="p-2">{item.description}{item.widthCm && item.heightCm &&
+                            <span className="block text-xs text-muted-foreground">
+                              {item.widthCm} × {item.heightCm} سم
+                            </span>}</td>
+                          <td className="p-2">{item.quantity}</td>
+                          <td className="p-2"><MoneyAmount amount={item.amount}/></td>
+                        </tr>)}</tbody>
+                      </table>
+                    </div>
+                  </details>
+                </div>
+              </details>
+            </>}
         </div>
-        {canConfirm && data?.hasWork && validDate && <footer aria-label="إجراءات التصفية" className="sticky bottom-0 z-10 shrink-0 border-t bg-card px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] sm:px-5">
+        {canConfirm && data?.hasWork && validDate && <footer aria-label="إجراءات التصفية"
+          className="shrink-0 border-t bg-card px-4 py-3 sm:px-6">
           <Button type="button" className="w-full" disabled={!valid} onClick={() => void confirm()}>
             {busy ? "جاري التسجيل..." : cents === 0
               ? discountCents !== null && discountCents > 0 ? "حفظ الخصم بدون تحصيل" : "حفظ مراجعة الحساب بدون تحصيل"
