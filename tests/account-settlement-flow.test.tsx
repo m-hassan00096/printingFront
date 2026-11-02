@@ -387,7 +387,7 @@ describe("Financial settlement workspace", () => {
     await user.clear(discount);
     await user.type(discount, "301");
     await user.type(screen.getByRole("textbox", {name: "سبب الخصم"}), "خصم متفق عليه");
-    expect(screen.getByText("أدخل خصمًا صحيحًا لا يتجاوز المستحق للتصفية أو مديونية العميل الحالية.")).toBeTruthy();
+    expect(screen.getByText("أدخل خصمًا صحيحًا لا يتجاوز المستحق أو مديونية العميل.")).toBeTruthy();
     expect(screen.queryByText("اكتب سبب الخصم قبل التأكيد (3 أحرف على الأقل).")).toBeNull();
     expect(discount.getAttribute("aria-invalid")).toBe("true");
     expect(screen.getByRole("button", {name: "تأكيد التصفية"}).hasAttribute("disabled")).toBe(true);
