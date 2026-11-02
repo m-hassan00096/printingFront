@@ -16,10 +16,11 @@ export function renderAccountSettlementEvidence(record: AccountSettlementRecord)
   <p>العميل: <strong>${escape(before.customerName)}</strong> · الهاتف: ${escape(before.customerPhone)}</p>
   <p>شغل مسلّم حتى ${escape(record.dateTo)}، مع احتساب دفعات الحساب حتى ${escape(before.paymentsThrough)}.</p>
   <p class="notice">${escape(record.statusLabel)}</p>${record.needsReview ? '<p class="warn">حدث إلغاء أو رد مالي بعد تسجيل هذه التصفية. الأرقام التالية لقطة وقت التسجيل وليست إثباتًا بأن الرصيد الحالي مسدد.</p>' : ''}
-  <table><tbody>${row("الرصيد الافتتاحي المحتسب",before.openingBalance)}${row("الشغل المسلّم",before.deliveredTotal)}${row("صافي الدفعات السابقة",before.netPayments)}${row("الرصيد قبل العملية",record.balanceBefore)}${row("المبلغ المحصّل في هذه العملية",record.amountCollected)}
+  <table><tbody>${row("الرصيد الافتتاحي المحتسب",before.openingBalance)}${row("الشغل المسلّم",before.deliveredTotal)}${row("صافي الدفعات السابقة",before.netPayments)}${row("الخصومات السابقة",before.discountsTotal ?? '0.00')}${row("الرصيد قبل العملية",record.balanceBefore)}${row("خصم هذه التصفية",record.discountAmount ?? '0.00')}${record.discountReason ? '<tr><th>سبب الخصم</th><td>' + escape(record.discountReason) + '</td></tr>' : ''}${row("المبلغ المحصّل في هذه العملية",record.amountCollected)}
   <tr class="total"><th>بعد التصفية — ${escape(balanceDescription(record.balanceAfter))}</th><td>${money(absoluteAmount(record.balanceAfter))}</td></tr>
   ${row("رصيد الحساب الكلي بعد العملية",record.accountBalanceAfter)}</tbody></table>
   <p>إيصال التحصيل المرتبط: ${escape(record.receiptNumber ?? "لا يوجد تحصيل جديد")}</p>
+  <p>الخصومات تخفيضات حسابية لا تُعتبر تحصيلًا نقديًا. المتبقي وقت التصفية لا يلغي باقي أوردرات العميل غير المستلمة.</p>
   <p>هذه تصفية تراكمية لحساب العميل، وليست توزيعًا للدفعات على فواتير منفردة. أي مقدمات مدرجة في صافي الدفعات لا تُخصم مرة ثانية. رصيد النطاق الدائن ليس تصريحًا برد أموال.</p>
   <table><thead><tr><th>الأوردر</th><th>الشغل المشمول</th><th>الكمية</th><th>القيمة</th></tr></thead><tbody>${items}</tbody></table>
   <p>${escape(record.note ?? "")}</p></body></html>`;

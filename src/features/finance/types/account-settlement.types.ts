@@ -11,7 +11,7 @@ export type AccountSettlementPreview = {
   dateTo: string; paymentsThrough: string; scope: "cumulative_delivered_work";
   previewHash: string; openingBalance: string; deliveredTotal: string;
   grossCollections: string; collectionReversals: string; refundsTotal: string;
-  netPayments: string; advancesForOtherWork: string; balanceBefore: string;
+  netPayments: string; discountsTotal: string; advancesForOtherWork: string; balanceBefore: string;
   dueNow: string; creditInScope: string; accountBalance: string; outsideBalance: string;
   hasWork: boolean; items: AccountSettlementItem[];
   payments: {entryId: number; type: number; typeLabel: string; effectiveDate: string;
@@ -23,12 +23,14 @@ export type AccountSettlementRecord = {
   id: number; number: string; customerId: number; dateTo: string; settledOn: string;
   status: AccountSettlementStatus; originalStatus: Exclude<AccountSettlementStatus, "needs_review">;
   statusLabel: string; needsReview: boolean; balanceBefore: string; amountCollected: string;
+  discountAmount: string; discountReason: string | null; discountLedgerEntryId: number | null;
   balanceAfter: string; accountBalanceAfter: string; collectionId: number | null;
   receiptNumber: string | null; createdAt: string; createdBy: number; note: string | null;
   snapshot?: {before: AccountSettlementPreview; after: AccountSettlementPreview; receiptNumber: string | null};
 };
 export type AccountSettlementInput = {
   dateTo: string; previewHash: string; amount: string;
+  discountAmount?: string; discountReason?: string;
   paymentMethod?: 0 | 1 | 2; paymentDestinationId?: number; note?: string;
 };
 export type AccountSettlementHistory = {settlements: AccountSettlementRecord[]; pagination: Pagination};
