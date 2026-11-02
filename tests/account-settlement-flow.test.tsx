@@ -57,7 +57,12 @@ function shell(children: React.ReactNode) {
   const client = new QueryClient({defaultOptions: {queries: {retry: false}, mutations: {retry: false}}});
   return render(<QueryClientProvider client={client}><MemoryRouter>{children}</MemoryRouter></QueryClientProvider>);
 }
-function visit(canConfirm = true) {return shell(<AccountSettlementPanel customerId={7} canConfirm={canConfirm} canDiscount={true} canViewCollections={true}/>);}
+function visit(canConfirm = true, canDiscount = true) {return shell(<AccountSettlementPanel customerId={7} canConfirm={canConfirm} canDiscount={canDiscount} canViewCollections={true}/>);}
+async function openCreate(): Promise<void> {
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", {name: "تصفية جديدة"}));
+  await screen.findByRole("dialog", {name: "تصفية حساب جديدة"});
+}
 const posts = () => calls.filter(call => call.method === "post");
 beforeEach(() => {
   apiClient.defaults.adapter = adapter;
@@ -73,7 +78,7 @@ afterEach(() => {apiClient.defaults.adapter = original;});
 
 describe("Financial settlement workspace", () => {
   it("does not post while previewing and confirms only the unpaid balance with one settlement request", async () => {
-    visit();
+    visit(); await openCreate();
     const confirm = await screen.findByRole("button", {name: "تأكيد التصفية"});
     expect(posts()).toHaveLength(0);
     const amount = screen.getByRole<HTMLInputElement>("textbox", {name: "مبلغ التصفية المستلم"});
@@ -90,7 +95,7 @@ describe("Financial settlement workspace", () => {
     expect(screen.getByText("2,000.00 ج.م")).toBeTruthy();
   });
   it("only posts after explicit entry, and the full-balance shortcut is not a payment", async () => {
-    visit(); const user = userEvent.setup();
+    visit(); await openCreate(); const user = userEvent.setup();
     const confirm = await screen.findByRole("button", {name: "تأكيد التصفية"});
     const amount = screen.getByRole<HTMLInputElement>("textbox", {name: "مبلغ التصفية المستلم"});
     expect(amount.value).toBe("");
@@ -104,7 +109,7 @@ describe("Financial settlement workspace", () => {
     expect(posts()).toHaveLength(1);
   });
   it("keeps the breakdown hidden until the user asks, and opens settlement history from one place", async () => {
-    visit(); const user = userEvent.setup();
+    visit(); await openCreate(); const user = userEvent.setup();
     const breakdown = await screen.findByText("تفاصيل التصفية");
     expect(breakdown.closest("details")?.open).toBe(false);
     await user.click(breakdown);
@@ -119,14 +124,14 @@ describe("Financial settlement workspace", () => {
     expect(work.closest("details")?.open).toBe(false);
     await user.click(work);
     expect(screen.getByText("استيكر")).toBeTruthy();
-    expect(screen.queryByRole("button", {name: "تصفية جديدة"})).toBeNull();
-    await user.click(screen.getByRole("button", {name: "التصفيات السابقة"}));
+    expect(screen.getByRole("dialog", {name: "تصفية حساب جديدة"})).toBeTruthy();
+    await user.click(screen.getByRole("button", {name: "إغلاق"}));
     expect(await screen.findByText("لا توجد تصفيات مسجلة لهذا العميل.")).toBeTruthy();
     await user.click(screen.getByRole("button", {name: "تصفية جديدة"}));
     expect(await screen.findByRole("region", {name: "إتمام التصفية"})).toBeTruthy();
   });
   it("keeps the date compact and changeable without opening another payment step", async () => {
-    visit(); const user = userEvent.setup();
+    visit(); await openCreate(); const user = userEvent.setup();
     const editDate = await screen.findByText("تغيير التاريخ");
     const dateSection = editDate.closest("details");
     expect(dateSection?.open).toBe(false);
@@ -139,7 +144,7 @@ describe("Financial settlement workspace", () => {
     expect(posts()).toHaveLength(0);
   });
   it("shows the historical amount remaining after a partial settlement in the history table", async () => {
-    visit(); const user = userEvent.setup();
+    visit(); await openCreate(); const user = userEvent.setup();
     await user.type(await screen.findByRole("textbox", {name: "مبلغ التصفية المستلم"}), "100.00");
     await user.click(screen.getByRole("button", {name: "تأكيد تحصيل 100.00 ج.م"}));
     const result = await screen.findByRole("region", {name: "نتيجة التصفية"});
@@ -151,7 +156,7 @@ describe("Financial settlement workspace", () => {
     expect(screen.getByText(/رصيد التصفية وقت تسجيلها/)).toBeTruthy();
   });
   it("labels a smaller amount as partial and never presents it as a full close", async () => {
-    visit(); const user = userEvent.setup();
+    visit(); await openCreate(); const user = userEvent.setup();
     const amount = await screen.findByRole("textbox", {name: "مبلغ التصفية المستلم"});
     await user.clear(amount); await user.type(amount, "100.00");
     expect(screen.getByRole("button", {name: "تأكيد تحصيل 100.00 ج.م"})).toBeTruthy();
@@ -161,7 +166,7 @@ describe("Financial settlement workspace", () => {
     expect(within(result).getByText("200.00 ج.م")).toBeTruthy();
   });
   it("blocks overpayment and requires an active noncash destination", async () => {
-    visit(); const user = userEvent.setup();
+    visit(); await openCreate(); const user = userEvent.setup();
     const amount = await screen.findByRole("textbox", {name: "مبلغ التصفية المستلم"});
     await user.clear(amount); await user.type(amount, "301.00");
     expect(screen.getByRole("button", {name: "تأكيد التصفية"}).hasAttribute("disabled")).toBe(true);
@@ -176,7 +181,7 @@ describe("Financial settlement workspace", () => {
   });
   it("documents already-paid work without creating another collection", async () => {
     preview = {...preview, dueNow: "0.00", balanceBefore: "0.00", netPayments: "1000.00"};
-    visit();
+    visit(); await openCreate();
     const button = await screen.findByRole("button", {name: "حفظ التصفية بدون تحصيل"});
     expect(screen.queryByRole("textbox", {name: "مبلغ التصفية المستلم"})).toBeNull();
     await userEvent.setup().click(button);
@@ -186,7 +191,7 @@ describe("Financial settlement workspace", () => {
     expect(screen.getByText("لم يُسجّل تحصيل جديد في هذه العملية.")).toBeTruthy();
   });
   it("rejects a stale preview visibly and requires refresh before another confirmation", async () => {
-    fail = "conflict"; visit(); const user = userEvent.setup();
+    fail = "conflict"; visit(); await openCreate(); const user = userEvent.setup();
     await user.type(await screen.findByRole("textbox", {name: "مبلغ التصفية المستلم"}), "300.00");
     await user.click(screen.getByRole("button", {name: "تأكيد تحصيل 300.00 ج.م"}));
     expect(await screen.findByRole("alert")).toBeTruthy();
@@ -202,7 +207,7 @@ describe("Financial settlement workspace", () => {
     expect(posts()[1].key).not.toBe(posts()[0].key);
   });
   it("reuses the idempotency key after an uncertain network response", async () => {
-    fail = "network"; visit(); const user = userEvent.setup();
+    fail = "network"; visit(); await openCreate(); const user = userEvent.setup();
     await user.type(await screen.findByRole("textbox", {name: "مبلغ التصفية المستلم"}), "300.00");
     await user.click(screen.getByRole("button", {name: "تأكيد تحصيل 300.00 ج.م"}));
     await screen.findByRole("alert"); fail = "none";
@@ -212,7 +217,7 @@ describe("Financial settlement workspace", () => {
     expect(posts()[1].key).toBe(posts()[0].key);
   });
   it("keeps read-only reviewers from payment controls and all POST requests", async () => {
-    visit(false);
+    visit(false); await openCreate();
     await screen.findByRole("region", {name: "إتمام التصفية"});
     expect(screen.getByText(/تسجيل التصفية يحتاج صلاحية تسجيل التحصيل/)).toBeTruthy();
     expect(screen.queryByRole("textbox", {name: "مبلغ التصفية المستلم"})).toBeNull();
@@ -230,7 +235,7 @@ describe("Financial settlement workspace", () => {
   });
   it("prints escaped immutable evidence with an explicit warning after a later reversal", async () => {
     preview.customerName = '<script>alert(1)</script>';
-    visit();
+    visit(); await openCreate();
     await userEvent.setup().type(await screen.findByRole("textbox", {name: "مبلغ التصفية المستلم"}), "300.00");
     await userEvent.setup().click(screen.getByRole("button", {name: "تأكيد تحصيل 300.00 ج.م"}));
     await screen.findByRole("region", {name: "نتيجة التصفية"});
