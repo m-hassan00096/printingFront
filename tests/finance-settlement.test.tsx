@@ -150,6 +150,7 @@ describe("Read-only delivered work statement", () => {
   it("opens the same customer's ledger from payment details without reposting or re-entering the customer", async () => {
     visit("customerId=7&view=settlements");
     const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", {name: "تصفية جديدة"}));
     await user.click(await screen.findByText("تفاصيل التصفية"));
     expect(screen.getByText("صافي دفعات العميل السابقة")).toBeTruthy();
     expect(screen.queryByText("تفصيل الدفعات والمقدمات")).toBeNull();
