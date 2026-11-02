@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -65,6 +65,19 @@ async function openCreate(): Promise<void> {
   await screen.findByRole("dialog", {name: "تصفية حساب جديدة"});
 }
 const posts = () => calls.filter(call => call.method === "post");
+
+function mockClientStatementDownload() {
+  const descriptor = Object.getOwnPropertyDescriptor(URL, "createObjectURL");
+  const create = vi.fn(() => "blob:customer-statement");
+  Object.defineProperty(URL, "createObjectURL", {configurable: true, writable: true, value: create});
+  const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+  return {create, restore() {
+    if (descriptor) Object.defineProperty(URL, "createObjectURL", descriptor);
+    else Reflect.deleteProperty(URL, "createObjectURL");
+    click.mockRestore();
+  }};
+}
+
 beforeEach(() => {
   apiClient.defaults.adapter = adapter;
   calls = []; fail = "none"; saved = false;
@@ -78,6 +91,58 @@ beforeEach(() => {
 afterEach(() => {apiClient.defaults.adapter = original;});
 
 describe("Financial settlement workspace", () => {
+  it("exports the fresh draft statement with one click and no settlement POST or receipt", async () => {
+    const download = mockClientStatementDownload();
+    try {
+      visit(); await openCreate();
+      const button = await screen.findByRole("button", {name: "كشف حساب Excel للعميل"});
+      const count = calls.filter(call => call.url.endsWith("/settlements/preview")).length;
+      await userEvent.setup().click(button);
+      await waitFor(() => expect(download.create).toHaveBeenCalledTimes(1));
+      expect(calls.filter(call => call.url.endsWith("/settlements/preview")).length).toBe(count + 1);
+      expect(posts()).toHaveLength(0);
+      expect(screen.getByRole<HTMLInputElement>("textbox", {name: "مبلغ التصفية المستلم"}).value).toBe("");
+    } finally {
+      download.restore();
+    }
+  });
+
+  it("refuses to export an entered settlement proposal if the live preview changed", async () => {
+    const download = mockClientStatementDownload();
+    try {
+      visit(); await openCreate();
+      const user = userEvent.setup();
+      await user.type(screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"}), "100");
+      preview = {...preview, previewHash: "b".repeat(64), balanceBefore: "200.00", dueNow: "200.00"};
+      await user.click(screen.getByRole("button", {name: "كشف حساب Excel للعميل"}));
+      expect(await screen.findByText(/تغير حساب العميل بعد إدخال المبالغ/)).toBeTruthy();
+      expect(download.create).not.toHaveBeenCalled();
+      expect(posts()).toHaveLength(0);
+      expect(screen.getByRole("button", {name: "تأكيد تحصيل 100.00 ج.م"}).hasAttribute("disabled")).toBe(true);
+    } finally {
+      download.restore();
+    }
+  });
+
+  it("exports saved settlement history in one click using the full saved snapshot", async () => {
+    const download = mockClientStatementDownload();
+    try {
+      visit(); await openCreate();
+      const user = userEvent.setup();
+      await user.type(screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"}), "50");
+      await user.click(screen.getByRole("button", {name: "تأكيد تحصيل 50.00 ج.م"}));
+      const result = await screen.findByRole("region", {name: "نتيجة التصفية"});
+      expect(within(result).getByRole("button", {name: "كشف حساب للعميل Excel"})).toBeTruthy();
+      await user.click(screen.getByRole("button", {name: "التصفيات السابقة"}));
+      await user.click(await screen.findByRole("button", {name: "كشف العميل Excel"}));
+      await waitFor(() => expect(download.create).toHaveBeenCalledTimes(1));
+      expect(calls.some(call => call.url.endsWith("/settlements/5") && call.method === "get")).toBe(true);
+      expect(posts()).toHaveLength(1); // only the initial explicit settlement, never a new posting
+    } finally {
+      download.restore();
+    }
+  });
+
   it("does not post while previewing and confirms only the unpaid balance with one settlement request", async () => {
     visit(); await openCreate();
     const confirm = await screen.findByRole("button", {name: "تأكيد التصفية"});
