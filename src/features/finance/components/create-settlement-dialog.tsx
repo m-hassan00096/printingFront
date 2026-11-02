@@ -72,9 +72,11 @@ export function CreateSettlementDialog({ customerId, nextDateFrom, canDiscount, 
     enabled: needsDestination,
   });
   const destinations = method === 1 ? options.data?.banks ?? [] : options.data?.wallets ?? [];
+  const allowedAfter = after !== null && (after >= 0 ||
+    (due !== null && due < 0 && discountCents === 0 && collectedCents === 0));
   const valid = periodValid && preview.isSuccess && !preview.isFetching &&
     discountCents !== null && collectedCents !== null &&
-    discountCents >= 0 && collectedCents >= 0 && after !== null && after >= 0 &&
+    discountCents >= 0 && collectedCents >= 0 && allowedAfter &&
     (discountCents === 0 || (canDiscount && discountReason.trim().length >= 3)) &&
     (!needsPayment || canCollect) &&
     (!needsDestination || (options.isSuccess &&
@@ -215,7 +217,8 @@ export function CreateSettlementDialog({ customerId, nextDateFrom, canDiscount, 
           <p role="alert" className="text-xs text-destructive">
             أدخل مبلغًا صحيحًا بحد أقصى رقمين بعد العلامة العشرية.
           </p>}
-        {after !== null && after < 0 && <p role="alert" className="text-xs text-destructive">
+        {after !== null && after < 0 && (discountCents !== 0 || collectedCents !== 0) &&
+          <p role="alert" className="text-xs text-destructive">
           مجموع الخصم والتحصيل لا يمكن أن يتجاوز المستحق.
         </p>}
 

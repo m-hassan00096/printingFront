@@ -17,6 +17,7 @@ const statusText = {
   settled: "تمت التسوية",
   partial: "جزئية",
   unpaid: "بدون تحصيل",
+  credit: "رصيد دائن",
 };
 
 function cairoToday(): string {

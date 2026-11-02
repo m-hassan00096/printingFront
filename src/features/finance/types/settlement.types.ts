@@ -50,7 +50,7 @@ export type SettlementRecordSummary = {
   discountAmount: string;
   collectedAmount: string;
   collectionReversed: boolean;
-  status: "settled" | "partial" | "unpaid";
+  status: "settled" | "partial" | "unpaid" | "credit";
 };
 
 export type SettlementRecord = SettlementRecordSummary & {
