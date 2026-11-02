@@ -52,130 +52,127 @@ function rowXml(row: number, cells: string[], height = 27): string {
   return '<row r="' + row + '" ht="' + height + '" customHeight="1">' + cells.join("") + '</row>';
 }
 function buildSheet(source: CustomerSettlementStatement): string {
-  const saved = source.kind === "saved";
-  const record = saved ? source.record : null;
-  const preview = saved ? record!.snapshot?.before : source.preview;
+  const record = source.kind === "saved" ? source.record : null;
+  const preview = record ? record.snapshot?.before : source.kind === "draft" ? source.preview : undefined;
   if (!preview) throw Error("Saved settlement snapshot is required for client statements");
 
   const rows: string[] = [], merges: string[] = [];
   let current = 0;
   const next = (): number => ++current;
-  const merged = (start: string, end: string): void => {merges.push(start + ":" + end);};
+  const merge = (a: string, b: string): void => {merges.push(a + ":" + b);};
   const fullLine = (label: string, style = 4, height = 27): void => {
     const r = next();
     rows.push(rowXml(r, [textCell("A", r, label, style)], height));
-    merged("A" + r, "F" + r);
+    merge("A" + r, "F" + r);
   };
-  const section = (label: string): void => fullLine(label, 3, 33);
-  const entry = (label: string, value: string, emphasize = false): void => {
+  const section = (label: string): void => fullLine(label, 3, 32);
+  const amountLine = (label: string, amount: string, emphasized = false): void => {
     const r = next();
     rows.push(rowXml(r, [
-      textCell("A", r, label, emphasize ? 10 : 8),
-      numericCell("F", r, value, emphasize ? 11 : 9),
-    ], emphasize ? 35 : 28));
-    merged("A" + r, "E" + r);
+      textCell("A", r, label, emphasized ? 10 : 8),
+      numericCell("F", r, amount, emphasized ? 11 : 9),
+    ], emphasized ? 35 : 29));
+    merge("A" + r, "E" + r);
   };
   const gap = (): void => {next();};
+  const proposal = source.kind === "draft" ? source.proposal : undefined;
+  const balance = record?.balanceAfter ?? proposal?.remaining ?? preview.balanceBefore;
+  const balanceNumber = Number(balance);
+  if (!Number.isFinite(balanceNumber)) throw Error("Invalid customer statement balance");
+  const balanceLabel = balanceNumber < 0
+    ? (record ? "رصيد لصالحك بعد التصفية" : "رصيد لصالحك")
+    : record ? "المتبقي عليك بعد التصفية"
+      : proposal ? "المتبقي المتوقع بعد المقترح" : "المبلغ المستحق عليك";
 
-  fullLine("طَبعة | كشف حساب العميل للتصفية", 1, 42);
-  fullLine("العميل: " + preview.customerName + (preview.customerPhone ? " | " + preview.customerPhone : ""), 2, 30);
-  fullLine("الشغل المستلّم حتى " + formattedDate(preview.dateTo) +
-    " | الدفعات محسوبة حتى " + formattedDate(preview.paymentsThrough), 2, 30);
+  // Give the customer the answer first; technical ledger movements belong in the internal export.
+  fullLine("طَبعة | كشف حساب العميل", 1, 42);
+  fullLine("العميل: " + preview.customerName +
+    (preview.customerPhone ? " | الهاتف: " + preview.customerPhone : ""), 2, 31);
   if (record) {
-    fullLine("تصفية مسجلة: " + record.number + " | تاريخ التسجيل: " + formattedDate(record.settledOn), 2, 30);
+    fullLine("رقم التصفية: " + record.number + " | التاريخ: " + formattedDate(record.settledOn), 4, 27);
     fullLine(record.needsReview
-      ? "تنبيه: هذه التصفية التاريخية تحتاج مراجعة بسبب تغيير لاحق في الحساب."
-      : "كشف تاريخي وقت تسجيل التصفية، وليس بيان الرصيد الحالي للعميل.", 2, 31);
+      ? "تنبيه: هذا الحساب التاريخي يحتاج مراجعة بسبب معاملة لاحقة."
+      : "كشف للحساب وقت تسجيل التصفية.", 2, 28);
   } else {
-    fullLine("كشف للمراجعة قبل التصفية — لم يتم تسجيل تصفية أو تحصيل جديد بهذا الكشف.", 2, 33);
-    fullLine("البيانات تمثل الرصيد عند إصدار الكشف وقد تتغير قبل اعتماد التصفية.", 4, 29);
+    fullLine("كشف للمراجعة قبل التصفية | الشغل حتى " + formattedDate(preview.dateTo), 2, 29);
+    fullLine("لم يتم تسجيل تحصيل أو خصم جديد بهذا الكشف.", 4, 27);
   }
-  fullLine("يشمل الشغل المستلّم فقط، مع صافي حركات التحصيل حتى التاريخ الموضّح.", 4, 27);
+  fullLine("الدفعات السابقة محسوبة حتى " + formattedDate(preview.paymentsThrough), 4, 27);
   gap();
-  section("ملخص حساب التصفية (جنيه مصري)");
-  entry("الرصيد الافتتاحي المحتسب", preview.openingBalance);
-  entry("إجمالي قيمة الشغل المستلّم", preview.deliveredTotal);
-  entry("صافي التحصيلات السابقة بعد الردود والإلغاءات", preview.netPayments);
-  entry("الخصومات المسجلة سابقًا (ليست أموالًا محصّلة)", preview.discountsTotal ?? "0.00");
-  entry("الرصيد قبل التصفية (موجب: مستحق / سالب: رصيد للعميل)", preview.balanceBefore, true);
+
+  const hero = next();
+  rows.push(rowXml(hero, [
+    textCell("A", hero, balanceLabel, 10),
+    numericCell("F", hero, String(Math.abs(balanceNumber)), 11),
+  ], 44));
+  merge("A" + hero, "E" + hero);
+  gap();
+  section("ملخص حسابك (جنيه مصري)");
+  if (Number(preview.openingBalance) !== 0)
+    amountLine("رصيد سابق على الحساب", preview.openingBalance);
+  amountLine("قيمة الشغل المستلّم", preview.deliveredTotal);
+  amountLine("مدفوعات سابقة (صافي)", preview.netPayments);
+  if (Number(preview.discountsTotal ?? "0.00") !== 0)
+    amountLine("خصومات سابقة", preview.discountsTotal ?? "0.00");
+  amountLine("المستحق قبل هذه التصفية", preview.balanceBefore, true);
 
   if (record) {
-    entry("خصم هذه التصفية (ليس تحصيلًا)", record.discountAmount ?? "0.00");
-    entry("المبلغ المحصّل فعليًا عند التصفية", record.amountCollected);
-    entry("الرصيد المتبقي وقت تسجيل التصفية", record.balanceAfter, true);
-    if (record.discountReason && Number(record.discountAmount) > 0)
-      fullLine("سبب الخصم: " + record.discountReason, 4, 30);
-    if (record.receiptNumber) fullLine("رقم إيصال التحصيل: " + record.receiptNumber, 4, 27);
-  } else if (source.kind === "draft" && source.proposal) {
-    entry("خصم مقترح — لم يُسجّل", source.proposal.discount);
-    entry("تحصيل متوقع — لم يُستلم ولم يُسجّل", source.proposal.collected);
-    entry("رصيد متوقع فقط إذا اعتُمد المقترح", source.proposal.remaining, true);
-    if (Number(source.proposal.discount) > 0 && source.proposal.reason)
-      fullLine("سبب الخصم المقترح: " + source.proposal.reason, 4, 29);
-    fullLine("الخصم والتحصيل أعلاه مقترحان فقط؛ لا يمثلان إيصال قبض أو إبراء ذمة.", 2, 32);
+    if (Number(record.discountAmount ?? "0.00") > 0)
+      amountLine("خصم في هذه التصفية", record.discountAmount);
+    amountLine("المدفوع في هذه التصفية", record.amountCollected);
+    amountLine("المتبقي بعد التصفية", record.balanceAfter, true);
+    if (record.receiptNumber)
+      fullLine("رقم إيصال الدفعة: " + record.receiptNumber, 4, 27);
+  } else if (proposal) {
+    if (Number(proposal.discount) > 0)
+      amountLine("خصم مقترح (غير مسجل)", proposal.discount);
+    if (Number(proposal.collected) > 0)
+      amountLine("دفعة مقترحة (غير مدفوعة)", proposal.collected);
+    amountLine("المتبقي المتوقع", proposal.remaining, true);
+    if (proposal.reason && Number(proposal.discount) > 0)
+      fullLine("سبب الخصم المقترح: " + proposal.reason, 4, 28);
+    fullLine("الخصم والدفعة أعلاه مجرد اقتراح، وليسا إيصال دفع أو تصفية مسجلة.", 2, 32);
   }
   gap();
-  section("تفاصيل الشغل المستلّم المشمول في التصفية");
-  {
-    const r = next();
-    rows.push(rowXml(r, ["تاريخ التسليم", "رقم الأوردر", "الشغل / المقاسات",
-      "الكمية", "سعر الوحدة", "الإجمالي (ج.م)"]
-      .map((heading, i) => textCell(COLS[i], r, heading, 3)), 33));
-  }
-  if (preview.items.length === 0) {
-    fullLine("لا توجد بنود شغل مستلّم في هذا النطاق.", 4, 29);
+
+  section("تفاصيل الشغل الذي استلمته");
+  const header = next();
+  rows.push(rowXml(header, [
+    textCell("A", header, "رقم الأوردر", 3),
+    textCell("B", header, "الشغل", 3),
+    textCell("C", header, "الكمية", 3),
+    textCell("D", header, "سعر الوحدة", 3),
+    textCell("E", header, "القيمة (ج.م)", 3),
+    textCell("F", header, "تاريخ التسليم", 3),
+  ], 32));
+
+  if (!preview.items.length) {
+    fullLine("لا يوجد شغل مستلّم في هذا الكشف.", 4, 28);
   } else {
     for (const item of preview.items) {
       const r = next();
       const dimensions = item.widthCm && item.heightCm
         ? " | " + item.widthCm + " × " + item.heightCm + " سم" : "";
-      const description = item.description + dimensions +
-        (item.specifications ? " | " + item.specifications : "");
       rows.push(rowXml(r, [
-        dateCell("A", r, item.deliveryDate),
-        textCell("B", r, item.orderNumber || "—"),
-        textCell("C", r, description),
-        numericCell("D", r, item.quantity, 7),
-        numericCell("E", r, item.unitPrice, 12),
-        numericCell("F", r, item.amount),
-      ], item.specifications ? 42 : 31));
+        textCell("A", r, item.orderNumber || "—"),
+        textCell("B", r, item.description + dimensions +
+          (item.specifications ? " | " + item.specifications : "")),
+        numericCell("C", r, item.quantity, 7),
+        numericCell("D", r, item.unitPrice, 12),
+        numericCell("E", r, item.amount),
+        dateCell("F", r, item.deliveryDate),
+      ], item.specifications ? 40 : 30));
     }
   }
-  entry("إجمالي الشغل المستلّم", preview.deliveredTotal, true);
   gap();
-  section("تفاصيل حركات التحصيل والرد السابقة (ج.م)");
-  {
-    const r = next();
-    rows.push(rowXml(r, ["التاريخ", "الإيصال", "الحركة", "تحصيل", "رد / إلغاء", "توضيح"]
-      .map((heading, i) => textCell(COLS[i], r, heading, 3)), 33));
-  }
-  if (!preview.payments?.length) {
-    fullLine("لا توجد حركات تحصيل أو رد مسجّلة قبل هذه التصفية.", 4, 29);
-  } else {
-    for (const payment of preview.payments) {
-      const r = next();
-      const signed = Number(payment.signedAmount);
-      if (!Number.isFinite(signed)) throw Error("Invalid customer payment movement");
-      rows.push(rowXml(r, [
-        dateCell("A", r, payment.effectiveDate),
-        textCell("B", r, payment.receiptNumber || "—"),
-        textCell("C", r, payment.typeLabel),
-        ...(signed < 0 ? [numericCell("D", r, -signed)] : []),
-        ...(signed > 0 ? [numericCell("E", r, signed)] : []),
-        textCell("F", r, payment.outsideWorkScope ? "دفعة مرتبطة بشغل غير مستلّم" : ""),
-      ], 30));
-    }
-  }
-  entry("صافي التحصيلات السابقة بعد الردود والإلغاءات", preview.netPayments, true);
-  gap();
-  fullLine("صافي الدفعات يشمل كل الحركات المسجلة للعميل حتى تاريخ الكشف، بما فيها العربون.", 4, 33);
-  fullLine("الخصومات السابقة مذكورة بإجماليها في الملخص وليست ضمن التحصيلات النقدية.", 4, 33);
   fullLine(record
-    ? "كشف تاريخي للتصفية المحددة؛ قد تختلف مديونية العميل الحالية بسبب حركات لاحقة."
-    : "كشف للمراجعة فقط؛ يُعتمد سداد أو خصم جديد حصريًا بعد تسجيله رسميًا في النظام.", 2, 33);
-  const widths = [20,27,62,17,22,34].map((w, i) =>
+    ? "هذا الكشف يوضح الحساب وقت التصفية بتاريخ " + formattedDate(record.settledOn) +
+      " وقد يتغير الرصيد مع معاملات لاحقة."
+    : "كشف للمراجعة فقط. المبلغ المستحق قد يتغير قبل تسجيل التصفية.", 4, 34);
+
+  const widths = [27, 62, 15, 20, 23, 23].map((width, i) =>
     '<col min="' + (i + 1) + '" max="' + (i + 1) +
-    '" width="' + w + '" customWidth="1"/>').join("");
+    '" width="' + width + '" customWidth="1"/>').join("");
   return DECL + '<worksheet xmlns="' + NS +
     '"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>' +
     '<sheetViews><sheetView workbookViewId="0" rightToLeft="1" showGridLines="0">' +
@@ -186,8 +183,9 @@ function buildSheet(source: CustomerSettlementStatement): string {
     merges.map(ref => '<mergeCell ref="' + ref + '"/>').join("") + '</mergeCells>' +
     '<printOptions horizontalCentered="1"/>' +
     '<pageMargins left="0.3" right="0.3" top="0.45" bottom="0.45" header="0.2" footer="0.2"/>' +
-    '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>';
+    '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="1"/></worksheet>';
 }
+
 export function buildCustomerSettlementStatementXlsx(source: CustomerSettlementStatement): Uint8Array {
   const worksheet = buildSheet(source);
   return zipStored([
