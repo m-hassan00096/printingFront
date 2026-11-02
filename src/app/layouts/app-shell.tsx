@@ -20,7 +20,7 @@ export function AppShell() {
       )}
       <div className={cn("min-h-screen transition-[margin] duration-150",
         isSidebarCollapsed ? "lg:mr-[66px]" : "lg:mr-[238px]")}>
-        <Topbar title={getPageTitle(location.pathname)} />
+        <Topbar title={getPageTitle(location.pathname)} hidePageContext={location.pathname === "/finance"} />
         <main className="mx-auto min-h-[calc(100vh-116px)] w-full max-w-[1660px] px-4 py-6 sm:px-6 sm:py-7 xl:px-8 xl:py-8">
           <Outlet />
         </main>
