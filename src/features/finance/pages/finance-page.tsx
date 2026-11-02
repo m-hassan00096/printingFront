@@ -106,7 +106,7 @@ export function FinancePage() {
 
   return <div className="space-y-4">
     <div className="flex flex-wrap items-center justify-between gap-4">
-      <h2 className="text-2xl font-bold tracking-tight">حسابات العملاء</h2>
+      <h1 className="text-2xl font-bold tracking-tight">حسابات العملاء</h1>
       <Button type="button" variant="outline" onClick={refresh}><RefreshCw className="size-4"/> تحديث</Button>
     </div>
     {(canAccountDetails || canRefundHistory) && <div className="pb-2">
