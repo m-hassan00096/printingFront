@@ -165,6 +165,7 @@ function buildSheet(source: CustomerSettlementStatement): string {
     }
   }
   gap();
+  fullLine("الدفعات السابقة هي صافي المبالغ المعتمدة بعد أي إلغاء أو رد.", 4, 27);
   fullLine(record
     ? "هذا الكشف يوضح الحساب وقت التصفية بتاريخ " + formattedDate(record.settledOn) +
       " وقد يتغير الرصيد مع معاملات لاحقة."
@@ -183,7 +184,7 @@ function buildSheet(source: CustomerSettlementStatement): string {
     merges.map(ref => '<mergeCell ref="' + ref + '"/>').join("") + '</mergeCells>' +
     '<printOptions horizontalCentered="1"/>' +
     '<pageMargins left="0.3" right="0.3" top="0.45" bottom="0.45" header="0.2" footer="0.2"/>' +
-    '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="1"/></worksheet>';
+    '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>';
 }
 
 export function buildCustomerSettlementStatementXlsx(source: CustomerSettlementStatement): Uint8Array {
