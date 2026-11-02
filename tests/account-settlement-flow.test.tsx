@@ -192,7 +192,7 @@ describe("Financial settlement workspace", () => {
     expect(dateField.getAttribute("aria-expanded")).toBe("false");
     expect(within(dialog).queryByRole("button", {name: "تغيير التاريخ"})).toBeNull();
     expect(within(dialog).getByText("الدفعات محسوبة حتى اليوم")).toBeTruthy();
-    const balanceSection = within(dialog).getByText("المستحق على العميل").parentElement;
+    const balanceSection = within(dialog).getByText("المستحق على العميل").parentElement?.parentElement;
     expect(balanceSection?.className).toContain("bg-primary/5");
     expect(within(dialog).getByRole("region", {name: "تسجيل التصفية"})).toBeTruthy();
     const summary = within(dialog).getByRole("region", {name: "ملخص التصفية المتوقع"});
