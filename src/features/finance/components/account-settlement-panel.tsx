@@ -256,16 +256,12 @@ export function AccountSettlementPanel({customerId, canConfirm, canViewCollectio
                 الحساب الكلي حتى الآن: {balanceDescription(data.accountBalance)} <MoneyAmount amount={absoluteAmount(data.accountBalance)}/>.
                 الدفعات محسوبة حتى {data.paymentsThrough}، والتصفية لا تُنشئ مديونية جديدة.
               </p>
-              <details className="border-t pt-3">
-                <summary className="cursor-pointer font-semibold text-muted-foreground">تفصيل الدفعات والمقدمات</summary>
-                <div className="mt-3 space-y-2 text-muted-foreground">
-                  <p>التحصيلات المسجلة: <MoneyAmount amount={data.grossCollections}/></p>
-                  <p>التحصيلات الملغاة: <MoneyAmount amount={data.collectionReversals}/></p>
-                  <p>المبالغ المعادة: <MoneyAmount amount={data.refundsTotal}/></p>
-                  <p>مقدمات مرتبطة بشغل خارج النطاق: <MoneyAmount amount={data.advancesForOtherWork}/></p>
-                  <p>المقدمات محسوبة بالفعل ولا تُخصم مرة ثانية. التصفية على حساب العميل الجاري، وليست توزيع دفعات على فواتير منفردة.</p>
-                </div>
-              </details>
+              <div className="border-t pt-3">
+                <Link to={"/finance?customerId=" + customerId + "&view=ledger"}
+                  className="inline-flex items-center text-sm font-semibold text-primary underline underline-offset-4 hover:text-primary/80 focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                  عرض حركات الدفعات في كشف الحساب
+                </Link>
+              </div>
               <details className="border-t pt-3">
                 <summary className="cursor-pointer font-semibold text-muted-foreground">الشغل المشمول ({data.items.length} بند)</summary>
                 <div className="mt-3 overflow-x-auto">
