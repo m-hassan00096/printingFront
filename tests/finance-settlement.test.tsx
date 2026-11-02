@@ -65,6 +65,36 @@ describe("Read-only delivered work statement", () => {
     expect(screen.getByRole("tabpanel", {name: "كشف الحساب"})).toBeTruthy();
     expect(screen.queryByRole("region", {name: "كشف الشغل المسلّم للعميل"})).toBeNull();
   });
+  it("groups account tabs and content in a distinct section below the customer summary", async () => {
+    visit();
+    const user = userEvent.setup();
+    const summary = await screen.findByRole("region", {name: "بيانات حساب العميل"});
+    const details = await screen.findByRole("region", {name: "تفاصيل الحساب"});
+    expect(summary).not.toBe(details);
+    expect(details.parentElement?.className).toContain("pt-2");
+    expect(details.className).toContain("rounded-xl");
+    expect(details.className).toContain("border");
+
+    const tabs = within(details).getByRole("tablist", {name: "تفاصيل حساب العميل"});
+    const ledgerTab = within(tabs).getByRole("tab", {name: "كشف الحساب"});
+    const deliveredTab = within(tabs).getByRole("tab", {name: "الشغل المستلّم"});
+    expect(ledgerTab.className).toContain("border-primary");
+    expect(ledgerTab.className).toContain("text-primary");
+    expect(ledgerTab.className).not.toContain("bg-primary");
+    expect(within(details).queryByRole("heading", {name: "كشف الحساب"})).toBeNull();
+    expect(within(details).getByRole("tabpanel", {name: "كشف الحساب"})).toBeTruthy();
+
+    await user.click(deliveredTab);
+    expect(deliveredTab.className).toContain("border-primary");
+    expect(ledgerTab.className).toContain("border-transparent");
+    const report = await within(details).findByRole("region", {name: "كشف الشغل المسلّم للعميل"});
+    expect(report.className).not.toContain("border");
+    expect(await within(report).findByText("كروت شخصية — وجهين")).toBeTruthy();
+
+    await user.click(ledgerTab);
+    expect(ledgerTab.className).toContain("border-primary");
+    expect(within(details).getByRole("tabpanel", {name: "كشف الحساب"})).toBeTruthy();
+  });
   it("keeps the ledger readable with five columns and nested receipt and note details", async () => {
     visit();
     const ledger = await screen.findByRole("tabpanel", {name: "كشف الحساب"});
