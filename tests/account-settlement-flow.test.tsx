@@ -439,8 +439,9 @@ describe("Financial settlement workspace", () => {
     expect(screen.getByText("150.00 ج.م")).toBeTruthy();
   });
 
-  it("blocks discount amounts above the debt and hides discount from unauthorized staff", async () => {
+  it("does not expose the optional discount action to staff without discount permission", async () => {
     visit(true, false); await openCreate();
+    expect(screen.queryByRole("button", {name: "إضافة خصم"})).toBeNull();
     expect(screen.queryByRole("textbox", {name: "خصم ثابت"})).toBeNull();
     expect(posts()).toHaveLength(0);
   });
