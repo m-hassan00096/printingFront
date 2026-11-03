@@ -385,6 +385,51 @@ describe("Financial settlement workspace", () => {
     expect(within(table).getByText("200.00 ج.م")).toBeTruthy();
     expect(screen.getByText(/رصيد التصفية وقت تسجيلها/)).toBeTruthy();
   });
+  it("labels the saved settlement report separately from internal proofs and keeps the latter collapsed", async () => {
+    visit(); await openCreate();
+    const user = userEvent.setup();
+    await user.type(screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"}), "100.00");
+    await user.click(screen.getByRole("button", {name: "تأكيد تحصيل 100.00 ج.م"}));
+    const result = await screen.findByRole("region", {name: "نتيجة التصفية"});
+    expect(within(result).getByRole("button", {name: "تقرير التصفية Excel"})).toBeTruthy();
+    expect(within(result).queryByRole("button", {name: "كشف حساب للعميل Excel"})).toBeNull();
+    const proofSection = within(result).getByText("مستندات وإثباتات").closest("details");
+    if (!proofSection) throw new Error("Internal proof section is missing");
+    expect(proofSection.open).toBe(false);
+    await user.click(within(result).getByText("مستندات وإثباتات"));
+    expect(proofSection.open).toBe(true);
+    expect(within(proofSection).getByRole("button", {name: "طباعة إثبات التصفية"})).toBeTruthy();
+    expect(within(proofSection).getByRole("button", {name: "إثبات التصفية Excel"})).toBeTruthy();
+    expect(within(proofSection).getByText("مستندات التوثيق والمراجعة الداخلية.")).toBeTruthy();
+    expect(posts()).toHaveLength(1);
+  });
+
+  it("shows the inferred delivered-work report period in history without presenting it as a stored debt boundary", async () => {
+    visit(); await openCreate();
+    const user = userEvent.setup();
+    await user.type(screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"}), "100.00");
+    await user.click(screen.getByRole("button", {name: "تأكيد تحصيل 100.00 ج.م"}));
+    await screen.findByRole("region", {name: "نتيجة التصفية"});
+    const date = new Date(cairoToday() + "T00:00:00Z");
+    date.setUTCDate(date.getUTCDate() - 1);
+    const previousDate = date.toISOString().slice(0, 10);
+    previousSaved = {
+      ...lastRecord, id: 3, number: "SET-2026-00003",
+      dateTo: previousDate, settledOn: previousDate,
+    };
+    await user.click(screen.getByRole("button", {name: "التصفيات السابقة"}));
+    const history = await screen.findByRole("table");
+    expect(within(history).getByRole("columnheader", {name: "فترة التقرير"})).toBeTruthy();
+    expect(within(history).queryByRole("columnheader", {name: "الشغل حتى"})).toBeNull();
+    expect(within(history).getByText("من: " + formatCollectionDate(cairoToday()))).toBeTruthy();
+    expect(within(history).getByText("إلى: " + formatCollectionDate(cairoToday()))).toBeTruthy();
+    expect(within(history).getByText("من: من بداية الحساب")).toBeTruthy();
+    expect(within(history).getAllByRole("button", {name: "تقرير التصفية Excel"})).toHaveLength(2);
+    expect(within(history).getAllByRole("button", {name: "عرض التفاصيل"})).toHaveLength(2);
+    expect(screen.getByText(/فترة التقرير تبدأ افتراضيًا/)).toBeTruthy();
+    expect(posts()).toHaveLength(1);
+  });
+
   it("labels a smaller amount as partial and never presents it as a full close", async () => {
     visit(); await openCreate(); const user = userEvent.setup();
     const amount = await screen.findByRole("textbox", {name: "مبلغ التصفية المستلم"});
