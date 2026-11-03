@@ -88,7 +88,7 @@ function buildSheet(source: CustomerSettlementStatement): string {
   const balanceLabel = amount < 0 ? "رصيد لصالح العميل" :
     record ? "المتبقي بعد التصفية المسجّلة" : "المطلوب من العميل الآن";
 
-  fullLine("طَبعة | كشف حساب العميل", 1, 44);
+  fullLine("طَبعة | تقرير تصفية حساب العميل", 1, 44);
   fullLine("العميل: " + preview.customerName +
     (preview.customerPhone ? " | الهاتف: " + preview.customerPhone : ""), 2, 31);
   fullLine("الأوردرات المستلّمة من " + formattedDate(periodFrom) +
@@ -259,7 +259,7 @@ export function buildCustomerSettlementStatementXlsx(source: CustomerSettlementS
     {name: "xl/workbook.xml", content: DECL + '<workbook xmlns="' + NS +
       '" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
       '<bookViews><workbookView/></bookViews><sheets>' +
-      '<sheet name="كشف حساب التصفية" sheetId="1" r:id="rId1"/></sheets></workbook>'},
+      '<sheet name="تقرير التصفية" sheetId="1" r:id="rId1"/></sheets></workbook>'},
     {name: "xl/_rels/workbook.xml.rels", content: DECL +
       '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
       '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
@@ -279,7 +279,7 @@ export function exportCustomerSettlementStatementXlsx(source: CustomerSettlement
   const to = source.kind === "draft" ? source.preview.dateTo : source.record.dateTo;
   const from = source.periodFrom ?? to.slice(0, 8) + "01";
   link.href = url;
-  link.download = "tabaa-customer-statement-" + safeId + "-" + from + "-to-" + to + ".xlsx";
+  link.download = "tabaa-settlement-report-" + safeId + "-" + from + "-to-" + to + ".xlsx";
   document.body.append(link);
   link.click();
   link.remove();
