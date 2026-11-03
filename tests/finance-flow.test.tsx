@@ -92,7 +92,7 @@ describe("Finance account page against Laravel existing contracts",()=>{
     ledgerEntries[0].createdAt="2026-11-03T09:14:00Z";
     visit();
     const ledger=await screen.findByRole("tabpanel",{name:"كشف الحساب"});
-    expect(within(ledger).getByText("26/10/2026")).toBeTruthy();
+    expect(await within(ledger).findByText("26/10/2026")).toBeTruthy();
     const posting=within(ledger).getByTitle("وقت تسجيل الحركة فعليًا بتوقيت القاهرة");
     expect(posting.textContent).toContain("سُجّلت");
     expect(posting.textContent).toContain("03/11/2026");
