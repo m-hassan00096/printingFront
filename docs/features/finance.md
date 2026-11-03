@@ -143,6 +143,7 @@ Backend PR #23 exercises customer-select permission boundaries, including inacti
 
 ### Two-sheet presentation (2026-11-04)
 - Same existing **تقرير التصفية Excel** export button; no new route, POST, permission, calculation, migration or document type. Internally `customer-settlement-statement-xlsx.ts` packages `xl/worksheets/sheet1.xml` and `sheet2.xml` with valid workbook references.
+- Download filename: `تقرير تصفية اسم العميل_YYYY-MM-DD.xlsx` (saved report uses the settlement registration date; unposted draft uses the export day in Cairo). Arabic customer names are preserved, while filesystem-invalid characters such as `*` are removed for Windows compatibility. The filename is not a posted transaction identifier.
 - The **ملخص التصفية** tab is right-to-left, compact and configured for one portrait printed page. The **تفاصيل التصفية** tab is right-to-left landscape and may span multiple pages; numeric/date cells stay typed Excel values, all customer text remains safe inline strings.
 - Shared saved snapshot / draft preview remains the only source of financial truth. Current settlement cash must not be subtracted twice; unreconciled historical transactions are not fabricated. Use the same distinction between actual receipts, past payments, refunds, reversals and proposed draft cash on both sheets.
 - Tests assert exact workbook sheet names/order, complete OOXML relationships, source numbers, safe escaping, period cutoff, historical receipts, print settings, and no internal notes.
