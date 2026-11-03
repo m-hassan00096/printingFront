@@ -22,7 +22,7 @@ import { accountTypeLabel } from "../lib/account-display";
 import { formatLedgerRecordedAt } from "../lib/ledger-recorded-at";
 import type { AccountFilters } from "../types/finance.types";
 
-const defaultFilters: AccountFilters = {page: 1, dateFrom: "", dateTo: "", type: ""};
+const defaultFilters: AccountFilters = {page: 1, perPage: 20, dateFrom: "", dateTo: "", type: ""};
 const copy = uiMessages.financeAccounts;
 const movementTypes = [
   {value: "", label: "كل الحركات"}, {value: "1", label: "مديونية أوردر"},
@@ -209,14 +209,6 @@ export function FinancePage() {
           {view === "refunds" && canRefundHistory && <><Button size="sm" variant="ghost" onClick={() => changeView("ledger")}>{copy.backToLedger}</Button><RefundsPanel key={customerId} customerId={customerId}/></>}
           {canLedger && view === "settlements" && <div role="tabpanel" id="account-settlements-panel" aria-labelledby="account-settlements-tab"><AccountSettlementPanel key={customerId} customerId={customerId} customerName={customerName} canConfirm={canCollect} canViewCollections={canViewCollections} canDiscount={permissions.includes('finance.settlements.discount')}/></div>}
           {canLedger && view === "ledger" && <section role="tabpanel" id="account-ledger-panel" aria-labelledby="account-ledger-tab" className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs leading-5 text-muted-foreground">الأحدث أولًا. الرصيد بعد الحركة تراكمي من كامل الحساب، وليس مجموع الصفوف المعروضة بعد الفلترة.</p>
-              <Button type="button" size="sm" variant={filters.type === "5" ? "secondary" : "outline"}
-                aria-pressed={filters.type === "5"}
-                onClick={() => changeFilter("type", filters.type === "5" ? "" : "5")}>
-                <RotateCcw className="size-4"/> ردود الأموال فقط
-              </Button>
-            </div>
             <div className="grid gap-3 rounded-lg border bg-muted/20 p-3 md:grid-cols-3">
               <CreatedDatePicker label="من تاريخ" value={filters.dateFrom} max={filters.dateTo || undefined} onChange={value => changeFilter("dateFrom", value)}/>
               <CreatedDatePicker label="إلى تاريخ" value={filters.dateTo} min={filters.dateFrom || undefined} onChange={value => changeFilter("dateTo", value)}/>
@@ -260,8 +252,10 @@ export function FinancePage() {
                   </tr>;
                 })}
               </tbody></table></div>
+              {ledger.data.pagination.total > 20 && <PaginationBar pagination={ledger.data.pagination}
+                onPage={page => setFilters(previous => ({...previous, page}))}
+                pageSizeOptions={[20, 50]} onPageSizeChange={perPage => changeFilter("perPage", perPage)}/>}
             </div> : <EmptyState title="لا توجد حركات مالية" detail="لا توجد حركات للعميل ضمن الفلاتر الحالية."/>}
-            {ledger.data && ledger.data.pagination.lastPage > 1 && <PaginationBar pagination={ledger.data.pagination} onPage={page => setFilters(previous => ({...previous, page}))}/>}
           </section>}
               </div>
             </section>
