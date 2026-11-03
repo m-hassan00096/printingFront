@@ -1,6 +1,7 @@
 import type { AccountSettlementPreview, AccountSettlementRecord } from "../types/account-settlement.types";
 import { stylesXml, zipStored } from "./settlement-xlsx";
 import { clientPeriodBreakdown, suggestedStatementFrom } from "./customer-settlement-period";
+import { cairoToday } from "./account-display";
 
 type DraftProposal = {discount: string; collected: string; remaining: string; reason?: string};
 export type CustomerSettlementStatement =
@@ -312,18 +313,36 @@ export function buildCustomerSettlementStatementXlsx(source: CustomerSettlementS
     {name: "xl/worksheets/sheet2.xml", content: details},
   ]);
 }
+/**
+ * Human-readable Windows-safe name; the two-sheet report content is unchanged.
+ * Saved exports are named by the settlement's recorded date, while draft
+ * previews use Cairo's current date (never the delivered-work cutoff).
+ */
+export function customerSettlementStatementFilename(
+  source: CustomerSettlementStatement,
+  today = cairoToday(),
+): string {
+  const name = source.kind === "saved"
+    ? source.record.snapshot?.before.customerName ?? ""
+    : source.preview.customerName;
+  const customer = Array.from(name
+    .replace(/[<>:"/\\|?*\\u0000-\\u001f\\u007f]/g, " ")
+    .replace(/\\s+/g, " ")
+    .trim()
+    .replace(/[. ]+$/g, "")
+  ).slice(0, 80).join("") || "عميل";
+  const date = source.kind === "saved" ? source.record.settledOn : today;
+  if (dateSerial(date) === null) throw Error("Invalid customer settlement filename date");
+  return "تقرير تصفية " + customer + "_" + date + ".xlsx";
+}
+
 export function exportCustomerSettlementStatementXlsx(source: CustomerSettlementStatement): void {
   const bytes = buildCustomerSettlementStatementXlsx(source);
   const blob = new Blob([bytes.buffer as ArrayBuffer], {type: XLSX_MIME});
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  const safeId = source.kind === "draft"
-    ? "draft-" + source.preview.customerId + "-" + source.preview.dateTo
-    : source.record.number.replace(/[^A-Za-z0-9_-]/g, "-");
-  const to = source.kind === "draft" ? source.preview.dateTo : source.record.dateTo;
-  const from = source.periodFrom ?? to.slice(0, 8) + "01";
   link.href = url;
-  link.download = "tabaa-settlement-report-" + safeId + "-" + from + "-to-" + to + ".xlsx";
+  link.download = customerSettlementStatementFilename(source);
   document.body.append(link);
   link.click();
   link.remove();
