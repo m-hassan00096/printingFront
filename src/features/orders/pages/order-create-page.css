@@ -1,0 +1,33 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap");
+
+/* Scoped preview of the approved Balanced Modern style.
+ * This intentionally does not restyle other workflows or change order logic. */
+.order-create-workspace {
+  --primary: #6250c9;
+  --ring: #6250c9;
+  --secondary: #f0edfc;
+  --secondary-foreground: #5641b9;
+  --border: #e5e8f1;
+  --input: #d9deeb;
+  color: #252a40;
+  font-family: "IBM Plex Sans Arabic", "Cairo", sans-serif;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.order-create-workspace :where(input, select, textarea) {
+  font-variant-numeric: tabular-nums;
+}
+
+.order-create-workspace :where(input, select) {
+  min-height: 40px;
+}
+
+.order-create-workspace :where(input, select, textarea):focus-visible {
+  border-color: #6250c9;
+  box-shadow: 0 0 0 3px #6250c91c;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .order-create-workspace * { scroll-behavior: auto; }
+}
