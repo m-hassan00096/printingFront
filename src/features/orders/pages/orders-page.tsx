@@ -115,7 +115,7 @@ export function OrdersPage() {
       setDeleting(null);
     } catch (e: unknown) { toast.error(getApiErrorMessage(e, "تعذّر حذف المسودة.")); }
   }
-  return <div className="space-y-6">
+  return <div className="tabaa-page space-y-4 sm:space-y-5">
     <SectionHeader title="الأوردرات" detail="متابعة الطلبات والعملاء ومراحل الإنتاج والتسليم."
       actions={perms.includes("orders.create") && <Button asChild><Link to="/orders/new"><Plus /> إضافة أوردر</Link></Button>} />
     <section className="overflow-hidden rounded-xl border border-[#e8eaf2] bg-white shadow-[0_6px_20px_#26396b08]">
