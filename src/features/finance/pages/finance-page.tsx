@@ -114,7 +114,7 @@ export function FinancePage() {
     {key: "ledger", title: "كشف الحساب"}, {key: "settlements", title: "تصفية الحساب"},
   ] : [];
 
-  return <div className="space-y-4">
+  return <div className="tabaa-page space-y-4 sm:space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h1 className="text-2xl font-bold tracking-tight">{globalRefunds ? "سجل ردود الأموال" : "حسابات العملاء"}</h1>
       <div className="flex flex-wrap items-center gap-2">
