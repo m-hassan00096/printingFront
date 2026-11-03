@@ -19,5 +19,8 @@ export function formatLedgerRecordedAt(value: string | null | undefined): {date:
   const day = get("day"), month = get("month"), year = get("year");
   const hour = get("hour"), minute = get("minute");
   if (!day || !month || !year || !hour || !minute) return null;
-  return {date: day + "/" + month + "/" + year, time: hour + ":" + minute};
+  const hour24 = Number(hour);
+  const hour12 = hour24 % 12 || 12;
+  const period = hour24 < 12 ? "ص" : "م";
+  return {date: day + "/" + month + "/" + year, time: hour12 + ":" + minute + " " + period};
 }
