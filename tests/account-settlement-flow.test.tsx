@@ -118,7 +118,7 @@ describe("Financial settlement workspace", () => {
     visit(); await openCreate();
     const dialog = screen.getByRole("dialog", {name: "تصفية حساب جديدة"});
     await waitFor(() => expect(within(dialog).getByText("SET-2026-00003")).toBeTruthy());
-    expect(within(dialog).getByRole("button", {name: "من تاريخ كشف العميل"}).textContent)
+    expect(within(dialog).getByRole("button", {name: "من تاريخ التقرير"}).textContent)
       .toContain(formatCollectionDate(today));
     expect(within(dialog).getByRole("button", {name: "الشغل المستلّم حتى"}).textContent)
       .toContain(formatCollectionDate(today));
@@ -129,13 +129,13 @@ describe("Financial settlement workspace", () => {
   it("defaults the customer statement period to the first of the month without changing the settlement cutoff", async () => {
     visit(); await openCreate();
     const dialog = screen.getByRole("dialog", {name: "تصفية حساب جديدة"});
-    const start = within(dialog).getByRole("button", {name: "من تاريخ كشف العميل"});
+    const start = within(dialog).getByRole("button", {name: "من تاريخ التقرير"});
     expect(start.textContent).toContain(formatCollectionDate(cairoToday().slice(0, 8) + "01"));
     expect(within(dialog).getByRole("button", {name: "الشغل المستلّم حتى"}).textContent)
       .toContain(formatCollectionDate(cairoToday()));
     const user = userEvent.setup();
     await user.click(start);
-    expect(screen.getByRole("dialog", {name: "اختيار من تاريخ كشف العميل"})).toBeTruthy();
+    expect(screen.getByRole("dialog", {name: "اختيار من تاريخ التقرير"})).toBeTruthy();
     await user.click(screen.getByRole("gridcell", {name: cairoToday().slice(0, 8) + "01"}));
     expect(posts()).toHaveLength(0);
     expect(screen.getByRole<HTMLInputElement>("textbox", {name: "مبلغ التصفية المستلم"}).value).toBe("");
@@ -145,7 +145,7 @@ describe("Financial settlement workspace", () => {
     const download = mockClientStatementDownload();
     try {
       visit(); await openCreate();
-      const button = await screen.findByRole("button", {name: "كشف حساب Excel للعميل"});
+      const button = await screen.findByRole("button", {name: "تقرير التصفية Excel"});
       const count = calls.filter(call => call.url.endsWith("/settlements/preview")).length;
       await userEvent.setup().click(button);
       await waitFor(() => expect(download.create).toHaveBeenCalledTimes(1));
@@ -164,7 +164,7 @@ describe("Financial settlement workspace", () => {
       const user = userEvent.setup();
       await user.type(screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"}), "100");
       preview = {...preview, previewHash: "b".repeat(64), balanceBefore: "200.00", dueNow: "200.00"};
-      await user.click(screen.getByRole("button", {name: "كشف حساب Excel للعميل"}));
+      await user.click(screen.getByRole("button", {name: "تقرير التصفية Excel"}));
       expect(await screen.findByText(/تغير حساب العميل بعد إدخال المبالغ/)).toBeTruthy();
       expect(download.create).not.toHaveBeenCalled();
       expect(posts()).toHaveLength(0);
@@ -182,9 +182,9 @@ describe("Financial settlement workspace", () => {
       await user.type(screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"}), "50");
       await user.click(screen.getByRole("button", {name: "تأكيد تحصيل 50.00 ج.م"}));
       const result = await screen.findByRole("region", {name: "نتيجة التصفية"});
-      expect(within(result).getByRole("button", {name: "كشف حساب للعميل Excel"})).toBeTruthy();
+      expect(within(result).getByRole("button", {name: "تقرير التصفية Excel"})).toBeTruthy();
       await user.click(screen.getByRole("button", {name: "التصفيات السابقة"}));
-      await user.click(await screen.findByRole("button", {name: "كشف العميل Excel"}));
+      await user.click(await screen.findByRole("button", {name: "تقرير التصفية Excel"}));
       await waitFor(() => expect(download.create).toHaveBeenCalledTimes(1));
       expect(calls.some(call => call.url.endsWith("/settlements/5") && call.method === "get")).toBe(true);
       expect(posts()).toHaveLength(1); // only the initial explicit settlement, never a new posting
