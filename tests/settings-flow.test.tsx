@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AxiosError, type AxiosAdapter, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 import { App } from "@/App";
@@ -126,7 +126,7 @@ describe("Settings permissions and backend integration", () => {
     expect(screen.getByRole("textbox", {name: "الاسم *"})).toBeTruthy();
     const description = screen.getByRole("textbox", {name: "الوصف (اختياري)"});
     expect(description.getAttribute("rows")).toBe("3");
-    expect(screen.getByRole("combobox")).toBeTruthy();
+    expect(within(formDialog).getByRole("combobox", {name: "الحالة"})).toBeTruthy();
     await user.click(screen.getByRole("button", {name: "إلغاء"}));
     expect(screen.queryByRole("dialog")).toBeNull();
     await user.click(screen.getByRole("button", {name: "حذف عميل جملة"}));
