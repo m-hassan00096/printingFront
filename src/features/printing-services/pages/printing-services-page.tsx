@@ -65,7 +65,7 @@ export function PrintingServicesPage() {
       toast.error(getApiErrorMessage(error, "تعذّر الحذف؛ قد تكون الخدمة مستخدمة في أوردرات."));
     }
   }
-  return <div className="space-y-6">
+  return <div className="tabaa-page space-y-4 sm:space-y-5">
     <SectionHeader title="خدمات الطباعة" detail="إدارة أنواع الطباعة وأسعارها وشرائح الكميات وأنواع العملاء."
       actions={canCreate && <Button asChild><Link to="/printing-services/new"><Plus /> إضافة خدمة طباعة</Link></Button>} />
     <section className="overflow-hidden rounded-lg border bg-card ">
