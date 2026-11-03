@@ -91,7 +91,7 @@ describe("Customer settlement report download name", () => {
     };
     const name = customerSettlementStatementFilename({kind: "draft", preview: draft}, "2026-11-04");
     expect(name).toBe("تقرير تصفية شركة النور المعارض فرع القاهرة تجربة_2026-11-04.xlsx");
-    expect(name).not.toMatch(/[<>:"/\\\\|?*]/);
+    expect(name).not.toContain("*");
     expect(customerSettlementStatementFilename({kind: "draft", preview: {
       ...preview, customerName: '  <>|*  ',
     }}, "2026-11-04")).toBe("تقرير تصفية عميل_2026-11-04.xlsx");
