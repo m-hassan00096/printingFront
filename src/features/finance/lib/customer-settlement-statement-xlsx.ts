@@ -1,10 +1,11 @@
 import type { AccountSettlementPreview, AccountSettlementRecord } from "../types/account-settlement.types";
 import { stylesXml, zipStored } from "./settlement-xlsx";
+import { centsToMoney, parseCents } from "@/features/deliveries/lib/delivery-money";
 
 type DraftProposal = {discount: string; collected: string; remaining: string; reason?: string};
 export type CustomerSettlementStatement =
-  | {kind: "draft"; preview: AccountSettlementPreview; proposal?: DraftProposal}
-  | {kind: "saved"; record: AccountSettlementRecord};
+  | {kind: "draft"; preview: AccountSettlementPreview; periodFrom?: string; proposal?: DraftProposal}
+  | {kind: "saved"; record: AccountSettlementRecord; periodFrom?: string};
 
 /**
  * A client-facing statement, separate from the immutable internal settlement evidence.
@@ -54,6 +55,27 @@ function buildSheet(source: CustomerSettlementStatement): string {
   const record = source.kind === "saved" ? source.record : null;
   const preview = record ? record.snapshot?.before : source.kind === "draft" ? source.preview : undefined;
   if (!preview) throw Error("Saved settlement snapshot is required for client statements");
+  const periodFrom = source.periodFrom ?? preview.dateTo.slice(0, 8) + "01";
+  if (dateSerial(periodFrom) === null || dateSerial(preview.dateTo) === null || periodFrom > preview.dateTo)
+    throw Error("Invalid customer statement period");
+  // Scope balances are cumulative, but the order rows show only delivered work
+  // within the selected reporting period. Earlier work stays in the summary.
+  const periodItems = preview.items.filter(item =>
+    item.deliveryDate >= periodFrom && item.deliveryDate <= preview.dateTo)
+    .sort((a, b) => a.deliveryDate.localeCompare(b.deliveryDate) ||
+      a.orderNumber.localeCompare(b.orderNumber) || a.id - b.id);
+  const amounts = periodItems.map(item => {
+    const value = parseCents(item.amount);
+    if (value === null) throw Error("Invalid customer statement item amount");
+    return value;
+  });
+  const periodCents = amounts.reduce((total, amount) => total + amount, 0);
+  const deliveredCents = parseCents(preview.deliveredTotal);
+  if (deliveredCents === null || periodCents > deliveredCents)
+    throw Error("Invalid delivered-work statement totals");
+  const previousWork = centsToMoney(deliveredCents - periodCents);
+  const periodWork = centsToMoney(periodCents);
+  const periodOrders = new Set(periodItems.map(item => item.orderId)).size;
 
   const rows: string[] = [], merges: string[] = [];
   let current = 0;
@@ -93,10 +115,11 @@ function buildSheet(source: CustomerSettlementStatement): string {
       ? "تنبيه: هذا الحساب التاريخي يحتاج مراجعة بسبب معاملة لاحقة."
       : "كشف للحساب وقت تسجيل التصفية.", 2, 28);
   } else {
-    fullLine("كشف للمراجعة قبل التصفية | الشغل حتى " + formattedDate(preview.dateTo), 2, 29);
+    fullLine("كشف للمراجعة قبل التصفية — لم يُسجّل سداد جديد", 2, 29);
     fullLine("لم يتم تسجيل تحصيل أو خصم جديد بهذا الكشف.", 4, 27);
   }
-  fullLine("الدفعات السابقة محسوبة حتى " + formattedDate(preview.paymentsThrough), 4, 27);
+  fullLine("الأوردرات المستلّمة من " + formattedDate(periodFrom) + " إلى " + formattedDate(preview.dateTo), 2, 30);
+  fullLine("الدفعات المحتسبة حتى " + formattedDate(preview.paymentsThrough), 4, 27);
   gap();
 
   const hero = next();
@@ -109,7 +132,9 @@ function buildSheet(source: CustomerSettlementStatement): string {
   section("ملخص حسابك (جنيه مصري)");
   if (Number(preview.openingBalance) !== 0)
     amountLine("رصيد سابق على الحساب", preview.openingBalance);
-  amountLine("قيمة الشغل المستلّم", preview.deliveredTotal);
+  if (deliveredCents !== periodCents)
+    amountLine("شغل مستلّم قبل الفترة", previousWork);
+  amountLine("شغل مستلّم خلال الفترة", periodWork);
   amountLine("مدفوعات سابقة (صافي)", preview.netPayments);
   if (Number(preview.discountsTotal ?? "0.00") !== 0)
     amountLine("خصومات سابقة", preview.discountsTotal ?? "0.00");
@@ -134,7 +159,7 @@ function buildSheet(source: CustomerSettlementStatement): string {
   }
   gap();
 
-  section("تفاصيل الشغل الذي استلمته");
+  section("الأوردرات المستلّمة خلال الفترة (" + periodOrders + " أوردر)");
   const header = next();
   rows.push(rowXml(header, [
     textCell("A", header, "رقم الأوردر", 3),
@@ -145,10 +170,10 @@ function buildSheet(source: CustomerSettlementStatement): string {
     textCell("F", header, "تاريخ التسليم", 3),
   ], 32));
 
-  if (!preview.items.length) {
-    fullLine("لا يوجد شغل مستلّم في هذا الكشف.", 4, 28);
+  if (!periodItems.length) {
+    fullLine("لا توجد أوردرات مستلّمة بين التاريخين المختارين.", 4, 28);
   } else {
-    for (const item of preview.items) {
+    for (const item of periodItems) {
       const r = next();
       const dimensions = item.widthCm && item.heightCm
         ? " | " + item.widthCm + " × " + item.heightCm + " سم" : "";
@@ -163,8 +188,17 @@ function buildSheet(source: CustomerSettlementStatement): string {
       ], item.specifications ? 40 : 30));
     }
   }
+  {
+    const r = next();
+    rows.push(rowXml(r, [
+      textCell("A", r, "إجمالي شغل الفترة (" + periodOrders + " أوردر)", 10),
+      numericCell("E", r, periodWork, 11),
+    ], 36));
+    merge("A" + r, "D" + r);
+  }
   gap();
-  fullLine("الدفعات السابقة هي صافي المبالغ المعتمدة بعد أي إلغاء أو رد.", 4, 27);
+  fullLine("المديونية تخص كل الشغل المستلّم حتى نهاية الفترة؛ الجدول يعرض أوردرات الفترة فقط.", 4, 28);
+  fullLine("الأوردرات التي لم تُسلّم لا تدخل مديونية التصفية. الدفعات المعروضة صافي بعد الرد والإلغاء.", 4, 30);
   fullLine(record
     ? "هذا الكشف يوضح الحساب وقت التصفية بتاريخ " + formattedDate(record.settledOn) +
       " وقد يتغير الرصيد مع معاملات لاحقة."
