@@ -400,9 +400,33 @@ describe("Orders Laravel API workflow", () => {
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("combobox", {name:"خدمة العنصر 1"})));
   });
 
+  it("keeps all order-entry functions inside the simplified split-panel layout", async () => {
+    visit("/orders/new");
+    expect(await screen.findByRole("heading", {name: "إنشاء أوردر جديد"})).toBeTruthy();
+    expect(screen.getByRole("heading", {name: "بيانات الأوردر"})).toBeTruthy();
+    expect(screen.getByRole("heading", {name: /بنود الأوردر/})).toBeTruthy();
+    const summary = screen.getByRole("region", {name: "ملخص الأوردر"});
+    expect(within(summary).getByText("عدد البنود")).toBeTruthy();
+    expect(within(summary).getByText("إجمالي الأوردر")).toBeTruthy();
+    expect(within(summary).getByText("المتبقي من الأوردر")).toBeTruthy();
+    expect(screen.getByRole("combobox", {name: "مصدر الأوردر"})).toBeTruthy();
+    expect(await screen.findByRole("combobox", {name: "اختيار العميل"})).toBeTruthy();
+    expect(screen.getByRole("button", {name: "حفظ مسودة"})).toBeTruthy();
+    expect(screen.getByRole("button", {name: "تأكيد الأوردر"})).toBeTruthy();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", {name: "إضافة بند"}));
+    expect(screen.getByRole("combobox", {name: "خدمة العنصر 2"})).toBeTruthy();
+    expect(within(summary).getByText("2")).toBeTruthy();
+    await user.click(screen.getByRole("button", {name: "حذف العنصر 2"}));
+    expect(screen.queryByRole("combobox", {name: "خدمة العنصر 2"})).toBeNull();
+    expect(within(summary).getByText("1")).toBeTruthy();
+    expect(calls.some(c => c.method === "post" && c.url === "/orders")).toBe(false);
+  });
+
   it("creates a draft with registered customer, agreed total, source enum and idempotency key", async () => {
     visit("/orders/new");
-    expect((await screen.findAllByRole("heading",{name:"إضافة أوردر"})).length).toBeGreaterThan(0);
+    expect((await screen.findAllByRole("heading",{name:"إنشاء أوردر جديد"})).length).toBeGreaterThan(0);
     const user=userEvent.setup();
     await user.click(await screen.findByRole("combobox",{name:"اختيار العميل"}));
     await user.click(await screen.findByRole("option", { name: /أحمد - 01012345678/ }));
