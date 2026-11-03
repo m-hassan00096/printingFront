@@ -137,7 +137,7 @@ export function UserFormPage() {
   const activeRoles = roleOptions(roles.data?.roles ?? []);
   const existingRole = user.data?.role;
   const roleAvailable = activeRoles.some((role) => role.id === existingRole?.id);
-  return <div className="mx-auto max-w-4xl space-y-6">
+  return <div className="tabaa-page mx-auto max-w-4xl space-y-4 sm:space-y-5">
     <Button variant="ghost" asChild><Link to={isNew ? "/users" : `/users/${id}`}><ArrowRight className="size-4" /> رجوع</Link></Button>
     <SectionHeader title={isNew ? "إضافة مستخدم" : "تعديل المستخدم"} detail="أدخل البيانات الأساسية وصلاحية الوصول المطلوبة فقط." />
     <form onSubmit={handleSubmit(submit)} noValidate className="space-y-5">
