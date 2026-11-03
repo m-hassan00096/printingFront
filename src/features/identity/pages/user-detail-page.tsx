@@ -16,7 +16,7 @@ export function UserDetailPage() {
   if (user.isPending) return <LoadingState />;
   if (user.isError) return <ErrorState error={user.error} retry={() => void user.refetch()} />;
   const value = user.data;
-  return <div className="space-y-6">
+  return <div className="tabaa-page space-y-4 sm:space-y-5">
     <Button variant="ghost" asChild><Link to="/users"><ArrowRight className="size-4" /> العودة للمستخدمين</Link></Button>
     <SectionHeader title="تفاصيل المستخدم" detail="بيانات الحساب والدور الحالي." actions={
       session?.permissions.includes("identity.users.update") && <Button asChild><Link to={`/users/${id}/edit`}><Pencil className="size-4" /> تعديل المستخدم</Link></Button>
