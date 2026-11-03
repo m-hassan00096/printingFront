@@ -34,7 +34,7 @@ const preview: AccountSettlementPreview = {
 };
 const record: AccountSettlementRecord = {
   id: 5, number: "SET-2026-00005", customerId: 7,
-  dateTo: "2026-11-01", settledOn: "2026-11-02",
+  dateFrom: "2026-11-01", dateTo: "2026-11-01", settledOn: "2026-11-02",
   status: "partial", originalStatus: "partial",
   statusLabel: "تصفية جزئية", needsReview: false,
   balanceBefore: "2500.00", discountAmount: "1000.00", discountReason: "خصم & اتفاق",
@@ -198,7 +198,7 @@ describe("Customer statement tied to the last saved settlement", () => {
       dueNow: "1000.00", sourceManifest: {ledgerMaxId: 90, creditEntryIds: [90],
         deliveryIds: [1], orderIds: [15]}, dateTo: "2026-10-24"};
     const previous: AccountSettlementRecord = {...record, id: 3, number: "SET-2026-00003",
-      dateTo: "2026-10-24", settledOn: "2026-10-25", balanceAfter: "1000.00",
+      dateFrom: "2026-10-01", dateTo: "2026-10-24", settledOn: "2026-10-25", balanceAfter: "1000.00",
       amountCollected: "0.00", discountAmount: "0.00", receiptNumber: null,
       snapshot: {before: historicalAfter, after: historicalAfter, receiptNumber: null}};
     const live: AccountSettlementPreview = {...preview, items: [newerWork, oldWork],
