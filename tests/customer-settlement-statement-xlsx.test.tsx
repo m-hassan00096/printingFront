@@ -66,16 +66,28 @@ function unzip(archive: Uint8Array): Map<string, string> {
   expect(view.getUint32(cursor, true)).toBe(0x02014b50);
   return files;
 }
-const xmlSheet = (bytes: Uint8Array) => unzip(bytes).get("xl/worksheets/sheet1.xml")!;
+const xmlSummary = (bytes: Uint8Array) => unzip(bytes).get("xl/worksheets/sheet1.xml")!;
+const xmlDetails = (bytes: Uint8Array) => unzip(bytes).get("xl/worksheets/sheet2.xml")!;
+// Legacy reconciliations check statement data across BOTH purpose-specific sheets.
+const xmlSheet = (bytes: Uint8Array) => xmlSummary(bytes) + xmlDetails(bytes);
 
 describe("Customer statement tied to the last saved settlement", () => {
   it("keeps the draft unnumbered, shows true due first, and hides historical movement noise", () => {
     const files = unzip(buildCustomerSettlementStatementXlsx({kind: "draft", preview}));
-    expect(files.size).toBe(6);
-    expect(files.get("xl/workbook.xml")).toContain('sheet name="تقرير التصفية"');
-    const sheet = files.get("xl/worksheets/sheet1.xml")!;
-    expect(sheet).toContain('rightToLeft="1"');
-    expect(sheet).toContain("طَبعة | تقرير تصفية حساب العميل");
+    expect(files.size).toBe(7);
+    expect(files.get("xl/workbook.xml")).toContain('sheet name="ملخص التصفية" sheetId="1" r:id="rId1"');
+    expect(files.get("xl/workbook.xml")).toContain('sheet name="تفاصيل التصفية" sheetId="2" r:id="rId2"');
+    const summary = files.get("xl/worksheets/sheet1.xml")!;
+    const details = files.get("xl/worksheets/sheet2.xml")!;
+    const sheet = summary + details;
+    expect(summary).toContain('rightToLeft="1"');
+    expect(details).toContain('rightToLeft="1"');
+    expect(summary).toContain("طَبعة | ملخص تصفية حساب العميل");
+    expect(details).toContain("طَبعة | تفاصيل تصفية حساب العميل");
+    expect(summary).toContain("ملخص الحساب");
+    expect(summary).not.toContain("ORD-11");
+    expect(details).toContain("ORD-11");
+    expect(details).not.toContain("الرصيد المرحّل قبل الفترة");
     expect(sheet).toContain("المطلوب من العميل الآن");
     expect(sheet).toContain("تصفية جديدة — لم تُسجّل بعد");
     expect(sheet).toContain("لا توجد تصفية سابقة");
@@ -97,6 +109,52 @@ describe("Customer statement tied to the last saved settlement", () => {
     expect(sheet).not.toContain("<f>");
     expect(sheet).not.toContain("previewHash");
     expect(new DOMParser().parseFromString(sheet, "application/xml").querySelector("parsererror")).toBeNull();
+  });
+
+  it("builds a valid two-sheet Arabic workbook with purpose-specific content, relationships and print setup", () => {
+    const bytes = buildCustomerSettlementStatementXlsx({kind: "saved", record});
+    const files = unzip(bytes);
+    expect([...files.keys()].sort()).toEqual([
+      "[Content_Types].xml", "_rels/.rels", "xl/workbook.xml",
+      "xl/_rels/workbook.xml.rels", "xl/styles.xml",
+      "xl/worksheets/sheet1.xml", "xl/worksheets/sheet2.xml",
+    ].sort());
+    const contents = files.get("[Content_Types].xml")!;
+    expect(contents).toContain('PartName="/xl/worksheets/sheet1.xml"');
+    expect(contents).toContain('PartName="/xl/worksheets/sheet2.xml"');
+    const rels = files.get("xl/_rels/workbook.xml.rels")!;
+    expect(rels).toContain('Id="rId1"');
+    expect(rels).toContain('Target="worksheets/sheet1.xml"');
+    expect(rels).toContain('Id="rId2"');
+    expect(rels).toContain('Target="worksheets/sheet2.xml"');
+    expect(rels).toContain('Id="rId3"');
+    expect(rels).toContain('Target="styles.xml"');
+
+    const summary = xmlSummary(bytes), details = xmlDetails(bytes);
+    expect(summary).toContain('rightToLeft="1"');
+    expect(details).toContain('rightToLeft="1"');
+    expect(summary).toContain('orientation="portrait" fitToWidth="1" fitToHeight="1"');
+    expect(details).toContain('orientation="landscape" fitToWidth="1" fitToHeight="0"');
+    expect(summary).toContain("المستحق قبل التصفية الحالية");
+    expect(summary).toContain("المبلغ المدفوع في التصفية الحالية");
+    expect(summary).toContain("المتبقي بعد التصفية الحالية");
+    expect(summary).not.toContain("ORD-11");
+    expect(summary).not.toContain("لون: أسود");
+    expect(details).toContain("الأوردرات التي تم استلامها");
+    expect(details).toContain("ORD-11");
+    expect(details).toContain("@SUM(A1) &lt;بنر&gt;");
+    expect(details).toContain("صافي المدفوعات بعد الرد والإلغاء");
+    expect(details).toContain("إجراءات التصفية المسجّلة");
+    expect(details).toContain("المبلغ المحصل فعليًا في هذه التصفية");
+    expect(details).toContain("COL-94");
+    expect(details).not.toContain("ملاحظة داخلية");
+    expect(summary).not.toContain("ملاحظة داخلية");
+    expect(summary + details).not.toContain("<f>");
+    expect(files.get("xl/styles.xml")).toContain("FF6250C9");
+    for (const [name, value] of files) {
+      if (name.endsWith(".xml") || name.endsWith(".rels"))
+        expect(new DOMParser().parseFromString(value, "application/xml").querySelector("parsererror")).toBeNull();
+    }
   });
 
   it("labels an unposted payment as a proposal and does not remove it from the real due", () => {
