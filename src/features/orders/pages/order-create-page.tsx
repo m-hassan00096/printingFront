@@ -513,11 +513,7 @@ export function OrderCreatePage() {
       </aside>
 
       {generalError && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive xl:col-span-2">{generalError}</p>}
-      <footer className="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card/95 p-3 shadow-lg backdrop-blur sm:p-4">
-        <div className="text-sm">
-          <span className="text-muted-foreground">إجمالي الأوردر</span>
-          <strong className="me-2 block text-lg">{allPriced ? <MoneyAmount amount={orderCents / 100} /> : "—"}</strong>
-        </div>
+      <footer className="sticky bottom-2 z-20 flex flex-wrap items-center justify-end gap-2 rounded-xl border border-[#e5e8f1] bg-white/95 p-3 shadow-[0_8px_28px_#1d24431a] backdrop-blur sm:p-4 xl:col-span-2">
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline"><Link to="/orders">إلغاء</Link></Button>
           <Button type="submit" value="draft" variant="outline" disabled={busy || choices.isError || choices.isPending}>
