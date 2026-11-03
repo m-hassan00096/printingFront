@@ -91,6 +91,21 @@ beforeEach(() => {
 afterEach(() => {apiClient.defaults.adapter = original;});
 
 describe("Financial settlement workspace", () => {
+  it("defaults the customer statement period to the first of the month without changing the settlement cutoff", async () => {
+    visit(); await openCreate();
+    const dialog = screen.getByRole("dialog", {name: "تصفية حساب جديدة"});
+    const start = within(dialog).getByRole("button", {name: "من تاريخ كشف العميل"});
+    expect(start.textContent).toContain(formatCollectionDate(cairoToday().slice(0, 8) + "01"));
+    expect(within(dialog).getByRole("button", {name: "الشغل المستلّم حتى"}).textContent)
+      .toContain(formatCollectionDate(cairoToday()));
+    const user = userEvent.setup();
+    await user.click(start);
+    expect(screen.getByRole("dialog", {name: "اختيار من تاريخ كشف العميل"})).toBeTruthy();
+    await user.click(screen.getByRole("gridcell", {name: cairoToday().slice(0, 8) + "01"}));
+    expect(posts()).toHaveLength(0);
+    expect(screen.getByRole<HTMLInputElement>("textbox", {name: "مبلغ التصفية المستلم"}).value).toBe("");
+  });
+
   it("exports the fresh draft statement with one click and no settlement POST or receipt", async () => {
     const download = mockClientStatementDownload();
     try {
