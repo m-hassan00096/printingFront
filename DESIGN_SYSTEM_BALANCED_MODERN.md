@@ -85,8 +85,8 @@ Tokens are defined in `src/index.css` and must be used by `bg-primary`, `bg-card
 - **Deliveries & collections**: high clarity of dates and amounts, distinct destructive actions; receipt, payment and delivery logic untouched.
 - **Finance**: readable dense ledger and settlements, separate financial semantics for due/credit/refunds, preserve CSV/XLSX/report functionality.
   - In a selected customer account, **تسجيل تحصيل** (primary) and **رد رصيد للعميل** (secondary) sit side by side. Refund creation stays visibly **disabled** (with an accessible inline reason) until the existing backend `/finance/customers/:id/refundable-credit` preview confirms a positive refundable amount; **hide** the action entirely for roles lacking `finance.refunds.create`.
-  - Keep the ledger's `ردود الأموال فقط` filter and individual clickable refund documents. Avoid separate duplicate global/customer refund-register buttons in the account header/menu.
-  - No separate refund-history navigation item: customer refunds are read via the **كشف الحساب** ledger (filter `ردود الأموال فقط` and clickable refund receipt). For backwards compatibility and authorized audit use, the all-customers report remains accessible through its **existing direct URL** `/finance/refunds` (permission `finance.refunds.view`), plus legacy `?tab=refunds` and `?view=refunds` bookmarks; none adds another sidebar entry. The one-time **رصيد افتتاحي** action is under **المزيد** only if available.
+  - Show refund movements through the existing **نوع الحركة** dropdown (`رد مبلغ للعميل`, type `5`) and keep individual clickable refund receipts. Do **not** add a second `ردود الأموال فقط` shortcut button or explanatory paragraph above the filters; these duplicate existing controls.
+  - No separate refund-history navigation item: customer refunds are read via the **كشف الحساب** ledger (select `رد مبلغ للعميل` from **نوع الحركة**, then open the refund receipt). For backwards compatibility and authorized audit use, the all-customers report remains accessible through its **existing direct URL** `/finance/refunds` (permission `finance.refunds.view`), plus legacy `?tab=refunds` and `?view=refunds` bookmarks; none adds another sidebar entry. The one-time **رصيد افتتاحي** action is under **المزيد** only if available.
 - **Identity & settings**: clear section headings, forms with accessible labels, consistent modal surfaces.
 
 ## 6A. Modal size policy (mandatory)
@@ -105,6 +105,14 @@ Each modal must use its **own task-driven width utility**. Do not set `max-width
 - Use 16–20px internal padding, 12–16px form gaps, a clear title and close control, and an action footer near the final field; avoid oversized textareas or full-width blocks of helper text.
 - Preserve existing keyboard focus, Escape behavior, role/aria labels, access controls, confirmation steps, validation, loading and save flows.
 - **Full-screen dialogs** are exceptional and need a justified long workflow; a normal CRUD form must never inherit full width.
+
+## 6B. Customer ledger pagination
+
+- Customer-ledger movements are **server-paginated** via the existing `GET /finance/customers/:id/ledger?page=&perPage=` endpoint. Default to **20 movements**, with **50** as an optional page size for long account histories. Only render the footer controls when more than 20 movements match.
+- Display the actual range (for example, `1–20 من 83 حركة`) and previous/next arrows in **the same card footer** beneath the table. Keep the page indicator visible when the footer is shown.
+- Changing the page size, date range, movement type, or customer resets to **page 1** to avoid blank/misleading views. Date/movement filters are applied **on the server**, not after slicing visible rows.
+- The running balance for each row is returned by the backend over the customer's **complete ledger**, including movements outside the current filter or page. Never derive it by summing the current page or alter the financial totals.
+- For 20 or fewer movements, no pagination footer appears; the header still shows the total. Leave enough horizontal scroll room on mobile for the ledger columns.
 
 ## 7. Accessibility & QA checklist
 
