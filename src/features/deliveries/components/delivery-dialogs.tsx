@@ -23,7 +23,7 @@ function DialogFrame({ title, children, footer, busy, onClose }: {
     onMouseDown={event => { if (event.target===event.currentTarget && !busy) onClose(); }}>
     <section role="dialog" aria-modal="true" aria-label={title} dir="rtl"
       onKeyDown={event => { if (event.key==="Escape" && !busy) onClose(); }}
-      className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-lg bg-card shadow-2xl">
+      className="flex max-h-[calc(100dvh-24px)] w-full max-w-[560px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl sm:max-h-[90dvh]">
       <header className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 sm:px-5">
         <h2 className="text-base font-semibold">{title}</h2>
         <Button type="button" variant="ghost" size="icon-sm" disabled={busy}
