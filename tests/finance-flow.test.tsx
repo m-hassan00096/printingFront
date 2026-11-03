@@ -83,7 +83,7 @@ describe("Finance account page against Laravel existing contracts",()=>{
     expect(screen.getAllByText("250.00 ج.م").length).toBeGreaterThan(0);
     expect(screen.getByText("50.00 ج.م")).toBeTruthy();
     expect(screen.getByText("26/10/2026")).toBeTruthy();
-    expect(screen.getByText("10:00")).toBeTruthy();
+    expect(screen.getByText("10:00 ص")).toBeTruthy();
     expect(screen.getByTitle("وقت تسجيل الحركة فعليًا بتوقيت القاهرة").textContent).toContain("الساعة");
     expect(calls.some(c=>c.url==="/finance/customers/7/balance")).toBe(true);
     expect(calls.some(c=>c.url==="/finance/customers/7/ledger")).toBe(true);
@@ -96,7 +96,7 @@ describe("Finance account page against Laravel existing contracts",()=>{
     const posting=within(ledger).getByTitle("وقت تسجيل الحركة فعليًا بتوقيت القاهرة");
     expect(posting.textContent).toContain("سُجّلت");
     expect(posting.textContent).toContain("03/11/2026");
-    expect(posting.textContent).toContain("11:14");
+    expect(posting.textContent).toContain("11:14 ص");
     expect(calls.some(c=>c.url==="/finance/customers/7/ledger")).toBe(true);
   });
   it("sends the backend-specific ledger type filter and no unsupported sort",async()=>{
