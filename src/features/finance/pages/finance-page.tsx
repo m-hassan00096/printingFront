@@ -254,7 +254,7 @@ export function FinancePage() {
               </tbody></table></div>
               {ledger.data.pagination.total > 20 && <PaginationBar pagination={ledger.data.pagination}
                 onPage={page => setFilters(previous => ({...previous, page}))}
-                pageSizeOptions={[20, 50]} onPageSizeChange={perPage => changeFilter("perPage", perPage)}/>}
+                pageSizeOptions={[20, 50]} onPageSizeChange={perPage => changeFilter("perPage", perPage === 50 ? 50 : 20)}/>}
             </div> : <EmptyState title="لا توجد حركات مالية" detail="لا توجد حركات للعميل ضمن الفلاتر الحالية."/>}
           </section>}
               </div>
