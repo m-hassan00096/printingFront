@@ -383,7 +383,7 @@ describe("Financial settlement workspace", () => {
     const table = await screen.findByRole("table");
     expect(within(table).getByRole("columnheader", {name: "المتبقي بعد العملية"})).toBeTruthy();
     expect(within(table).getByText("200.00 ج.م")).toBeTruthy();
-    expect(screen.getByText(/رصيد التصفية وقت تسجيلها/)).toBeTruthy();
+    expect(screen.getByText(/المتبقي هو الرصيد وقت التسجيل، وليس بالضرورة رصيد العميل الحالي/)).toBeTruthy();
   });
   it("labels the saved settlement report separately from internal proofs and keeps the latter collapsed", async () => {
     visit(); await openCreate();
