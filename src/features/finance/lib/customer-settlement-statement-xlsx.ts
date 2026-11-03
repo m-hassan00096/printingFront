@@ -56,7 +56,7 @@ function buildSheet(source: CustomerSettlementStatement): string {
   const preview = record ? record.snapshot?.before : source.kind === "draft" ? source.preview : undefined;
   if (!preview) throw Error("Saved settlement snapshot is required for client statements");
   const previous = source.previous ?? null;
-  const periodFrom = source.periodFrom ?? suggestedStatementFrom(preview.dateTo, previous);
+  const periodFrom = record?.dateFrom ?? source.periodFrom ?? suggestedStatementFrom(preview.dateTo, previous);
   if (dateSerial(periodFrom) === null || dateSerial(preview.dateTo) === null || periodFrom > preview.dateTo)
     throw Error("Invalid customer statement period");
   const breakdown = clientPeriodBreakdown(preview, periodFrom, previous);
@@ -94,6 +94,8 @@ function buildSheet(source: CustomerSettlementStatement): string {
   fullLine("الأوردرات المستلّمة من " + formattedDate(periodFrom) +
     " إلى " + formattedDate(preview.dateTo), 2, 31);
   fullLine("الدفعات والحركات المالية محسوبة حتى " + formattedDate(preview.paymentsThrough), 4, 26);
+  if (record && !record.dateFrom)
+    fullLine("تصفية قديمة: بداية التقرير للعرض فقط وغير مسجّلة ضمن تاريخ التصفية الأصلي.", 4, 29);
   if (record) {
     fullLine("رقم التصفية الحالية: " + record.number +
       " | تم تسجيلها: " + formattedDate(record.settledOn), 2, 29);
