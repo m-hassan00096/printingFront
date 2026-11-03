@@ -29,7 +29,7 @@ function Frame({title,busy,onClose,footer,children}:{title:string;busy:boolean;o
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-3 sm:p-4"
     onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)onClose();}}>
     <section role="dialog" aria-modal="true" aria-labelledby={titleId} dir="rtl"
-      className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-lg bg-card shadow-2xl"
+      className="flex max-h-[calc(100dvh-24px)] w-full max-w-[560px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl sm:max-h-[90dvh]"
       onKeyDown={e=>{if(e.key==="Escape"&&!busy)onClose();}}>
       <header className="flex shrink-0 items-center justify-between gap-3 border-b p-4">
         <h2 id={titleId} className="text-base font-semibold">{title}</h2>
