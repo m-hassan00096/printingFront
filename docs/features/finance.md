@@ -131,15 +131,21 @@ Backend PR #23 exercises customer-select permission boundaries, including inacti
 
 ## Customer-facing settlement account statement Excel (2026-11-02)
 
-- Dedicated Arabic RTL **one-sheet client-facing XLSX** available in new settlement preview, saved settlement result, and each saved history row (one-click).
+- Dedicated Arabic RTL **two-sheet client-facing XLSX** available in new settlement preview, saved settlement result, and each saved history row (one-click). Sheet 1 is **ملخص التصفية** (compact, one-page printable financial summary) and sheet 2 is **تفاصيل التصفية** (delivered work lines, item dimensions/amounts, dated cash movements and current settlement actions).
 - The customer-facing settlement report is separate from internal immutable evidence, which remains in the code but is no longer offered as a second on-screen action.
-- The client sees **only** customer identity, the selected order reporting period, prominent due/remaining balance, a short summary (opening balance, prior delivered work, delivered work in period, net previous payments, applicable discounts and settled payment), and **only orders delivered during the chosen From/To period**, each with delivery date, order number, item, dimensions, quantity, unit price and total. A detailed per-transaction reversal/refund/payment ledger is intentionally omitted: the internal evidence and Finance ledger remain available for audit.
+- Sheet 1 presents customer identity, reporting period, actual due/remaining balance, starting/previous settlement balance, delivered work, net previous payments, applicable non-cash discounts and current settlement cash. Sheet 2 presents **only delivered items in the chosen From/To period** (date, order, description, specifications, dimensions, quantity, unit price, amount), and the backed-by-snapshot payment/refund/reversal movements since the saved ledger watermark; it also separates this settlement's actual discount and posted receipt from unposted draft proposals. Complete running balances for each movement are not included because the preview does not contain them; these remain available in the Finance ledger. Neither tab includes internal operator notes.
 - The modal now has **بداية فترة التصفية** (`dateFrom`) and **الشغل المستلّم حتى** (`dateTo`). Both dates are persisted by the backend on confirmation, with automatic defaults after the previous saved settlement, or the first of the month when none exists. This is the saved reporting period, not a filter on the cumulative financial due. The client report shows verified cash posted since the prior settlement.
 - **Draft:** re-read the latest backend preview before exporting; always label as NOT posted. Valid entered discount and cash can appear only as proposals, with projected balance explicitly hypothetical, not a receipt. Stale preview rejects proposed figures until user refreshes.
 - **Saved:** re-fetch individual saved snapshot and review flag; actual collected cash and actual discount are separate, remaining balance historical, and a later reversal/refund triggers a clear warning.
 - Numerics/dates use Excel value types; customer strings are escaped inline text, preventing formula injection. The existing settlement POST now carries `dateFrom`; an additive migration adds nullable `scope_from`, while `scope_to` already stores the end. Never leak idempotency keys, internal identifiers or internal operator notes.
 - Verify `npm test`, `npm run typecheck`, `npm run lint` and `npm run build` before merge; check customer-facing statements against actual receipts in staging.
 
+
+### Two-sheet presentation (2026-11-04)
+- Same existing **تقرير التصفية Excel** export button; no new route, POST, permission, calculation, migration or document type. Internally `customer-settlement-statement-xlsx.ts` packages `xl/worksheets/sheet1.xml` and `sheet2.xml` with valid workbook references.
+- The **ملخص التصفية** tab is right-to-left, compact and configured for one portrait printed page. The **تفاصيل التصفية** tab is right-to-left landscape and may span multiple pages; numeric/date cells stay typed Excel values, all customer text remains safe inline strings.
+- Shared saved snapshot / draft preview remains the only source of financial truth. Current settlement cash must not be subtracted twice; unreconciled historical transactions are not fabricated. Use the same distinction between actual receipts, past payments, refunds, reversals and proposed draft cash on both sheets.
+- Tests assert exact workbook sheet names/order, complete OOXML relationships, source numbers, safe escaping, period cutoff, historical receipts, print settings, and no internal notes.
 
 ### Statement since the last settlement (2026-11-03)
 
