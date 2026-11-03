@@ -86,6 +86,23 @@ Tokens are defined in `src/index.css` and must be used by `bg-primary`, `bg-card
 - **Finance**: readable dense ledger and settlements, separate financial semantics for due/credit/refunds, preserve CSV/XLSX/report functionality.
 - **Identity & settings**: clear section headings, forms with accessible labels, consistent modal surfaces.
 
+## 6A. Modal size policy (mandatory)
+
+Each modal must use its **own task-driven width utility**. Do not set `max-width` for all `[role="dialog"]` elements in global/unlayered CSS: it overrides Tailwind's utility layer even when the component has a `max-w-*` class, and stretches every dialog to the viewport width.
+
+| Mode | Target desktop width | Examples |
+| --- | --- | --- |
+| **Small** | 400–440px | Delete confirmations, short prompts, irreversible action confirmation |
+| **Medium** | 480–560px | Customer type, printing location, bank/wallet settings, customer edits, collections and refunds |
+| **Large** | 640–760px | Production details and complex multi-section dialogs |
+| **Extra-large** | 800–960px, only when needed | Customer account settlement with complex financial tables and summaries |
+
+- Use `w-full` **with** explicit `max-w-[...px]` in the dialog container. Viewport overlay padding (12px mobile, 16px desktop) keeps the surface away from edges; don't assume an arbitrary global max-width will constrain the content.
+- Keep dialogs centered and **content-height by default**, not full-screen. On small screens cap at `max-h-[calc(100dvh-24px)]` and scroll the dialog/body rather than crop action buttons.
+- Use 16–20px internal padding, 12–16px form gaps, a clear title and close control, and an action footer near the final field; avoid oversized textareas or full-width blocks of helper text.
+- Preserve existing keyboard focus, Escape behavior, role/aria labels, access controls, confirmation steps, validation, loading and save flows.
+- **Full-screen dialogs** are exceptional and need a justified long workflow; a normal CRUD form must never inherit full width.
+
 ## 7. Accessibility & QA checklist
 
 - [ ] Every control continues to have an accessible name, keyboard navigation, focus-visible and clear disabled state.
