@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCustomerSettlementStatementXlsx } from "@/features/finance/lib/customer-settlement-statement-xlsx";
+import { buildCustomerSettlementStatementXlsx, customerSettlementStatementFilename } from "@/features/finance/lib/customer-settlement-statement-xlsx";
 import type { AccountSettlementPreview, AccountSettlementRecord } from "@/features/finance/types/account-settlement.types";
 
 const preview: AccountSettlementPreview = {
@@ -70,6 +70,38 @@ const xmlSummary = (bytes: Uint8Array) => unzip(bytes).get("xl/worksheets/sheet1
 const xmlDetails = (bytes: Uint8Array) => unzip(bytes).get("xl/worksheets/sheet2.xml")!;
 // Legacy reconciliations check statement data across BOTH purpose-specific sheets.
 const xmlSheet = (bytes: Uint8Array) => xmlSummary(bytes) + xmlDetails(bytes);
+
+describe("Customer settlement report download name", () => {
+  it("uses the saved settlement date and original Arabic customer name", () => {
+    const saved: AccountSettlementRecord = {...record, snapshot: {...record.snapshot!,
+      before: {...preview, customerName: "شركة النور للطباعة"}}};
+    expect(customerSettlementStatementFilename({kind: "saved", record: saved}, "2027-01-01"))
+      .toBe("تقرير تصفية شركة النور للطباعة_2026-11-02.xlsx");
+  });
+
+  it("uses today's Cairo date for an unposted draft, not its delivered-work cutoff", () => {
+    const draft: AccountSettlementPreview = {...preview, customerName: "محمد"};
+    expect(customerSettlementStatementFilename({kind: "draft", preview: draft}, "2026-11-04"))
+      .toBe("تقرير تصفية محمد_2026-11-04.xlsx");
+  });
+
+  it("removes invalid Windows filename characters while keeping Arabic and readable spacing", () => {
+    const draft: AccountSettlementPreview = {
+      ...preview, customerName: "  شركة  النور: * المعارض / فرع \\ القاهرة ? <تجربة> .  ",
+    };
+    const name = customerSettlementStatementFilename({kind: "draft", preview: draft}, "2026-11-04");
+    expect(name).toBe("تقرير تصفية شركة النور المعارض فرع القاهرة تجربة_2026-11-04.xlsx");
+    expect(name).not.toMatch(/[<>:"/\\\\|?*]/);
+    expect(customerSettlementStatementFilename({kind: "draft", preview: {
+      ...preview, customerName: '  <>|*  ',
+    }}, "2026-11-04")).toBe("تقرير تصفية عميل_2026-11-04.xlsx");
+  });
+
+  it("rejects an invalid filename date instead of producing an ambiguous report name", () => {
+    expect(() => customerSettlementStatementFilename({kind: "draft", preview}, "2026-02-30"))
+      .toThrow("Invalid customer settlement filename date");
+  });
+});
 
 describe("Customer statement tied to the last saved settlement", () => {
   it("keeps the draft unnumbered, shows true due first, and hides historical movement noise", () => {
