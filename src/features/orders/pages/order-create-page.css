@@ -1,7 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap");
-
-/* Scoped preview of the approved Balanced Modern style.
- * This intentionally does not restyle other workflows or change order logic. */
+/* Create Order layout-specific refinements; global Balanced Modern colors and font come from src/index.css. */
 .order-create-workspace {
   --primary: #6250c9;
   --ring: #6250c9;
