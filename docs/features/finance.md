@@ -158,3 +158,11 @@ Backend PR #23 exercises customer-select permission boundaries, including inacti
 - The work report remains available to staff with `finance.ledger.view`, even if they lack `finance.collections.create` or `orders.view`; order links appear only for `orders.view`. The report fetch is lazy (when expanded), not triggered on initial ledger/settlement navigation.
 - Legacy `/finance?customerId=...&view=delivered` links automatically replace the obsolete query view with `view=settlements`. Existing `view=ledger`, `view=settlements`, and refunds routing are unchanged.
 - Client-facing settlement XLSX and immutable account settlement evidence exports are unaffected. Keeping report-only From/To independent of settlement cutoff avoids changing financial results when requesting an operational work report.
+
+### Settlement history periods and export naming (2026-11-03)
+
+- The saved settlement history shows **فترة التقرير** as two lines (**من** and **إلى**) and separate **تاريخ التنفيذ**. **إلى** is the persisted work cutoff `dateTo`. **من** is the day after the previous saved settlement's work cutoff, not the execution timestamp; if no prior settlement is available it shows **من بداية الحساب** rather than fabricating an official date.
+- Reporting dates are inferred for display, not a stored financial settlement boundary. The backend calculation remains cumulative. An oldest row that spans pages resolves the previous settlement from one extra history-page GET instead of a per-row request.
+- **تقرير التصفية Excel** is the client-facing export from draft, saved result and history. Its Arabic Excel header, worksheet name and filename use this report naming consistently. A draft never invents an actual registered number.
+- The saved result groups **طباعة إثبات التصفية** and **إثبات التصفية Excel** under the initially collapsed **مستندات وإثباتات** section, for internal review. A posted collection receipt is separate and permission-gated.
+- Historical review flags, existing receipts, work-only PDF/Excel report, finance totals, and privileges are unchanged. No backend or database change.
