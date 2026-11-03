@@ -1,3 +1,9 @@
+# Archived inspiration: Violet Issue
+
+> **Not the current Tabaa design.** The approved app-wide visual system is [Tabaa Balanced Modern](DESIGN_SYSTEM_BALANCED_MODERN.md). This file remains as historical visual research only; do not use its dark tokens or Inter-only typography for Tabaa.
+
+## Historical reference
+
 # Violet Issue
 
 ## Overview
