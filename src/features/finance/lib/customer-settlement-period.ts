@@ -59,6 +59,9 @@ export function clientPeriodBreakdown(
   if (previous && (lastLedgerId === undefined || !Number.isSafeInteger(lastLedgerId)))
     throw Error("Previous settlement has no reliable receipt cutoff");
 
+  const allItemsCents = preview.items.reduce((sum, item) => sum + signedCents(item.amount), 0);
+  if (allItemsCents !== signedCents(preview.deliveredTotal))
+    throw Error("Invalid delivered-work statement totals");
   const oldIds = new Set(before?.items.map(item => item.id) ?? []);
   const newlyDelivered = preview.items.filter(item => !oldIds.has(item.id));
   const items = newlyDelivered
