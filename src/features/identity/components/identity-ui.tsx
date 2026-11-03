@@ -4,11 +4,11 @@ import { Button } from "@/shared/components/ui/button";
 import { getApiErrorMessage } from "@/shared/api/http";
 import type { Pagination } from "../types/identity.types";
 
-export const fieldClass = "h-9 w-full rounded-lg border border-input bg-card px-3 text-[13px] outline-none transition-colors focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20";
-export const fieldLabel = "block text-xs font-semibold text-foreground";
+export const fieldClass = "min-h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none transition-colors focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20";
+export const fieldLabel = "block text-sm font-semibold text-foreground";
 export function SectionHeader({ title, detail, actions }: { title: string; detail: string; actions?: ReactNode }) {
   return <div className="flex flex-wrap items-start justify-between gap-4">
-    <div><h2 className="text-2xl font-bold tracking-tight">{title}</h2><p className="mt-1 text-sm leading-6 text-muted-foreground">{detail}</p></div>
+    <div><h2 className="text-2xl font-bold tracking-tight">{title}</h2>{detail && <p className="mt-1 text-sm leading-6 text-muted-foreground">{detail}</p>}</div>
     {actions}
   </div>;
 }
