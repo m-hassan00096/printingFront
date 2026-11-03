@@ -65,7 +65,7 @@ export function UsersPage() {
     } catch (error: unknown) { toast.error(getApiErrorMessage(error)); }
   }
 
-  return <div className="space-y-6">
+  return <div className="tabaa-page space-y-4 sm:space-y-5">
     <SectionHeader title="المستخدمون" detail="إدارة حسابات الفريق والأدوار وحالة الوصول للنظام." actions={
       permissions.includes("identity.users.create") && <Button asChild><Link to="/users/new"><Plus className="size-4" /> إضافة مستخدم</Link></Button>
     } />
