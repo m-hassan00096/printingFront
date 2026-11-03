@@ -53,7 +53,7 @@ export function Sidebar() {
               {group.items.map(item => {
                 const Icon = item.icon;
                 return (
-                  <NavLink key={item.to} to={item.to} end={item.to === "/"}
+                  <NavLink key={item.to} to={item.to} end={item.to === "/" || item.to === "/finance"}
                     title={isSidebarCollapsed ? item.label : undefined} aria-label={item.label}
                     onClick={closeMobileSidebar}
                     className={({isActive}) => cn(
