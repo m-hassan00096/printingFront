@@ -17,7 +17,7 @@ function Modal({title,onClose,busy,children}:{title:string;onClose:()=>void;busy
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-3"
     onMouseDown={event=>{if(event.target===event.currentTarget&&!busy)onClose();}}>
     <section role="dialog" aria-modal="true" aria-label={title} dir="rtl"
-      className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-lg bg-card shadow-2xl"
+      className="flex max-h-[calc(100dvh-24px)] w-full max-w-[560px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl sm:max-h-[90dvh]"
       onKeyDown={event=>{if(event.key==="Escape"&&!busy)onClose();}}>
       <header className="flex shrink-0 items-center justify-between border-b p-4">
         <h2 className="text-base font-semibold">{title}</h2>
