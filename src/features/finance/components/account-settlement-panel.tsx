@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ChevronDown, FileSpreadsheet, History, Plus, Printer, RefreshCw, TriangleAlert } from "lucide-react";
+import { CheckCircle2, ChevronDown, FileSpreadsheet, FileText, History, Plus, Printer, RefreshCw, TriangleAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
@@ -13,14 +13,16 @@ import { getApiErrorMessage } from "@/shared/api/http";
 import { previewAccountSettlement, confirmAccountSettlement, listAccountSettlements, getAccountSettlement, findPreviousAccountSettlement } from "../api/account-settlements.api";
 import type { AccountSettlementInput, AccountSettlementRecord } from "../types/account-settlement.types";
 import { AccountPaymentFields, type AccountPaymentValue } from "./account-payment-fields";
+import { CustomerSettlementPanel } from "./customer-settlement-panel";
 import { absoluteAmount, balanceDescription, cairoToday } from "../lib/account-display";
 import { renderAccountSettlementEvidence } from "../lib/account-settlement-print";
 import { exportAccountSettlementXlsx } from "../lib/account-settlement-xlsx";
 import { exportCustomerSettlementStatementXlsx } from "../lib/customer-settlement-statement-xlsx";
 import { suggestedStatementFrom } from "../lib/customer-settlement-period";
 
-export function AccountSettlementPanel({customerId, customerName, canConfirm, canViewCollections, canDiscount = false}: {
-  customerId: number; customerName?: string; canConfirm: boolean; canViewCollections: boolean; canDiscount?: boolean;
+export function AccountSettlementPanel({customerId, customerName, canConfirm, canViewCollections, canViewOrders = false, canDiscount = false}: {
+  customerId: number; customerName?: string; canConfirm: boolean; canViewCollections: boolean;
+  canViewOrders?: boolean; canDiscount?: boolean;
 }) {
   const qc = useQueryClient();
   const [cutoff, setCutoff] = useState(cairoToday);
@@ -38,6 +40,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
   const [page, setPage] = useState(1);
   const [record, setRecord] = useState<AccountSettlementRecord | null>(null);
   const [openingRecord, setOpeningRecord] = useState(false);
+  const [showWorkReport, setShowWorkReport] = useState(false);
   const [exportingClient, setExportingClient] = useState(false);
   const keys = useRef(new Map<string, string>());
   const validDate = Boolean(cutoff && cutoff <= cairoToday());
@@ -220,6 +223,12 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
         <p className="mt-1 text-sm text-muted-foreground">راجع المستحق عن الشغل المستلّم، وسجّل ما دفعه العميل فعلًا.</p>
       </div>
       <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" size="sm"
+          aria-expanded={showWorkReport} aria-controls="finance-delivered-work-report"
+          onClick={() => setShowWorkReport(open => !open)}>
+          <FileText className="size-4"/>
+          {showWorkReport ? "إخفاء تقرير الشغل" : "تقرير الشغل فقط"}
+        </Button>
         {mode === "new" && !record ? null : <>
           <Button size="sm" disabled={busy} onClick={startNew}>تصفية جديدة</Button>
           {record && <Button variant="ghost" size="sm" disabled={busy}
@@ -229,6 +238,9 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
         </>}
       </div>
     </header>
+    {showWorkReport && <div id="finance-delivered-work-report" className="rounded-xl border bg-muted/10 p-4 sm:p-5">
+      <CustomerSettlementPanel customerId={customerId} canViewOrders={canViewOrders}/>
+    </div>}
 
     {error && mode !== "new" && <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
       {error}
