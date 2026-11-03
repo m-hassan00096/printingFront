@@ -28,7 +28,19 @@ const adapter: AxiosAdapter = async config => {
   if (url === "/selects" && params.get("selects") === "bankAccounts,eWallets") return ok(config, [{label: "bankAccounts", options: [{value: 3, label: "حساب بنك مصر"}]}, {label: "eWallets", options: [{value: 4, label: "فودافون كاش"}]}]);
   if (url === "/finance/customers/7/balance") return ok(config, {customerId: 7, amount: credit, type: Number(credit) === 0 ? 0 : 2, typeLabel: Number(credit) === 0 ? "متوازن" : "دائن", openingBalanceExists: true});
   if (url === "/finance/customers/7/opening-balance-status") return ok(config, {customerId: 7, openingBalanceExists: true});
-  if (url === "/finance/customers/7/ledger") return ok(config, {entries: [], balance: {amount: credit, type: 2, typeLabel: "دائن"}, openingBalanceExists: true, pagination: {currentPage: 1, lastPage: 1, perPage: 20, total: 0}});
+  if (url === "/finance/customers/7/ledger") {
+    const entries = records.filter(item => item.customerId === 7).map(item => ({
+      id: 1000 + item.id, type: 5, typeLabel: "رد مبلغ للعميل",
+      amount: item.amount, signedAmount: item.amount, effectiveDate: item.refundedOn,
+      orderId: null, orderNumber: null, collectionId: null, receiptNumber: null,
+      refundId: item.id, refundNumber: item.refundNumber, note: item.reason,
+      runningBalance: {amount: credit, type: Number(credit) === 0 ? 0 : 2, typeLabel: "دائن"},
+    }));
+    const visible = params.get("filter[type]") === "5" || !params.get("filter[type]") ? entries : [];
+    return ok(config, {entries: visible, balance: {amount: credit, type: Number(credit) === 0 ? 0 : 2,
+      typeLabel: "دائن"}, openingBalanceExists: true,
+      pagination: {currentPage: 1, lastPage: 1, perPage: 20, total: visible.length}});
+  }
   if (url === "/finance/customer-balances") return ok(config, {accounts: [{customerId: 7, customerName: "أحمد خالد", customerPhone: "01012345678", amount: credit, type: 2, typeLabel: "دائن", openingBalanceExists: true}], pagination: {currentPage: 1, lastPage: 1, perPage: 20, total: 1}});
   if (url === "/finance/customers/7/refundable-credit") return ok(config, {customerId: 7, availableCredit: credit, canRefund: Number(credit) > 0});
   if (url === "/finance/refunds" && method === "get") {
@@ -37,8 +49,24 @@ const adapter: AxiosAdapter = async config => {
     if (params.get("filter[customerId]")) found = found.filter(item => String(item.customerId) === params.get("filter[customerId]"));
     return ok(config, {refunds: found, pagination: {currentPage: 1, lastPage: 1, perPage: 20, total: found.length}});
   }
-  if (url === "/finance/refunds/91" && method === "get") return ok(config, records[0]);
-  if (url === "/finance/refunds" && method === "post") {credit = "50.00"; return ok(config, {id: 92, refundNumber: "REF-2026-00092"});}
+  if (url.startsWith("/finance/refunds/") && method === "get") {
+    const item = records.find(record => String(record.id) === url.split("/").at(-1));
+    if (!item) throw Error("Unknown refund record " + url);
+    return ok(config, item);
+  }
+  if (url === "/finance/refunds" && method === "post") {
+    const amount = String(body.amount ?? "0.00");
+    const methodValue = Number(body.paymentMethod);
+    const newRefund = {...originalRecord, id: 92, refundNumber: "REF-2026-00092",
+      customerId: Number(body.customerId), amount,
+      paymentMethod: methodValue as 0 | 1 | 2,
+      paymentMethodLabel: methodValue === 1 ? "تحويل بنكي" : methodValue === 2 ? "محفظة إلكترونية" : "نقدي",
+      paymentDestinationId: body.paymentDestinationId ? Number(body.paymentDestinationId) : null,
+      reason: String(body.reason)};
+    records = [newRefund, ...records];
+    credit = (Number(credit) - Number(amount)).toFixed(2);
+    return ok(config, {id: newRefund.id, refundNumber: newRefund.refundNumber});
+  }
   throw Error("Unexpected request " + method + " " + url);
 };
 function visit(path = "/finance?tab=refunds") {window.history.replaceState({}, "", path); return render(<App/>);}
@@ -186,6 +214,53 @@ describe("Finance refunds within the account workspace", () => {
     expect(await screen.findByRole("region", {name: "بيانات حساب العميل"})).toBeTruthy();
     expect(window.location.search).toContain("customerId=7");
   });
+  it("keeps Create Refund working and shows the posted movement in the customer's ledger with one-click filtering", async () => {
+    permissions = ["finance.balances.view", "finance.ledger.view", "finance.refunds.view", "finance.refunds.create"];
+    visit("/finance?customerId=7");
+    const user = userEvent.setup();
+    await revealAccountActions();
+    const create = await screen.findByRole("button", {name: "رد رصيد للعميل"});
+    await waitFor(() => expect(create.hasAttribute("disabled")).toBe(false));
+    await user.click(create);
+    const dialog = await screen.findByRole("dialog", {name: "رد رصيد دائن للعميل"});
+    await within(dialog).findByText("الرصيد المتاح للرد حاليًا");
+    await user.type(within(dialog).getByRole("textbox", {name: "مبلغ رد الرصيد"}), "40.00");
+    await user.type(within(dialog).getByRole("textbox", {name: "سبب رد الرصيد"}), "رد متفق عليه للعميل");
+    await user.click(within(dialog).getByRole("checkbox", {name: "تأكيد رد الأموال فعليًا"}));
+    await user.click(within(dialog).getByRole("button", {name: "تأكيد رد الرصيد"}));
+    await waitFor(() => expect(calls.filter(call => call.url === "/finance/refunds" && call.method === "post")).toHaveLength(1));
+    const post = calls.find(call => call.url === "/finance/refunds" && call.method === "post")!;
+    expect(post.body).toEqual({customerId: 7, amount: "40.00", paymentMethod: 0, reason: "رد متفق عليه للعميل"});
+    expect(post.key).toBeTruthy();
+    await waitFor(() => expect(screen.queryByRole("dialog", {name: "رد رصيد دائن للعميل"})).toBeNull());
+    const filter = screen.getByRole("button", {name: "ردود الأموال فقط"});
+    await user.click(filter);
+    expect(filter.getAttribute("aria-pressed")).toBe("true");
+    expect((screen.getByRole("combobox", {name: "نوع الحركة المالية"}) as HTMLSelectElement).value).toBe("5");
+    await waitFor(() => expect(calls.some(call =>
+      call.url === "/finance/customers/7/ledger" && call.params.get("filter[type]") === "5")).toBe(true));
+    const newReceipt = await screen.findByRole("button", {name: "REF-2026-00092"});
+    expect(screen.getByText("40.00 ج.م")).toBeTruthy();
+    await user.click(newReceipt);
+    expect(await within(screen.getByRole("dialog", {name: "تفاصيل رد الرصيد"}))
+      .findByText("رد متفق عليه للعميل")).toBeTruthy();
+    expect(calls.filter(call => call.url === "/finance/refunds" && call.method === "post")).toHaveLength(1);
+    await user.click(filter);
+    expect(filter.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("offers a single create-refund action within the secondary global history, with no account tab required", async () => {
+    permissions = ["finance.balances.view", "finance.ledger.view", "finance.refunds.view", "finance.refunds.create"];
+    visit("/finance?customerId=7&tab=refunds");
+    await screen.findByText("REF-2026-00091");
+    expect(screen.queryByRole("tablist", {name: "أقسام حسابات العملاء"})).toBeNull();
+    const create = screen.getAllByRole("button", {name: "رد رصيد دائن"});
+    expect(create).toHaveLength(1);
+    await userEvent.setup().click(create[0]);
+    expect(await screen.findByRole("dialog", {name: "رد رصيد دائن للعميل"})).toBeTruthy();
+    expect(calls.some(call => call.url === "/finance/refunds" && call.method === "post")).toBe(false);
+  });
+
   it("requires an active bank or wallet destination before recording a refund", async () => {
     visit(); const user = userEvent.setup();
     await user.click(await screen.findByRole("button", {name: "رد رصيد دائن"}));
