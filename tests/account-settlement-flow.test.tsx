@@ -41,7 +41,7 @@ const adapter: AxiosAdapter = async config => {
     const discount = String(body.discountAmount ?? '0.00');
     const after = (Number(preview.balanceBefore) - Number(amount) - Number(discount)).toFixed(2);
     const status = Number(after) > 0 ? "partial" : Number(after) < 0 ? "credit" : "closed";
-    lastRecord = {id: 5, number: "SET-2026-00005", customerId: 7, dateTo: preview.dateTo, settledOn: cairoToday(),
+    lastRecord = {id: 5, number: "SET-2026-00005", customerId: 7, dateFrom: String(body.dateFrom), dateTo: preview.dateTo, settledOn: cairoToday(),
       status, originalStatus: status, statusLabel: status === "partial" ? "تصفية جزئية — يوجد متبقٍ" : status === "credit" ? "رصيد دائن محفوظ" : "مقفولة بالكامل ضمن النطاق",
       needsReview: false, balanceBefore: preview.balanceBefore, amountCollected: amount,
       discountAmount: discount, discountReason: body.discountReason ? String(body.discountReason) : null,
@@ -106,7 +106,7 @@ describe("Financial settlement workspace", () => {
       sourceManifest: {ledgerMaxId: 90, creditEntryIds: [], deliveryIds: [], orderIds: []},
     };
     previousSaved = {
-      id: 3, number: "SET-2026-00003", customerId: 7, dateTo: previousCutoff,
+      id: 3, number: "SET-2026-00003", customerId: 7, dateFrom: previousCutoff, dateTo: previousCutoff,
       settledOn: previousCutoff, status: "partial", originalStatus: "partial",
       statusLabel: "تصفية جزئية", needsReview: false,
       balanceBefore: "300.00", amountCollected: "0.00", discountAmount: "0.00",
@@ -118,7 +118,7 @@ describe("Financial settlement workspace", () => {
     visit(); await openCreate();
     const dialog = screen.getByRole("dialog", {name: "تصفية حساب جديدة"});
     await waitFor(() => expect(within(dialog).getByText("SET-2026-00003")).toBeTruthy());
-    expect(within(dialog).getByRole("button", {name: "من تاريخ التقرير"}).textContent)
+    expect(within(dialog).getByRole("button", {name: "بداية فترة التصفية"}).textContent)
       .toContain(formatCollectionDate(today));
     expect(within(dialog).getByRole("button", {name: "الشغل المستلّم حتى"}).textContent)
       .toContain(formatCollectionDate(today));
@@ -129,13 +129,13 @@ describe("Financial settlement workspace", () => {
   it("defaults the customer statement period to the first of the month without changing the settlement cutoff", async () => {
     visit(); await openCreate();
     const dialog = screen.getByRole("dialog", {name: "تصفية حساب جديدة"});
-    const start = within(dialog).getByRole("button", {name: "من تاريخ التقرير"});
+    const start = within(dialog).getByRole("button", {name: "بداية فترة التصفية"});
     expect(start.textContent).toContain(formatCollectionDate(cairoToday().slice(0, 8) + "01"));
     expect(within(dialog).getByRole("button", {name: "الشغل المستلّم حتى"}).textContent)
       .toContain(formatCollectionDate(cairoToday()));
     const user = userEvent.setup();
     await user.click(start);
-    expect(screen.getByRole("dialog", {name: "اختيار من تاريخ التقرير"})).toBeTruthy();
+    expect(screen.getByRole("dialog", {name: "اختيار بداية فترة التصفية"})).toBeTruthy();
     await user.click(screen.getByRole("gridcell", {name: cairoToday().slice(0, 8) + "01"}));
     expect(posts()).toHaveLength(0);
     expect(screen.getByRole<HTMLInputElement>("textbox", {name: "مبلغ التصفية المستلم"}).value).toBe("");
@@ -205,7 +205,7 @@ describe("Financial settlement workspace", () => {
     expect(await screen.findByRole("region", {name: "نتيجة التصفية"})).toBeTruthy();
     expect(posts()).toHaveLength(1);
     expect(posts()[0].url).toBe("/finance/customers/7/settlements");
-    expect(posts()[0].body).toMatchObject({dateTo: cairoToday(), previewHash: "a".repeat(64), amount: "300.00", paymentMethod: 0});
+    expect(posts()[0].body).toMatchObject({dateFrom: cairoToday().slice(0, 8) + "01", dateTo: cairoToday(), previewHash: "a".repeat(64), amount: "300.00", paymentMethod: 0});
     expect(posts()[0].key).toBeTruthy();
     expect(screen.getByRole("link", {name: /إيصال التحصيل COL-90/}).getAttribute("href")).toBe("/collections?receiptId=90");
     expect(screen.getByText("2,000.00 ج.م")).toBeTruthy();
@@ -385,48 +385,45 @@ describe("Financial settlement workspace", () => {
     expect(within(table).getByText("200.00 ج.م")).toBeTruthy();
     expect(screen.getByText(/المتبقي هو الرصيد وقت التسجيل، وليس بالضرورة رصيد العميل الحالي/)).toBeTruthy();
   });
-  it("labels the saved settlement report separately from internal proofs and keeps the latter collapsed", async () => {
+  it("shows the persisted date interval and the client Excel report without work or evidence controls", async () => {
     visit(); await openCreate();
     const user = userEvent.setup();
     await user.type(screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"}), "100.00");
     await user.click(screen.getByRole("button", {name: "تأكيد تحصيل 100.00 ج.م"}));
     const result = await screen.findByRole("region", {name: "نتيجة التصفية"});
     expect(within(result).getByRole("button", {name: "تقرير التصفية Excel"})).toBeTruthy();
-    expect(within(result).queryByRole("button", {name: "كشف حساب للعميل Excel"})).toBeNull();
-    const proofSection = within(result).getByText("مستندات وإثباتات").closest("details");
-    if (!proofSection) throw new Error("Internal proof section is missing");
-    expect(proofSection.open).toBe(false);
-    await user.click(within(result).getByText("مستندات وإثباتات"));
-    expect(proofSection.open).toBe(true);
-    expect(within(proofSection).getByRole("button", {name: "طباعة إثبات التصفية"})).toBeTruthy();
-    expect(within(proofSection).getByRole("button", {name: "إثبات التصفية Excel"})).toBeTruthy();
-    expect(within(proofSection).getByText("مستندات التوثيق والمراجعة الداخلية.")).toBeTruthy();
+    expect(within(result).getByText("فترة التصفية المحفوظة:")).toBeTruthy();
+    expect(result.textContent).toContain("من " + formatCollectionDate(lastRecord.dateFrom!));
+    expect(result.textContent).toContain("إلى " + formatCollectionDate(lastRecord.dateTo));
+    expect(within(result).queryByText("مستندات وإثباتات")).toBeNull();
+    expect(within(result).queryByRole("button", {name: "طباعة إثبات التصفية"})).toBeNull();
+    expect(within(result).queryByRole("button", {name: "إثبات التصفية Excel"})).toBeNull();
+    expect(screen.queryByRole("button", {name: "تقرير الشغل فقط"})).toBeNull();
+    expect(lastRecord.dateFrom).toBe(cairoToday().slice(0, 8) + "01");
     expect(posts()).toHaveLength(1);
   });
 
-  it("shows the inferred delivered-work report period in history without presenting it as a stored debt boundary", async () => {
+  it("displays only stored dateFrom and dateTo in history, keeping an old NULL start visibly unknown", async () => {
     visit(); await openCreate();
     const user = userEvent.setup();
     await user.type(screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"}), "100.00");
     await user.click(screen.getByRole("button", {name: "تأكيد تحصيل 100.00 ج.م"}));
     await screen.findByRole("region", {name: "نتيجة التصفية"});
-    const date = new Date(cairoToday() + "T00:00:00Z");
-    date.setUTCDate(date.getUTCDate() - 1);
-    const previousDate = date.toISOString().slice(0, 10);
-    previousSaved = {
-      ...lastRecord, id: 3, number: "SET-2026-00003",
-      dateTo: previousDate, settledOn: previousDate,
-    };
+    const dt = new Date(cairoToday() + "T00:00:00Z");
+    dt.setUTCDate(dt.getUTCDate() - 1);
+    const previousDate = dt.toISOString().slice(0, 10);
+    previousSaved = {...lastRecord, id: 3, number: "SET-2026-00003",
+      dateFrom: null, dateTo: previousDate, settledOn: previousDate};
     await user.click(screen.getByRole("button", {name: "التصفيات السابقة"}));
-    const history = await screen.findByRole("table");
-    expect(within(history).getByRole("columnheader", {name: "فترة التقرير"})).toBeTruthy();
-    expect(within(history).queryByRole("columnheader", {name: "الشغل حتى"})).toBeNull();
-    expect(within(history).getByText("من: " + formatCollectionDate(cairoToday()))).toBeTruthy();
-    expect(within(history).getByText("إلى: " + formatCollectionDate(cairoToday()))).toBeTruthy();
-    expect(within(history).getByText("من: من بداية الحساب")).toBeTruthy();
-    expect(within(history).getAllByRole("button", {name: "تقرير التصفية Excel"})).toHaveLength(2);
-    expect(within(history).getAllByRole("button", {name: "عرض التفاصيل"})).toHaveLength(2);
-    expect(screen.getByText(/فترة التقرير تبدأ افتراضيًا/)).toBeTruthy();
+    const table = await screen.findByRole("table");
+    expect(within(table).getByRole("columnheader", {name: "فترة التصفية"})).toBeTruthy();
+    expect(within(table).queryByRole("columnheader", {name: "فترة التقرير"})).toBeNull();
+    expect(within(table).getByText("من: " + formatCollectionDate(lastRecord.dateFrom!))).toBeTruthy();
+    expect(within(table).getByText("إلى: " + formatCollectionDate(cairoToday()))).toBeTruthy();
+    expect(within(table).getByText("من: غير مسجّل")).toBeTruthy();
+    expect(within(table).getAllByRole("button", {name: "تقرير التصفية Excel"})).toHaveLength(2);
+    expect(within(table).getAllByRole("button", {name: "عرض التفاصيل"})).toHaveLength(2);
+    expect(screen.getByText(/التواريخ المعروضة محفوظة مع التصفيات الجديدة/)).toBeTruthy();
     expect(posts()).toHaveLength(1);
   });
 
@@ -462,7 +459,7 @@ describe("Financial settlement workspace", () => {
     await userEvent.setup().click(button);
     await screen.findByRole("region", {name: "نتيجة التصفية"});
     expect(posts()).toHaveLength(1);
-    expect(posts()[0].body).toEqual({dateTo: cairoToday(), previewHash: "a".repeat(64), amount: "0.00"});
+    expect(posts()[0].body).toEqual({dateFrom: cairoToday().slice(0, 8) + "01", dateTo: cairoToday(), previewHash: "a".repeat(64), amount: "0.00"});
     expect(screen.getByText("لم يُسجّل تحصيل جديد في هذه العملية.")).toBeTruthy();
   });
   it("rejects a stale preview visibly and requires refresh before another confirmation", async () => {
