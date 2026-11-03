@@ -13,7 +13,6 @@ import { uiMessages } from "@/shared/translations/ar/ui";
 import { useFinanceCustomers, useFinanceBalance, useFinanceLedger, useFinanceOpeningStatus } from "../hooks/use-finance";
 import { RefundsPanel } from "../components/refunds-panel";
 import { FinanceAccountsOverview } from "../components/finance-accounts-overview";
-import { CustomerSettlementPanel } from "../components/customer-settlement-panel";
 import { AccountSettlementPanel } from "../components/account-settlement-panel";
 import { AccountCollectionDialog } from "../components/account-collection-dialog";
 import { CreateRefundDialog, RefundDetailsDialog } from "../components/refund-dialogs";
@@ -29,7 +28,7 @@ const movementTypes = [
   {value: "4", label: "إلغاء تحصيل سابق"}, {value: "5", label: "رد مبلغ للعميل"},
   {value: "6", label: "رصيد افتتاحي"}, {value: "7", label: "خصم تصفية حساب"},
 ];
-type AccountView = "ledger" | "delivered" | "settlements" | "refunds";
+type AccountView = "ledger" | "settlements" | "refunds";
 
 export function FinancePage() {
   const permissions = useCurrentUser().data?.permissions ?? [];
@@ -49,7 +48,17 @@ export function FinancePage() {
   const customerId = Number.isSafeInteger(parsedId) && parsedId > 0 ? parsedId : 0;
   const globalRefunds = canRefundHistory && (!canAccountDetails || params.get("tab") === "refunds");
   const rawView = params.get("view");
-  const view: AccountView = rawView === "delivered" || rawView === "settlements" || rawView === "refunds" ? rawView : "ledger";
+  const view: AccountView = rawView === "delivered" || rawView === "settlements"
+    ? "settlements" : rawView === "refunds" ? "refunds" : "ledger";
+  // Preserve bookmarked legacy delivered-report URLs without exposing a third tab.
+  useEffect(() => {
+    if (rawView !== "delivered") return;
+    setParams(previous => {
+      const next = new URLSearchParams(previous);
+      next.set("view", "settlements");
+      return next;
+    }, {replace: true});
+  }, [rawView, setParams]);
   const customers = useFinanceCustomers(canAccountDetails && !globalRefunds && (customerId > 0 || !canBalance));
   const selected = customers.data?.find(item => item.value === customerId);
   const selectedParts = selected?.label.match(/^(.*)\s[-–]\s(\+?\d+)$/);
@@ -101,7 +110,7 @@ export function FinancePage() {
     setParams(previous => {const next = new URLSearchParams(previous); if (tab === "refunds") next.set("tab", "refunds"); else next.delete("tab"); return next;});
   }
   const accountViews: {key: AccountView; title: string}[] = canLedger ? [
-    {key: "ledger", title: "كشف الحساب"}, {key: "delivered", title: "الشغل المستلّم"}, {key: "settlements", title: "تصفية الحساب"},
+    {key: "ledger", title: "كشف الحساب"}, {key: "settlements", title: "تصفية الحساب"},
   ] : [];
 
   return <div className="space-y-4">
@@ -187,8 +196,7 @@ export function FinancePage() {
               </div>}
               <div className="space-y-4 p-4 sm:p-5">
           {view === "refunds" && canRefundHistory && <><Button size="sm" variant="ghost" onClick={() => changeView("ledger")}>{copy.backToLedger}</Button><RefundsPanel key={customerId} customerId={customerId}/></>}
-          {canLedger && view === "delivered" && <div role="tabpanel" id="account-delivered-panel" aria-labelledby="account-delivered-tab"><CustomerSettlementPanel key={customerId} customerId={customerId} canViewOrders={canViewOrders}/></div>}
-          {canLedger && view === "settlements" && <div role="tabpanel" id="account-settlements-panel" aria-labelledby="account-settlements-tab"><AccountSettlementPanel key={customerId} customerId={customerId} customerName={customerName} canConfirm={canCollect} canViewCollections={canViewCollections} canDiscount={permissions.includes('finance.settlements.discount')}/></div>}
+          {canLedger && view === "settlements" && <div role="tabpanel" id="account-settlements-panel" aria-labelledby="account-settlements-tab"><AccountSettlementPanel key={customerId} customerId={customerId} customerName={customerName} canConfirm={canCollect} canViewOrders={canViewOrders} canViewCollections={canViewCollections} canDiscount={permissions.includes('finance.settlements.discount')}/></div>}
           {canLedger && view === "ledger" && <section role="tabpanel" id="account-ledger-panel" aria-labelledby="account-ledger-tab" className="space-y-3">
             <p className="text-xs leading-5 text-muted-foreground">الأحدث أولًا. الرصيد بعد الحركة تراكمي من كامل الحساب، وليس مجموع الصفوف المعروضة بعد الفلترة.</p>
             <div className="grid gap-3 rounded-lg border bg-muted/20 p-3 md:grid-cols-3">
