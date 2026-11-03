@@ -17,6 +17,7 @@ let calls: {url: string; method: string; body: Record<string, unknown>; key: str
 let preview: AccountSettlementPreview;
 let fail: "none" | "conflict" | "network";
 let lastRecord: AccountSettlementRecord;
+let previousSaved: AccountSettlementRecord | null;
 let saved = false;
 function ok(config: InternalAxiosRequestConfig, data: unknown): AxiosResponse {
   return {config, status: 200, statusText: "OK", headers: {}, data: {success: true, message: "", data}};
@@ -27,8 +28,12 @@ const adapter: AxiosAdapter = async config => {
   const body = typeof config.data === "string" ? JSON.parse(config.data) as Record<string, unknown> : {};
   calls.push({url, method, body, key: config.headers.get("Idempotency-Key")?.toString() ?? null});
   if (url.endsWith("/settlements/preview")) return ok(config, preview);
-  if (url.endsWith("/settlements") && method === "get") return ok(config, {settlements: saved ? [lastRecord] : [], pagination: {currentPage: 1, lastPage: 1, perPage: 15, total: saved ? 1 : 0}});
+  if (url.endsWith("/settlements") && method === "get") {
+    const settlements = [...(saved ? [lastRecord] : []), ...(previousSaved ? [previousSaved] : [])];
+    return ok(config, {settlements, pagination: {currentPage: 1, lastPage: 1, perPage: 15, total: settlements.length}});
+  }
   if (url.endsWith("/settlements/5")) return ok(config, lastRecord);
+  if (url.endsWith("/settlements/3") && previousSaved) return ok(config, previousSaved);
   if (url.endsWith("/settlements") && method === "post") {
     if (fail === "conflict") throw new AxiosError("Changed account", "ERR_BAD_REQUEST", config, undefined, {...ok(config, null), status: 409, data: {success: false, message: "تغيّر حساب العميل. حدّث المراجعة."}});
     if (fail === "network") throw new AxiosError("Network unavailable", "ERR_NETWORK", config);
@@ -80,7 +85,7 @@ function mockClientStatementDownload() {
 
 beforeEach(() => {
   apiClient.defaults.adapter = adapter;
-  calls = []; fail = "none"; saved = false;
+  calls = []; fail = "none"; saved = false; previousSaved = null;
   preview = {customerId: 7, customerName: "شركة النور", customerPhone: "01012345678", dateTo: cairoToday(), paymentsThrough: cairoToday(),
     scope: "cumulative_delivered_work", previewHash: "a".repeat(64), openingBalance: "0.00", deliveredTotal: "1000.00",
     grossCollections: "700.00", collectionReversals: "0.00", refundsTotal: "0.00", netPayments: "700.00", discountsTotal: "0.00", advancesForOtherWork: "0.00",
@@ -91,6 +96,36 @@ beforeEach(() => {
 afterEach(() => {apiClient.defaults.adapter = original;});
 
 describe("Financial settlement workspace", () => {
+  it("automatically starts the next client statement after the last settlement cutoff", async () => {
+    const today = cairoToday();
+    const date = new Date(today + "T00:00:00Z");
+    date.setUTCDate(date.getUTCDate() - 1);
+    const previousCutoff = date.toISOString().slice(0, 10);
+    const prior: AccountSettlementPreview = {
+      ...preview, dateTo: previousCutoff,
+      sourceManifest: {ledgerMaxId: 90, creditEntryIds: [], deliveryIds: [], orderIds: []},
+    };
+    previousSaved = {
+      id: 3, number: "SET-2026-00003", customerId: 7, dateTo: previousCutoff,
+      settledOn: previousCutoff, status: "partial", originalStatus: "partial",
+      statusLabel: "تصفية جزئية", needsReview: false,
+      balanceBefore: "300.00", amountCollected: "0.00", discountAmount: "0.00",
+      discountReason: null, discountLedgerEntryId: null, balanceAfter: "300.00",
+      accountBalanceAfter: "2300.00", collectionId: null, receiptNumber: null,
+      createdAt: previousCutoff + "T12:00:00Z", createdBy: 1, note: null,
+      snapshot: {before: prior, after: prior, receiptNumber: null},
+    };
+    visit(); await openCreate();
+    const dialog = screen.getByRole("dialog", {name: "تصفية حساب جديدة"});
+    await waitFor(() => expect(within(dialog).getByText("SET-2026-00003")).toBeTruthy());
+    expect(within(dialog).getByRole("button", {name: "من تاريخ كشف العميل"}).textContent)
+      .toContain(formatCollectionDate(today));
+    expect(within(dialog).getByRole("button", {name: "الشغل المستلّم حتى"}).textContent)
+      .toContain(formatCollectionDate(today));
+    expect(posts()).toHaveLength(0);
+    expect(screen.getByRole<HTMLInputElement>("textbox", {name: "مبلغ التصفية المستلم"}).value).toBe("");
+  });
+
   it("defaults the customer statement period to the first of the month without changing the settlement cutoff", async () => {
     visit(); await openCreate();
     const dialog = screen.getByRole("dialog", {name: "تصفية حساب جديدة"});
