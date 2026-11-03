@@ -15,7 +15,7 @@ import {
 } from "../types/settings.types";
 
 const control = "h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/20";
-const fieldLabel = "mb-2 block text-sm font-bold";
+const fieldLabel = "mb-1.5 block text-sm font-semibold";
 const icons = [MapPin, UsersRound, Banknote, CreditCard];
 const names: Record<SettingsKind, string> = {
   "printing-locations": "مطبعة",
@@ -94,16 +94,17 @@ function Status({ value }: { value: 0 | 1 }) {
     {value === 1 ? "نشط" : "غير نشط"}
   </span>;
 }
-function ModalFrame({ title, onClose, busy, children }: {
-  title: string; onClose: () => void; busy: boolean; children: React.ReactNode;
+function ModalFrame({ title, onClose, busy, children, size = "md" }: {
+  title: string; onClose: () => void; busy: boolean; children: React.ReactNode; size?: "sm" | "md" | "lg";
 }) {
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-4"
+  const width = size === "sm" ? "max-w-[420px]" : size === "lg" ? "max-w-[680px]" : "max-w-[560px]";
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-3 sm:p-4"
     onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}>
     <section role="dialog" aria-modal="true" aria-label={title}
       onKeyDown={(e) => { if (e.key === "Escape" && !busy) onClose(); }}
-      className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-card p-6 shadow-[0_20px_48px_#27396b22]">
-      <div className="mb-5 flex items-center justify-between">
-        <h3 className="text-xl font-extrabold">{title}</h3>
+      className={"max-h-[calc(100dvh-24px)] w-full min-w-0 overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-[0_20px_55px_#25335724] sm:max-h-[90dvh] sm:p-5 " + width}>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="text-lg font-bold">{title}</h3>
         <Button type="button" size="icon-sm" variant="ghost" onClick={onClose} disabled={busy} aria-label="إغلاق"><X /></Button>
       </div>
       {children}
@@ -310,8 +311,8 @@ export function SettingsPage() {
         </div>
       </footer>}
     </section>
-    {form && <ModalFrame title={editing !== null ? `تعديل ${names[kind]}` : `إضافة ${names[kind]}`} busy={busy} onClose={() => setForm(null)}>
-      <form onSubmit={(event) => void save(event)} className="space-y-4" noValidate>
+    {form && <ModalFrame size={kind === "e-wallets" ? "lg" : "md"} title={editing !== null ? `تعديل ${names[kind]}` : `إضافة ${names[kind]}`} busy={busy} onClose={() => setForm(null)}>
+      <form onSubmit={(event) => void save(event)} className="space-y-3.5" noValidate>
         {kind === "bank-accounts" ? <>
           <label className="block"><span className={fieldLabel}>اسم البنك *</span><input aria-label="اسم البنك *" className={control} required maxLength={150} value={form.bankName ?? ""} onChange={(e) => change({ bankName: e.target.value })} disabled={busy} aria-invalid={!!fieldErrors.bankName} /><FieldError field="bankName" errors={fieldErrors} /></label>
           <label className="block"><span className={fieldLabel}>رقم الحساب *</span><input aria-label="رقم الحساب *" dir="ltr" className={control} required maxLength={50} value={form.accountNumber ?? ""} onChange={(e) => change({ accountNumber: e.target.value })} disabled={busy} aria-invalid={!!fieldErrors.accountNumber} /><FieldError field="accountNumber" errors={fieldErrors} /></label>
@@ -322,7 +323,7 @@ export function SettingsPage() {
           <label className="block"><span className={fieldLabel}>رابط الدفع (اختياري)</span><input aria-label="رابط الدفع (اختياري)" dir="ltr" className={control} value={form.paymentLink ?? ""} onChange={(e) => change({ paymentLink: e.target.value })} disabled={busy} aria-invalid={!!fieldErrors.paymentLink} /><FieldError field="paymentLink" errors={fieldErrors} /></label>
         </> : <>
           <label className="block"><span className={fieldLabel}>الاسم *</span><input aria-label="الاسم *" className={control} required maxLength={150} value={form.name ?? ""} onChange={(e) => change({ name: e.target.value })} disabled={busy} aria-invalid={!!fieldErrors.name} /><FieldError field="name" errors={fieldErrors} /></label>
-          <label className="block"><span className={fieldLabel}>الوصف (اختياري)</span><textarea aria-label="الوصف (اختياري)" className={control + " min-h-24 py-3"} value={form.description ?? ""} onChange={(e) => change({ description: e.target.value })} disabled={busy} aria-invalid={!!fieldErrors.description} /><FieldError field="description" errors={fieldErrors} /></label>
+          <label className="block"><span className={fieldLabel}>الوصف (اختياري)</span><textarea aria-label="الوصف (اختياري)" rows={3} className={control + " min-h-24 py-2.5"} value={form.description ?? ""} onChange={(e) => change({ description: e.target.value })} disabled={busy} aria-invalid={!!fieldErrors.description} /><FieldError field="description" errors={fieldErrors} /></label>
         </>}
         <label className="block"><span className={fieldLabel}>الحالة</span><select className={control} value={form.status}
           onChange={(e) => change({ status: Number(e.target.value) as 0 | 1 })} disabled={busy}>
@@ -335,13 +336,13 @@ export function SettingsPage() {
           <FieldError field="isDefault" errors={fieldErrors} />
         </label>}
         {savingError && <p role="alert" className="rounded-xl border border-[#efbec6] bg-[#fff0f2] p-3 text-sm text-[#c8384a]">{savingError}</p>}
-        <div className="flex justify-end gap-2 border-t pt-4">
+        <div className="flex justify-end gap-2 border-t pt-3">
           <Button type="button" variant="outline" disabled={busy} onClick={() => setForm(null)}>إلغاء</Button>
           <Button type="submit" disabled={busy}>{busy && <LoaderCircle className="size-4 animate-spin" />}حفظ</Button>
         </div>
       </form>
     </ModalFrame>}
-    {removing && <ModalFrame title="تأكيد الحذف" busy={mutations.remove.isPending} onClose={() => setRemoving(null)}>
+    {removing && <ModalFrame size="sm" title="تأكيد الحذف" busy={mutations.remove.isPending} onClose={() => setRemoving(null)}>
       <p className="mb-5 text-sm leading-7">هل تريد حذف «{displayName(removing)}»؟ قد يمنع النظام الحذف إذا كان العنصر مرتبطًا بعمليات أخرى.</p>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" disabled={mutations.remove.isPending} onClick={() => setRemoving(null)}>إلغاء</Button>
