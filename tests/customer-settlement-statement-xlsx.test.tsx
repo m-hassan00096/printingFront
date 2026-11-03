@@ -83,7 +83,9 @@ describe("Simplified client-facing settlement statement", () => {
     expect(sheet).toContain("ملخص حسابك");
     expect(sheet).toContain("مدفوعات سابقة (صافي)");
     expect(sheet).toContain("المستحق قبل هذه التصفية");
-    expect(sheet).toContain("تفاصيل الشغل الذي استلمته");
+    expect(sheet).toContain("الأوردرات المستلّمة خلال الفترة (1 أوردر)");
+    expect(sheet).toContain("من 01/11/2026 إلى 01/11/2026");
+    expect(sheet).toContain("إجمالي شغل الفترة");
     expect(sheet).toContain("=5+6 &amp; &lt;أحمد&gt;");
     expect(sheet).toContain("@SUM(A1) &lt;بنر&gt;");
     expect(sheet).toContain("لون: أسود &amp; أبيض");
@@ -155,7 +157,7 @@ describe("Simplified client-facing settlement statement", () => {
     };
     const sheet = xmlSheet(buildCustomerSettlementStatementXlsx({kind: "draft", preview: empty}));
     expect(sheet).toContain("رصيد لصالحك");
-    expect(sheet).toContain("لا يوجد شغل مستلّم في هذا الكشف");
+    expect(sheet).toContain("لا توجد أوردرات مستلّمة بين التاريخين المختارين");
     expect(sheet).toContain('<v>-75</v>');
     expect(sheet).toContain('<v>75</v>');
     expect(() => buildCustomerSettlementStatementXlsx({
@@ -165,4 +167,59 @@ describe("Simplified client-facing settlement statement", () => {
       kind: "saved", record: {...record, snapshot: undefined},
     })).toThrow("Saved settlement snapshot");
   });
+
+  it("filters delivered orders by chosen start date, keeps older work in the balance summary and sorts the rows", () => {
+    const original = preview.items[0];
+    const other = {...original, id: 8, orderId: 20, orderNumber: "ORD-OCT",
+      deliveryDate: "2026-10-20", description: "شغل قديم", amount: "120.00"};
+    const november = {...original, id: 9, orderId: 21, orderNumber: "ORD-NOV",
+      deliveryDate: "2026-11-01", description: "شغل نوفمبر", amount: "3000.00"};
+    const earlier = {...original, id: 4, orderId: 18, orderNumber: "ORD-FIRST",
+      deliveryDate: "2026-10-22", description: "شغل في أكتوبر", amount: "500.00"};
+    const mixed = {...preview, deliveredTotal: "3620.00", balanceBefore: "3120.00",
+      items: [november, earlier, other]};
+    const sheet = xmlSheet(buildCustomerSettlementStatementXlsx({
+      kind: "draft", preview: mixed, periodFrom: "2026-11-01",
+    }));
+    expect(sheet).toContain("الأوردرات المستلّمة من 01/11/2026 إلى 01/11/2026");
+    expect(sheet).toContain("الأوردرات المستلّمة خلال الفترة (1 أوردر)");
+    expect(sheet).toContain("شغل مستلّم قبل الفترة");
+    expect(sheet).toContain('<v>620</v>'); // older delivered work stays in account summary
+    expect(sheet).toContain('<v>3000</v>');
+    expect(sheet).toContain('<v>3120</v>'); // authoritative account due, not only period work
+    expect(sheet).toContain("ORD-NOV");
+    expect(sheet).not.toContain("ORD-OCT");
+    expect(sheet).not.toContain("ORD-FIRST");
+    const withOctober = xmlSheet(buildCustomerSettlementStatementXlsx({
+      kind: "draft", preview: mixed, periodFrom: "2026-10-01",
+    }));
+    expect(withOctober).toContain("ORD-NOV");
+    expect(withOctober).toContain("ORD-OCT");
+    expect(withOctober).toContain("ORD-FIRST");
+    expect(withOctober).toContain("الأوردرات المستلّمة خلال الفترة (3 أوردر)");
+    expect(withOctober.indexOf("ORD-OCT")).toBeLessThan(withOctober.indexOf("ORD-FIRST"));
+    expect(withOctober.indexOf("ORD-FIRST")).toBeLessThan(withOctober.indexOf("ORD-NOV"));
+  });
+
+  it("does not invent missing orders and rejects reversed or invalid report periods", () => {
+    const sheet = xmlSheet(buildCustomerSettlementStatementXlsx({
+      kind: "saved", record, periodFrom: "2026-11-01",
+    }));
+    expect(sheet).toContain("ORD-11");
+    expect(sheet).toContain("رقم التصفية: SET-2026-00005");
+    const noNovember = xmlSheet(buildCustomerSettlementStatementXlsx({
+      kind: "draft", preview, periodFrom: "2026-11-01",
+    }));
+    expect(noNovember).not.toContain("تفاصيل حركات التحصيل");
+    expect(() => buildCustomerSettlementStatementXlsx({
+      kind: "draft", preview, periodFrom: "2026-11-02",
+    })).toThrow("Invalid customer statement period");
+    expect(() => buildCustomerSettlementStatementXlsx({
+      kind: "draft", preview, periodFrom: "2026-02-30",
+    })).toThrow("Invalid customer statement period");
+    expect(() => buildCustomerSettlementStatementXlsx({
+      kind: "draft", preview: {...preview, items: [{...preview.items[0], amount: "999999.00"}]},
+    })).toThrow("Invalid delivered-work statement totals");
+  });
+
 });
