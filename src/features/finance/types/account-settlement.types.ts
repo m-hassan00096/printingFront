@@ -14,6 +14,7 @@ export type AccountSettlementPreview = {
   netPayments: string; discountsTotal: string; advancesForOtherWork: string; balanceBefore: string;
   dueNow: string; creditInScope: string; accountBalance: string; outsideBalance: string;
   hasWork: boolean; items: AccountSettlementItem[];
+  sourceManifest?: {ledgerMaxId: number; creditEntryIds: number[]; deliveryIds: number[]; orderIds: number[]};
   payments: {entryId: number; type: number; typeLabel: string; effectiveDate: string;
     signedAmount: string; collectionId: number | null; receiptNumber: string | null;
     orderId: number | null; outsideWorkScope: boolean}[];
