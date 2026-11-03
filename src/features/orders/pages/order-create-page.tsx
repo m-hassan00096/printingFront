@@ -298,7 +298,8 @@ export function OrderCreatePage() {
     {choices.isError && <div role="alert" className="rounded-xl border p-3 text-sm text-destructive">
       تعذّر تحميل العملاء أو خدمات الطباعة. <button type="button" className="underline" onClick={() => void choices.refetch()}>إعادة المحاولة</button>
     </div>}
-    <form onSubmit={(event) => void submit(event)} noValidate className="space-y-4">
+    <form onSubmit={(event) => void submit(event)} noValidate className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)]">
+      <div className="min-w-0 space-y-4">
       <section className="rounded-2xl border border-[#e5e8f1] bg-white p-4 shadow-[0_3px_14px_#25335708] sm:p-5">
         <h2 className="mb-4 border-b border-[#e9ebf2] pb-3 text-base font-bold">بيانات الأوردر</h2>
         <div className="grid items-start gap-x-4 gap-y-4 md:grid-cols-2">
@@ -430,26 +431,26 @@ export function OrderCreatePage() {
           </div>
         </div>
       </section>
+      </div>
 
-      <section className="rounded-lg border bg-card p-4  sm:p-5">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-bold">الحساب والدفع</h2>
-
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-xl bg-muted/50 p-3">
-            <p className="text-xs text-muted-foreground">عدد العناصر</p>
-            <p className="mt-1 text-lg font-bold">{items.length}</p>
+      <aside className="min-w-0 xl:sticky xl:top-24">
+        <section aria-label="ملخص الأوردر" className="rounded-2xl border border-[#e5e8f1] bg-white p-4 shadow-[0_3px_14px_#25335708] sm:p-5">
+          <h2 className="mb-4 border-b border-[#e9ebf2] pb-3 text-base font-bold">ملخص الأوردر</h2>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-muted-foreground">عدد البنود</span><strong className="tabular-nums">{items.length}</strong>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#f1eefc] px-3 py-3">
+              <span className="text-sm font-semibold text-[#5142aa]">إجمالي الأوردر</span>
+              <strong className="text-lg font-bold text-[#5142aa]">{allPriced ? <MoneyAmount amount={orderCents / 100}/> : "أكمل أسعار البنود"}</strong>
+            </div>
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-muted-foreground">المتبقي من الأوردر</span>
+              <strong className={"tabular-nums " + (remainingCents === 0 ? "text-emerald-700" : "text-[#29334d]")}>
+                {allPriced && remainingCents !== null ? <MoneyAmount amount={remainingCents / 100}/> : "—"}
+              </strong>
+            </div>
           </div>
-          <div className="rounded-xl bg-muted/50 p-3">
-            <p className="text-xs text-muted-foreground">إجمالي الأوردر</p>
-            <p className="mt-1 text-xl font-extrabold">{allPriced ? <MoneyAmount amount={orderCents / 100} /> : "أكمل أسعار العناصر"}</p>
-          </div>
-          <div className="rounded-xl bg-muted/50 p-3">
-            <p className="text-xs text-muted-foreground">المتبقي من الأوردر</p>
-            <p className="mt-1 text-xl font-bold">{allPriced && remainingCents !== null ? <MoneyAmount amount={remainingCents / 100} /> : "—"}</p>
-          </div>
-        </div>
         {customerId && permissions.includes("finance.balances.view") && <div className="mt-3 rounded-lg border border-[#e6e9f2] bg-[#fafbff] px-3 py-3 text-xs">
           <p className="font-semibold text-foreground">{uiMessages.orders.priorCustomerBalance}</p>
           <p className="mt-1 text-muted-foreground">{balance.isPending ? "جاري التحميل..." :
@@ -459,8 +460,9 @@ export function OrderCreatePage() {
                 : "صفر"}</p>
           <p className="mt-1 text-[11px] text-muted-foreground">{uiMessages.orders.priorSeparateNote}</p>
         </div>}
-        {canConfirm && <div className="mt-4 space-y-3 rounded-xl border border-[#e6e9f2] p-3 sm:p-4">
-          <label className="scroll-mt-24 block max-w-xs text-sm font-semibold" data-order-field="depositAmount">المدفوع الآن (العربون)
+        {canConfirm && <div className="mt-4 space-y-3 border-t border-[#e9ebf2] pt-4">
+            <h3 className="text-sm font-bold">التحصيل عند التأكيد</h3>
+          <label className="scroll-mt-24 block text-sm font-semibold" data-order-field="depositAmount">المدفوع الآن (العربون)
             <input aria-label="المدفوع الآن" aria-invalid={!!errors.depositAmount}
               className={fieldClass + " mt-2"} dir="ltr" inputMode="decimal"
               value={depositAmount} disabled={busy}
@@ -472,7 +474,7 @@ export function OrderCreatePage() {
               {([["0","نقدي"],["1","تحويل بنكي"],["2","محفظة إلكترونية"]] as const).map(([method,label]) =>
                 <button key={method} type="button" aria-pressed={paymentMethod === method} disabled={busy}
                   onClick={() => {setPaymentMethod(method);setDestinationOverride(null);clear("paymentDestinationId");}}
-                  className={"rounded-xl border px-4 py-2 text-sm font-semibold " +
+                  className={"rounded-lg border px-3 py-2 text-xs font-semibold transition-colors " +
                     (paymentMethod === method ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-muted")}>
                   {label}
                 </button>)}
@@ -507,9 +509,10 @@ export function OrderCreatePage() {
           {message("overpayment")}
           <p className="border-t pt-3 text-xs leading-6 text-muted-foreground">{uiMessages.orders.paymentDraftNote}</p>
         </div>}
-      </section>
+        </section>
+      </aside>
 
-      {generalError && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{generalError}</p>}
+      {generalError && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive xl:col-span-2">{generalError}</p>}
       <footer className="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card/95 p-3 shadow-lg backdrop-blur sm:p-4">
         <div className="text-sm">
           <span className="text-muted-foreground">إجمالي الأوردر</span>
