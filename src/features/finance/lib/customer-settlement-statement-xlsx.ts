@@ -51,7 +51,7 @@ function formattedDate(value: string): string {
 function rowXml(row: number, cells: string[], height = 27): string {
   return '<row r="' + row + '" ht="' + height + '" customHeight="1">' + cells.join("") + '</row>';
 }
-function buildSheet(source: CustomerSettlementStatement): string {
+function buildSheet(source: CustomerSettlementStatement, target: "summary" | "details"): string {
   const record = source.kind === "saved" ? source.record : null;
   const preview = record ? record.snapshot?.before : source.kind === "draft" ? source.preview : undefined;
   if (!preview) throw Error("Saved settlement snapshot is required for client statements");
@@ -88,7 +88,7 @@ function buildSheet(source: CustomerSettlementStatement): string {
   const balanceLabel = amount < 0 ? "رصيد لصالح العميل" :
     record ? "المتبقي بعد التصفية المسجّلة" : "المطلوب من العميل الآن";
 
-  fullLine("طَبعة | تقرير تصفية حساب العميل", 1, 44);
+  fullLine(target === "summary" ? "طَبعة | ملخص تصفية حساب العميل" : "طَبعة | تفاصيل تصفية حساب العميل", 1, 44);
   fullLine("العميل: " + preview.customerName +
     (preview.customerPhone ? " | الهاتف: " + preview.customerPhone : ""), 2, 31);
   fullLine("الأوردرات المستلّمة من " + formattedDate(periodFrom) +
@@ -113,8 +113,10 @@ function buildSheet(source: CustomerSettlementStatement): string {
   } else {
     fullLine("لا توجد تصفية سابقة مسجّلة لهذا العميل.", 4, 28);
   }
-  gap();
-  const hero = next();
+  if (target === "summary") {
+    fullLine("عدد الأوردرات المستلّمة خلال الفترة: " + periodOrders, 4, 28);
+    gap();
+    const hero = next();
   rows.push(rowXml(hero, [
     textCell("A", hero, balanceLabel, 10),
     numericCell("F", hero, Math.abs(amount), 11),
@@ -151,9 +153,12 @@ function buildSheet(source: CustomerSettlementStatement): string {
       fullLine("سبب الخصم المقترح: " + proposal.reason, 4, 27);
     fullLine("المقترح ليس إيصال سداد ولا يُخصم من المستحق الفعلي قبل التسجيل.", 2, 31);
   }
-  gap();
+    gap();
+    fullLine("لمراجعة تفاصيل الأوردرات وحركات الدفع والرد، افتح ورقة «تفاصيل التصفية».", 4, 34);
+  }
 
-  section("الأوردرات التي تم استلامها خلال الفترة (" + periodOrders + " أوردر)");
+  if (target === "details") {
+    section("الأوردرات التي تم استلامها خلال الفترة (" + periodOrders + " أوردر)");
   {
     const r = next();
     rows.push(rowXml(r, [
@@ -223,30 +228,56 @@ function buildSheet(source: CustomerSettlementStatement): string {
   amountLine("صافي المدفوعات بعد الرد والإلغاء", breakdown.netPaymentsSince, true);
   gap();
 
-  fullLine("الدفعات الموجبة تعني مالًا استُلم فعليًا؛ والسالبة ردًا أو إلغاء تحصيل.", 4, 30);
-  fullLine("الحساب يشمل الشغل المستلم فقط؛ وقد يتضمن الرصيد شغلًا سابقًا خارج جدول هذه الفترة.", 4, 30);
+  section(record ? "إجراءات التصفية المسجّلة" : "حالة التصفية الحالية");
+  amountLine("المستحق قبل التصفية الحالية", preview.balanceBefore);
+  if (record) {
+    if (Number(record.discountAmount ?? "0.00") > 0)
+      amountLine("خصم هذه التصفية (ليس تحصيلًا نقديًا)", record.discountAmount);
+    amountLine("المبلغ المحصل فعليًا في هذه التصفية", record.amountCollected);
+    amountLine("المتبقي بعد الخصم والتحصيل", record.balanceAfter, true);
+    if (record.receiptNumber)
+      fullLine("إيصال التحصيل الحالي: " + record.receiptNumber, 4, 29);
+  } else if (proposal) {
+    if (Number(proposal.discount) > 0)
+      amountLine("خصم مقترح — غير مسجّل", proposal.discount);
+    if (Number(proposal.collected) > 0)
+      amountLine("تحصيل متوقع — غير مسجّل", proposal.collected);
+    amountLine("المتبقي المتوقع عند اعتماد المقترح", proposal.remaining, true);
+    fullLine("هذه مجرد مبالغ مقترحة؛ لم يتم تسجيل تحصيل أو خصم فعلي.", 2, 34);
+  } else {
+    fullLine("التصفية الحالية لم تُسجّل؛ لا يوجد تحصيل أو خصم جديد.", 4, 30);
+  }
+  gap();
+  fullLine("الدفعات الموجبة تعني مالًا تم استلامه؛ والسالبة ردًا أو إلغاء تحصيل.", 4, 30);
+  fullLine("الأرصدة التراكمية لكل حركة وتفاصيل الحركات الأخرى تُراجع من كشف الحساب داخل النظام.", 4, 34);
   fullLine(record
-    ? "هذا كشف تاريخي. راجع الحساب الحالي إذا حدثت دفعات أو تعديلات لاحقة."
-    : "للمراجعة قبل التصفية فقط. المبلغ المقرر تحصيله الآن لا يصبح مدفوعًا إلا بعد تسجيله.", 4, 35);
+    ? "هذا كشف تاريخي. راجع الرصيد الحالي إذا حدثت دفعات أو تعديلات لاحقة."
+    : "للمراجعة قبل التصفية فقط. المبلغ المقترح لا يصبح مدفوعًا إلا بعد تسجيله.", 4, 35);
+  }
 
-  const widths = [27, 61, 18, 19, 23, 25].map((width, i) =>
+  const widths = (target === "summary" ? [26, 14, 14, 14, 14, 25] : [27, 61, 18, 19, 23, 25]).map((width, i) =>
     '<col min="' + (i + 1) + '" max="' + (i + 1) +
     '" width="' + width + '" customWidth="1"/>').join("");
   return DECL + '<worksheet xmlns="' + NS +
     '"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>' +
     '<sheetViews><sheetView workbookViewId="0" rightToLeft="1" showGridLines="0">' +
-    '<pane ySplit="9" topLeftCell="A10" activePane="bottomLeft" state="frozen"/>' +
+    (target === "details" ? '<pane ySplit="6" topLeftCell="A7" activePane="bottomLeft" state="frozen"/>' : '') +
     '</sheetView></sheetViews><sheetFormatPr defaultRowHeight="20"/><cols>' +
     widths + '</cols><sheetData>' + rows.join("") + '</sheetData>' +
     '<mergeCells count="' + merges.length + '">' +
     merges.map(ref => '<mergeCell ref="' + ref + '"/>').join("") + '</mergeCells>' +
     '<printOptions horizontalCentered="1"/>' +
     '<pageMargins left="0.3" right="0.3" top="0.45" bottom="0.45" header="0.2" footer="0.2"/>' +
-    '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>';
+    (target === "summary"
+      ? '<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="1"/>'
+      : '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>') +
+    '</worksheet>';
 }
 
 export function buildCustomerSettlementStatementXlsx(source: CustomerSettlementStatement): Uint8Array {
-  const worksheet = buildSheet(source);
+  const summary = buildSheet(source, "summary");
+  const details = buildSheet(source, "details");
+  // Keep the established native OOXML exporter (no backend request, no new dependency).
   return zipStored([
     {name: "[Content_Types].xml", content: DECL +
       '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
@@ -254,6 +285,7 @@ export function buildCustomerSettlementStatementXlsx(source: CustomerSettlementS
       '<Default Extension="xml" ContentType="application/xml"/>' +
       '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
       '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+      '<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
       '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'},
     {name: "_rels/.rels", content: DECL +
       '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
@@ -261,13 +293,23 @@ export function buildCustomerSettlementStatementXlsx(source: CustomerSettlementS
     {name: "xl/workbook.xml", content: DECL + '<workbook xmlns="' + NS +
       '" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
       '<bookViews><workbookView/></bookViews><sheets>' +
-      '<sheet name="تقرير التصفية" sheetId="1" r:id="rId1"/></sheets></workbook>'},
+      '<sheet name="ملخص التصفية" sheetId="1" r:id="rId1"/>' +
+      '<sheet name="تفاصيل التصفية" sheetId="2" r:id="rId2"/>' +
+      '</sheets></workbook>'},
     {name: "xl/_rels/workbook.xml.rels", content: DECL +
       '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
       '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
-      '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'},
-    {name: "xl/styles.xml", content: stylesXml()},
-    {name: "xl/worksheets/sheet1.xml", content: worksheet},
+      '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>' +
+      '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'},
+    {name: "xl/styles.xml", content: stylesXml()
+      .replaceAll("FF1C3156", "FF6250C9")
+      .replaceAll("FFE9F1FA", "FFF0EDFC")
+      .replaceAll("FF147D76", "FF15845F")
+      .replaceAll("FF163B67", "FF5140AD")
+      .replaceAll("FF263348", "FF252A40")
+      .replaceAll("FFD9E3EE", "FFE5E8F1")},
+    {name: "xl/worksheets/sheet1.xml", content: summary},
+    {name: "xl/worksheets/sheet2.xml", content: details},
   ]);
 }
 export function exportCustomerSettlementStatementXlsx(source: CustomerSettlementStatement): void {
