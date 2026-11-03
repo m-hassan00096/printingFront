@@ -18,6 +18,7 @@ import { AccountCollectionDialog } from "../components/account-collection-dialog
 import { CreateRefundDialog, RefundDetailsDialog } from "../components/refund-dialogs";
 import { OpeningBalanceDialog } from "../components/opening-balance-dialog";
 import { accountTypeLabel } from "../lib/account-display";
+import { formatLedgerRecordedAt } from "../lib/ledger-recorded-at";
 import type { AccountFilters } from "../types/finance.types";
 
 const defaultFilters: AccountFilters = {page: 1, dateFrom: "", dateTo: "", type: ""};
@@ -218,13 +219,22 @@ export function FinancePage() {
             {ledger.isPending ? <LoadingState/> : ledger.isError ? <ErrorState error={ledger.error} retry={() => void ledger.refetch()}/> : ledger.data?.entries.length ? <div className="overflow-hidden rounded-xl border bg-card">
               <header className="flex justify-between border-b px-4 py-3"><h3 className="font-bold">سجل الحركات</h3><span className="text-sm text-muted-foreground">{ledger.data.pagination.total.toLocaleString("ar-EG")} حركة</span></header>
               <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-right text-sm"><thead className="bg-muted/50"><tr>
-                {["التاريخ", "العملية والتفاصيل", "زيادة على الحساب (+)", "دفعة / تخفيض (−)", "الرصيد بعد الحركة"].map(title => <th key={title} className="whitespace-nowrap px-3 py-3 text-xs font-semibold">{title}</th>)}
+                {["التاريخ والوقت", "العملية والتفاصيل", "زيادة على الحساب (+)", "دفعة / تخفيض (−)", "الرصيد بعد الحركة"].map(title => <th key={title} className="whitespace-nowrap px-3 py-3 text-xs font-semibold">{title}</th>)}
               </tr></thead><tbody className="divide-y">
                 {ledger.data.entries.map(entry => {
                   const credit = entry.signedAmount.startsWith("-");
+                  const accountingDate = formatCollectionDate(entry.effectiveDate);
+                  const recordedAt = formatLedgerRecordedAt(entry.createdAt);
                   const reference = entry.collectionId && entry.receiptNumber ? entry.receiptNumber : entry.refundId && entry.refundNumber ? entry.refundNumber : entry.orderNumber ?? null;
                   return <tr key={entry.id} className="hover:bg-muted/20">
-                    <td className="whitespace-nowrap px-3 py-3"><span dir="ltr" className="inline-block">{formatCollectionDate(entry.effectiveDate)}</span></td>
+                    <td className="whitespace-nowrap px-3 py-3">
+                      <span dir="ltr" className="inline-block" title="تاريخ الحركة المحاسبي">{accountingDate}</span>
+                      {recordedAt && <span className="mt-1 block text-xs text-muted-foreground" title="وقت تسجيل الحركة فعليًا بتوقيت القاهرة">
+                        {recordedAt.date === accountingDate ?
+                          <>الساعة <span dir="ltr" className="inline-block tabular-nums">{recordedAt.time}</span></> :
+                          <>سُجّلت <span dir="ltr" className="inline-block tabular-nums">{recordedAt.date} · {recordedAt.time}</span></>}
+                      </span>}
+                    </td>
                     <td className="min-w-[220px] px-3 py-3">
                       <p className="font-semibold">{entry.type === 4 ? "إلغاء تحصيل سابق" : entry.type === 5 ? "رد مبلغ للعميل" : entry.typeLabel}</p>
                       {reference && <div className="mt-1 space-y-1 text-xs">
