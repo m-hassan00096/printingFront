@@ -47,26 +47,28 @@ beforeEach(() => {apiClient.defaults.adapter = adapter; permissions = ["finance.
 afterEach(() => {apiClient.defaults.adapter = original;});
 
 describe("Finance refunds within the account workspace", () => {
-  it("keeps the finance title only in the page, removes redundant header labels and adds space below tabs", async () => {
+  it("shows refund history as a secondary action rather than a competing top-level tab", async () => {
     permissions = ["finance.balances.view", "finance.ledger.view", "finance.refunds.view"];
     visit("/finance?customerId=7");
     const banner = await screen.findByRole("banner");
     expect(within(banner).queryByText("مساحة العمل")).toBeNull();
-    expect(within(banner).queryByText("الحسابات")).toBeNull();
     expect(await screen.findByRole("heading", {level: 1, name: "حسابات العملاء"})).toBeTruthy();
-    expect(screen.queryByText("اعرف الرصيد، سجّل تحصيل، وراجع حساب الشغل المستلّم في مكان واحد.")).toBeNull();
-    const tabs = screen.getByRole("tablist", {name: "أقسام حسابات العملاء"});
-    expect(tabs.parentElement?.className).toContain("pb-2");
-    await userEvent.setup().click(within(tabs).getByRole("tab", {name: "سجل الردود العام"}));
-    expect(tabs.parentElement?.className).toContain("pb-2");
-    expect(within(banner).queryByText("مساحة العمل")).toBeNull();
+    expect(screen.queryByRole("tablist", {name: "أقسام حسابات العملاء"})).toBeNull();
+    const refundShortcut = screen.getByRole("button", {name: "سجل ردود الأموال"});
+    await userEvent.setup().click(refundShortcut);
+    expect(await screen.findByRole("heading", {level: 1, name: "سجل ردود الأموال"})).toBeTruthy();
+    expect(await screen.findByRole("region", {name: "سجل ردود الأموال"})).toBeTruthy();
+    expect(screen.queryByRole("tab", {name: "سجل الردود العام"})).toBeNull();
+    expect(window.location.search).toContain("tab=refunds");
+    expect(screen.queryByRole("region", {name: "بيانات حساب العميل"})).toBeNull();
   });
   it("lists refunds with filters and immutable details without fetching unauthorized accounts", async () => {
     permissions = ["finance.refunds.view"]; visit("/finance");
     expect(await screen.findByText("REF-2026-00091")).toBeTruthy();
     expect(screen.getByText("26/10/2026")).toBeTruthy();
-    expect(screen.queryByRole("tab", {name: "حسابات العملاء"})).toBeNull();
-    expect(screen.getByRole("tab", {name: "سجل الردود العام"}).getAttribute("aria-selected")).toBe("true");
+    expect(screen.queryByRole("tablist", {name: "أقسام حسابات العملاء"})).toBeNull();
+    expect(await screen.findByRole("heading", {level: 1, name: "سجل ردود الأموال"})).toBeTruthy();
+    expect(screen.getByRole("region", {name: "سجل ردود الأموال"})).toBeTruthy();
     expect(screen.queryByRole("button", {name: "رد رصيد دائن"})).toBeNull();
     expect(calls.some(call => call.url === "/finance/customer-balances" || call.url === "/selects")).toBe(false);
     const user = userEvent.setup();
@@ -108,9 +110,8 @@ describe("Finance refunds within the account workspace", () => {
     const refund = await screen.findByRole("button", {name: "رد رصيد للعميل"});
     await screen.findByText(/الرصيد الدائن المتاح للرد/);
     await waitFor(() => expect(refund.hasAttribute("disabled")).toBe(false));
-    const tabs = screen.getByRole("tablist", {name: "أقسام حسابات العملاء"});
-    expect(within(tabs).getByRole("tab", {name: "حسابات العملاء"}).getAttribute("aria-selected")).toBe("true");
-    expect(within(tabs).getByRole("tab", {name: "سجل الردود العام"}).getAttribute("aria-selected")).toBe("false");
+    expect(screen.queryByRole("tablist", {name: "أقسام حسابات العملاء"})).toBeNull();
+    expect(screen.getByRole("button", {name: "سجل ردود الأموال"})).toBeTruthy();
     expect(screen.queryByRole("button", {name: "رصيد افتتاحي"})).toBeNull();
     expect(window.location.search).not.toContain("view=refunds");
     await user.click(screen.getByRole("button", {name: "عرض ردود رصيد العميل"}));
@@ -138,31 +139,22 @@ describe("Finance refunds within the account workspace", () => {
     expect(screen.queryByRole("button", {name: "رد رصيد للعميل"})).toBeNull();
     expect(screen.getByRole("button", {name: "عرض ردود رصيد العميل"})).toBeTruthy();
   });
-  it("shows account and refund tabs as text with an underline only on the active tab", async () => {
+  it("opens global refund history from a secondary action and returns to the selected account", async () => {
     permissions = ["finance.balances.view", "finance.ledger.view", "finance.refunds.view"];
     visit("/finance?customerId=7");
     const user = userEvent.setup();
-    const tabs = await screen.findByRole("tablist", {name: "أقسام حسابات العملاء"});
-    const accounts = within(tabs).getByRole("tab", {name: "حسابات العملاء"});
-    const refunds = within(tabs).getByRole("tab", {name: "سجل الردود العام"});
-    expect(tabs.className).toContain("border-b");
-    expect(accounts.className).toContain("border-primary");
-    expect(accounts.className).toContain("text-primary");
-    expect(accounts.className).not.toContain("bg-primary");
-    expect(refunds.className).toContain("border-transparent");
-    expect(refunds.getAttribute("aria-selected")).toBe("false");
-
-    await user.click(refunds);
-    expect(refunds.getAttribute("aria-selected")).toBe("true");
-    expect(refunds.className).toContain("border-primary");
-    expect(refunds.className).toContain("text-primary");
-    expect(refunds.className).not.toContain("bg-primary");
-    expect(accounts.className).toContain("border-transparent");
-
-    await user.click(accounts);
-    expect(accounts.getAttribute("aria-selected")).toBe("true");
-    expect(accounts.className).toContain("border-primary");
-    expect(refunds.className).toContain("border-transparent");
+    expect(screen.queryByRole("tablist", {name: "أقسام حسابات العملاء"})).toBeNull();
+    await user.click(await screen.findByRole("button", {name: "سجل ردود الأموال"}));
+    expect(window.location.search).toContain("tab=refunds");
+    expect(await screen.findByRole("heading", {name: "سجل ردود الأموال"})).toBeTruthy();
+    expect(await screen.findByText("REF-2026-00091")).toBeTruthy();
+    expect(screen.getByRole("button", {name: "العودة لحسابات العملاء"})).toBeTruthy();
+    expect(screen.queryByRole("tab", {name: "سجل الردود العام"})).toBeNull();
+    await user.click(screen.getByRole("button", {name: "العودة لحسابات العملاء"}));
+    expect(window.location.search).not.toContain("tab=refunds");
+    expect(window.location.search).toContain("customerId=7");
+    expect(await screen.findByRole("region", {name: "بيانات حساب العميل"})).toBeTruthy();
+    expect(screen.getByRole("button", {name: "سجل ردود الأموال"})).toBeTruthy();
   });
   it("separates customer refunds from the global register and preserves customer context", async () => {
     records = [...records, {...originalRecord, id: 92, refundNumber: "REF-2026-00092", customerId: 8, customerName: "مؤسسة النور"}];
@@ -171,12 +163,12 @@ describe("Finance refunds within the account workspace", () => {
     await user.click(screen.getByRole("button", {name: "عرض ردود رصيد العميل"}));
     expect(await screen.findByText("REF-2026-00091")).toBeTruthy();
     expect(screen.queryByText("REF-2026-00092")).toBeNull();
-    await user.click(screen.getByRole("tab", {name: "سجل الردود العام"}));
+    await user.click(screen.getByRole("button", {name: "سجل ردود الأموال"}));
     expect(window.location.search).toContain("tab=refunds");
     expect(window.location.search).toContain("customerId=7");
     expect(await screen.findByText("REF-2026-00092")).toBeTruthy();
     expect(calls.some(call => call.url === "/finance/refunds" && !call.params.has("filter[customerId]"))).toBe(true);
-    await user.click(screen.getByRole("tab", {name: "حسابات العملاء"}));
+    await user.click(screen.getByRole("button", {name: "العودة لحسابات العملاء"}));
     expect(window.location.search).not.toContain("tab=refunds");
     expect(window.location.search).toContain("customerId=7");
     expect(await screen.findByText("REF-2026-00091")).toBeTruthy();
@@ -185,11 +177,12 @@ describe("Finance refunds within the account workspace", () => {
   it("opens global refund deep links without loading a selected account until requested", async () => {
     permissions = ["finance.balances.view", "finance.ledger.view", "finance.refunds.view"];
     visit("/finance?customerId=7&tab=refunds");
-    expect((await screen.findByRole("tab", {name: "سجل الردود العام"})).getAttribute("aria-selected")).toBe("true");
+    expect(await screen.findByRole("heading", {level: 1, name: "سجل ردود الأموال"})).toBeTruthy();
+    expect(screen.queryByRole("tab", {name: "سجل الردود العام"})).toBeNull();
     await screen.findByText("REF-2026-00091");
     expect(screen.queryByRole("region", {name: "بيانات حساب العميل"})).toBeNull();
     expect(calls.some(call => call.url === "/finance/customers/7/balance")).toBe(false);
-    await userEvent.setup().click(screen.getByRole("tab", {name: "حسابات العملاء"}));
+    await userEvent.setup().click(screen.getByRole("button", {name: "العودة لحسابات العملاء"}));
     expect(await screen.findByRole("region", {name: "بيانات حساب العميل"})).toBeTruthy();
     expect(window.location.search).toContain("customerId=7");
   });
