@@ -306,7 +306,7 @@ describe("Financial settlement workspace", () => {
     expect(dateField.textContent).toContain(formatCollectionDate(cairoToday()));
     expect(dateField.getAttribute("aria-expanded")).toBe("false");
     expect(within(dialog).queryByRole("button", {name: "تغيير التاريخ"})).toBeNull();
-    expect(within(dialog).getByText("الدفعات محسوبة حتى اليوم")).toBeTruthy();
+    expect(within(dialog).getByText(/الدفعات محسوبة حتى اليوم/)).toBeTruthy();
     const balanceSection = within(dialog).getByText("المستحق على العميل").parentElement?.parentElement;
     expect(balanceSection?.className).toContain("bg-primary/5");
     expect(within(dialog).getByRole("region", {name: "تسجيل التصفية"})).toBeTruthy();
@@ -383,7 +383,7 @@ describe("Financial settlement workspace", () => {
     const table = await screen.findByRole("table");
     expect(within(table).getByRole("columnheader", {name: "المتبقي بعد العملية"})).toBeTruthy();
     expect(within(table).getByText("200.00 ج.م")).toBeTruthy();
-    expect(screen.getByText(/المتبقي هو الرصيد وقت التسجيل، وليس بالضرورة رصيد العميل الحالي/)).toBeTruthy();
+    expect(screen.getByText(/المتبقي هو الرصيد وقت التسجيل وليس بالضرورة رصيد العميل الحالي/)).toBeTruthy();
   });
   it("shows the persisted date interval and the client Excel report without work or evidence controls", async () => {
     visit(); await openCreate();
