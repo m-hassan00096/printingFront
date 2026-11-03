@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
 import { formatEgp } from "@/shared/lib/format-egp";
+import { formatCollectionDate } from "@/features/collections/lib/collection-date-format";
 import { MoneyAmount } from "@/shared/components/money-amount";
 import { ErrorState, LoadingState, PaginationBar, fieldClass } from "@/features/identity/components/identity-ui";
 import { CreatedDatePicker } from "@/features/orders/components/created-date-picker";
@@ -67,6 +68,12 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
     refetchOnWindowFocus: false, retry: false});
   const history = useQuery({queryKey: ["finance", "account-settlements", customerId, page],
     queryFn: () => listAccountSettlements(customerId, page), enabled: mode === "history", retry: false});
+  // One extra paginated read supplies the previous cutoff for the oldest row on this page.
+  // We never infer an unrecorded statement start date from the settlement timestamp.
+  const historyNext = useQuery({queryKey: ["finance", "account-settlements", customerId, page + 1],
+    queryFn: () => listAccountSettlements(customerId, page + 1),
+    enabled: mode === "history" && Boolean(history.data && page < history.data.pagination.lastPage),
+    retry: false});
   const mutation = useMutation({mutationFn: ({payload, key}: {payload: AccountSettlementInput; key: string}) => confirmAccountSettlement(customerId, payload, key), retry: false});
   const data = preview.data;
   const modalCustomerName = data?.customerName || customerName || `عميل #${customerId}`;
@@ -86,6 +93,14 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
   const proposed = amountInput !== null || (discountOpen && discountInput !== "0.00" && discountInput !== "0");
   const proposedValid = !proposed || (cents !== null && discountCents !== null && allowedDiscount && projectedRemainder !== null);
   const busy = mutation.isPending;
+  function historyPeriodEnd(recordDate: string): string {
+    return formatCollectionDate(recordDate);
+  }
+  function historyPeriodStart(current: AccountSettlementRecord, previous?: AccountSettlementRecord): string {
+    if (!previous) return "من بداية الحساب";
+    if (previous.dateTo > current.dateTo) return "بداية غير محددة";
+    return formatCollectionDate(suggestedStatementFrom(current.dateTo, previous));
+  }
   const valid = canConfirm && !busy && !stale && preview.isSuccess && !preview.isFetching && data?.hasWork &&
     cents !== null && afterDiscount !== null && allowedDiscount && cents <= afterDiscount &&
     (cents === 0 || payment.method === 0 || payment.destination !== "");
@@ -253,7 +268,17 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
         {record.needsReview ? <TriangleAlert className="size-6 text-destructive"/> : <CheckCircle2 className="size-6 text-primary"/>}
         <h3 className="text-lg font-bold">{record.statusLabel}</h3>
       </div>
-      <p className="text-sm text-muted-foreground"><span dir="ltr">{record.number}</span> · تاريخ التنفيذ: {record.settledOn}</p>
+      <p className="text-sm text-muted-foreground">
+        <span dir="ltr">{record.number}</span> · تاريخ التنفيذ: {formatCollectionDate(record.settledOn)}
+      </p>
+      <p className="text-xs text-muted-foreground">
+        فترة تقرير الشغل:
+        {" "}{previousSaved.isPending ? "جاري تحديد البداية..." :
+          previousSaved.isError ? "بداية غير متاحة" :
+          previousSaved.data ? historyPeriodStart(record, previousSaved.data) : "من بداية الحساب"}
+        {" — إلى "}{historyPeriodEnd(record.dateTo)}
+        <span className="block">بداية الفترة محسوبة للتقرير، والتصفية المحفوظة تشمل الحساب التراكمي.</span>
+      </p>
       {record.needsReview && <p role="alert" className="rounded-lg bg-destructive/5 p-3 text-sm text-destructive">
         حدث إلغاء أو رد مالي بعد تسجيل التصفية. هذا الإثبات يحتاج مراجعة ولا يؤكد سداد الرصيد الحالي.
       </p>}
@@ -278,7 +303,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
       </p>
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-muted/20 p-3">
         <div className="w-full max-w-48">
-          <CreatedDatePicker label="من تاريخ كشف العميل" value={savedStatementFrom}
+          <CreatedDatePicker label="من تاريخ التقرير" value={savedStatementFrom}
             min={previousSaved.data ? suggestedStatementFrom(record.dateTo, previousSaved.data) : undefined}
             max={record.dateTo} disabled={exportingClient || previousSaved.isFetching}
             onChange={setSavedStatementFromOverride}/>
@@ -294,12 +319,20 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
         <Button variant="outline" disabled={exportingClient || previousSaved.isFetching || previousSaved.isError || savedStatementFrom > record.dateTo ||
           (previousSaved.data !== undefined && savedStatementFrom < suggestedStatementFrom(record.dateTo, previousSaved.data))}
           onClick={() => void exportClientSaved(record.id)}>
-          <FileSpreadsheet className="size-4"/> كشف حساب للعميل Excel
+          <FileSpreadsheet className="size-4"/> تقرير التصفية Excel
         </Button>
-        <Button variant="outline" onClick={() => void printRecord()}><Printer className="size-4"/> طباعة إثبات التصفية</Button>
-        <Button variant="outline" onClick={() => void exportExcelRecord()}>
-          <FileSpreadsheet className="size-4"/> تصدير إثبات Excel
-        </Button>
+        <details className="w-full rounded-lg border border-border/70 bg-muted/20 px-3 py-2 sm:w-auto">
+          <summary className="cursor-pointer text-sm font-medium text-foreground">مستندات وإثباتات</summary>
+          <div className="mt-2 flex flex-wrap gap-2 border-t pt-2">
+            <Button variant="outline" size="sm" onClick={() => void printRecord()}>
+              <Printer className="size-4"/> طباعة إثبات التصفية
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => void exportExcelRecord()}>
+              <FileSpreadsheet className="size-4"/> إثبات التصفية Excel
+            </Button>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">مستندات التوثيق والمراجعة الداخلية.</p>
+        </details>
         {record.collectionId && canViewCollections && <Button variant="outline" asChild><Link to={"/collections?receiptId=" + record.collectionId}>إيصال التحصيل {record.receiptNumber}</Link></Button>}
         {!record.collectionId && <span className="self-center text-sm text-muted-foreground">لم يُسجّل تحصيل جديد في هذه العملية.</span>}
       </div>
@@ -325,7 +358,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
           <div className="mx-auto flex w-full max-w-[820px] flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
             <div className="flex flex-wrap items-end gap-2">
               <div className="w-full max-w-44">
-                <CreatedDatePicker label="من تاريخ كشف العميل" value={statementFrom}
+                <CreatedDatePicker label="من تاريخ التقرير" value={statementFrom}
                   min={latestSettlement.data ? suggestedStatementFrom(cutoff, latestSettlement.data) : undefined}
                   max={cutoff || cairoToday()} disabled={busy || exportingClient || latestSettlement.isFetching}
                   onChange={setStatementFromOverride}/>
@@ -344,7 +377,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
               <span className="text-xs text-muted-foreground">الدفعات محسوبة حتى اليوم</span>
               <Button variant="outline" size="sm" disabled={busy || exportingClient || preview.isFetching || latestSettlement.isFetching || !latestSettlement.isSuccess || !validDate || !validStatementPeriod || stale || !data}
                 onClick={() => void exportClientDraft()}>
-                <FileSpreadsheet className="size-3.5" aria-hidden="true"/> كشف حساب Excel للعميل
+                <FileSpreadsheet className="size-3.5" aria-hidden="true"/> تقرير التصفية Excel
               </Button>
               <Button variant="ghost" size="sm" disabled={busy || exportingClient || preview.isFetching || !validDate}
                 onClick={() => void refreshPreview()}>
@@ -563,30 +596,47 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
             ? <p className="py-8 text-center text-sm text-muted-foreground">لا توجد تصفيات مسجلة لهذا العميل.</p>
             : <>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[850px] text-right text-sm">
-                    <thead><tr>{["رقم التصفية", "تاريخ التنفيذ", "الشغل حتى", "الخصم", "المحصّل", "المتبقي بعد العملية", "النتيجة", ""].map((title, index) => <th key={index} className="p-3">{title}</th>)}</tr></thead>
-                    <tbody>{history.data.settlements.map(item => <tr className="border-t" key={item.id}>
-                      <td className="p-3" dir="ltr">{item.number}</td><td className="p-3">{item.settledOn}</td><td className="p-3">{item.dateTo}</td>
-                      <td className="p-3"><MoneyAmount amount={item.discountAmount ?? '0.00'}/></td>
-                      <td className="p-3"><MoneyAmount amount={item.amountCollected}/></td>
-                      <td className="whitespace-nowrap p-3">
-                        <span>{item.balanceAfter.startsWith("-") ? "للعميل رصيد " : ""}</span>
-                        <MoneyAmount amount={absoluteAmount(item.balanceAfter)}/>
-                      </td>
-                      <td className={"p-3 " + (item.needsReview ? "text-destructive" : "")}>{item.statusLabel}</td>
-                      <td className="p-3">
-                        <div className="flex flex-wrap gap-2">
-                          <Button variant="outline" size="sm" disabled={openingRecord} onClick={() => void openRecord(item.id)}>عرض الإثبات</Button>
-                          <Button variant="outline" size="sm" disabled={exportingClient} onClick={() => void exportClientSaved(item.id)}>
-                            <FileSpreadsheet className="size-4"/> كشف العميل Excel
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>)}</tbody>
+                  <table className="w-full min-w-[930px] text-right text-sm">
+                    <thead><tr>{["رقم التصفية", "تاريخ التنفيذ", "فترة التقرير", "الخصم", "المحصّل", "المتبقي بعد العملية", "النتيجة", ""].map((title, index) =>
+                      <th key={index} scope="col" className="whitespace-nowrap p-3">{title}</th>)}</tr></thead>
+                    <tbody>{history.data.settlements.map((item, index) => {
+                      const nextRecord = history.data!.settlements[index + 1] ?? historyNext.data?.settlements[0];
+                      const missingPrevious = !nextRecord && page < history.data!.pagination.lastPage;
+                      return <tr className="border-t" key={item.id}>
+                        <td className="whitespace-nowrap p-3" dir="ltr">{item.number}</td>
+                        <td className="whitespace-nowrap p-3">{formatCollectionDate(item.settledOn)}</td>
+                        <td className="p-3">
+                          <div className="min-w-[155px] space-y-1 text-xs">
+                            <p>من: {missingPrevious ? historyNext.isError ? "بداية غير متاحة" : "جارٍ تحديد البداية..." :
+                              historyPeriodStart(item, nextRecord)}</p>
+                            <p>إلى: {historyPeriodEnd(item.dateTo)}</p>
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap p-3"><MoneyAmount amount={item.discountAmount ?? '0.00'}/></td>
+                        <td className="whitespace-nowrap p-3"><MoneyAmount amount={item.amountCollected}/></td>
+                        <td className="whitespace-nowrap p-3">
+                          <span>{item.balanceAfter.startsWith("-") ? "للعميل رصيد " : ""}</span>
+                          <MoneyAmount amount={absoluteAmount(item.balanceAfter)}/>
+                        </td>
+                        <td className={"p-3 " + (item.needsReview ? "text-destructive" : "")}>{item.statusLabel}</td>
+                        <td className="p-3">
+                          <div className="flex flex-wrap gap-2">
+                            <Button variant="outline" size="sm" disabled={openingRecord}
+                              onClick={() => void openRecord(item.id)}>عرض التفاصيل</Button>
+                            <Button variant="outline" size="sm" disabled={exportingClient}
+                              onClick={() => void exportClientSaved(item.id)}>
+                              <FileSpreadsheet className="size-4"/> تقرير التصفية Excel
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>;
+                    })}</tbody>
                   </table>
                 </div>
                 <p className="text-xs leading-5 text-muted-foreground">
-                  المتبقي الظاهر هو رصيد التصفية وقت تسجيلها، وليس بالضرورة رصيد العميل الحالي. التصفيات التي تحتاج مراجعة لا تؤكد السداد الحالي.
+                  فترة التقرير تبدأ افتراضيًا بعد نهاية الشغل في التصفية السابقة؛ أول تصفية ليس لها تاريخ بداية محفوظ.
+                  هذه الفترة تخص عرض الأوردرات فقط، والتصفية مالية تراكمية.
+                  المتبقي هو الرصيد وقت التسجيل، وليس بالضرورة رصيد العميل الحالي.
                 </p>
                 {history.data.pagination.lastPage > 1 && <PaginationBar pagination={history.data.pagination} onPage={setPage}/>}
               </>}
