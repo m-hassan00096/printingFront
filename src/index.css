@@ -155,6 +155,6 @@ a, button { transition-property: background-color, border-color, color, opacity,
 :where(.tabaa-app) :where(input:not([type="checkbox"]):not([type="radio"]), select) {
   min-height: 36px;
 }
-:where(.tabaa-app) :where([role="dialog"]) {
-  max-width: calc(100vw - 24px);
-}
+/* Dialog width is owned by each modal's max-w-* size utility.
+   Do NOT set an unlayered max-width on [role="dialog"]: it overrides all
+   Tailwind utility layers and stretches simple dialogs to viewport width. */
