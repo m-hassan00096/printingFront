@@ -4,23 +4,23 @@ import type { ComponentProps } from "react";
 import { cn } from "@/shared/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg text-[13px] font-semibold transition-colors duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg text-[13px] font-semibold transition-[background-color,border-color,color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-[0_3px_9px_#535fd12b] hover:bg-[#4451be] hover:shadow-[0_4px_14px_#535fd136]",
+        default: "bg-primary text-primary-foreground shadow-[0_3px_9px_#6250c926] hover:bg-[#5140ad] hover:shadow-[0_4px_14px_#6250c92b]",
         destructive: "bg-destructive text-white hover:bg-destructive/85",
-        outline: "border border-input bg-white text-foreground hover:border-primary/40 hover:bg-[#f8f9ff]",
+        outline: "border border-input bg-white text-foreground hover:border-primary/40 hover:bg-[#f8f6ff]",
         secondary: "border border-border bg-secondary text-secondary-foreground hover:bg-accent",
         ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-9 px-3.5",
-        sm: "h-8 px-3 text-xs",
-        lg: "h-10 px-4.5",
-        icon: "size-9",
-        "icon-sm": "size-7",
+        default: "h-10 px-4",
+        sm: "h-9 px-3 text-xs",
+        lg: "h-11 px-5",
+        icon: "size-10",
+        "icon-sm": "size-8",
       },
     },
     defaultVariants: { variant: "default", size: "default" },
