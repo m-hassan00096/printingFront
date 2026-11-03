@@ -21,6 +21,7 @@ import { CreatedDatePicker } from "../components/created-date-picker";
 import { cairoTodayISO } from "@/features/orders/lib/cairo-today";
 import { useOrderActions } from "../hooks/use-orders";
 import type { CreateOrderPayload } from "../types/orders.types";
+import "./order-create-page.css";
 
 type ItemDraft = {
   key: number; serviceId: string; quantity: string; agreedTotal: string; widthCm: string; heightCm: string;
@@ -287,19 +288,20 @@ export function OrderCreatePage() {
     return errors[key] ? <p role="alert" className="mt-1 text-xs text-destructive">{errors[key]}</p> : null;
   }
 
-  return <div className="mx-auto max-w-6xl space-y-5 pb-8">
-    <Button variant="ghost" asChild className="px-0"><Link to="/orders"><ArrowRight /> العودة للأوردرات</Link></Button>
-    <header>
-      <h1 className="text-xl font-semibold">إضافة أوردر</h1>
-      <p className="mt-1 text-sm text-muted-foreground">أدخل بيانات الطلب، ثم احفظ مسودة أو أكد الأوردر مع تسجيل الدفعة الآن.</p>
+  return <div className="order-create-workspace mx-auto max-w-[1480px] space-y-4 pb-8">
+    <header className="space-y-1">
+      <Button variant="ghost" asChild size="sm" className="h-8 px-0 text-xs">
+        <Link to="/orders"><ArrowRight className="size-4" /> الأوردرات</Link>
+      </Button>
+      <h1 className="text-2xl font-bold leading-tight text-[#252a40]">إنشاء أوردر جديد</h1>
     </header>
     {choices.isError && <div role="alert" className="rounded-xl border p-3 text-sm text-destructive">
       تعذّر تحميل العملاء أو خدمات الطباعة. <button type="button" className="underline" onClick={() => void choices.refetch()}>إعادة المحاولة</button>
     </div>}
     <form onSubmit={(event) => void submit(event)} noValidate className="space-y-4">
-      <section className="rounded-lg border bg-card p-4  sm:p-5">
-        <h2 className="mb-4 font-bold">بيانات الأوردر</h2>
-        <div className="grid gap-4 md:grid-cols-2">
+      <section className="rounded-2xl border border-[#e5e8f1] bg-white p-4 shadow-[0_3px_14px_#25335708] sm:p-5">
+        <h2 className="mb-4 border-b border-[#e9ebf2] pb-3 text-base font-bold">بيانات الأوردر</h2>
+        <div className="grid items-start gap-x-4 gap-y-4 md:grid-cols-2">
           <div className="scroll-mt-24 space-y-2" data-order-field="customerId">
             <label className="text-sm font-semibold">العميل المسجل *</label>
             <SearchableSelect label="اختيار العميل" placeholder="ابحث بالاسم أو رقم الهاتف..."
@@ -325,7 +327,7 @@ export function OrderCreatePage() {
               onChange={(next) => {setDueDate(next);clear("dueDate");}} />
             {message("dueDate")}
           </div>
-          <div className="flex items-center"><Button type="button" variant="ghost" size="sm" onClick={() => setShowNotes(!showNotes)}>
+          <div className="flex items-end"><Button type="button" variant="ghost" size="sm" className="px-0 text-[#6555ba]" onClick={() => setShowNotes(!showNotes)}>
             {showNotes ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />} ملاحظات الأوردر (اختياري)
           </Button></div>
           {showNotes && <label className="block text-sm font-semibold md:col-span-2">
@@ -336,13 +338,12 @@ export function OrderCreatePage() {
         </div>
       </section>
 
-      <section className="overflow-visible rounded-lg border bg-card ">
-        <header className="flex items-center justify-between gap-3 border-b p-4 sm:px-5">
-          <h2 className="font-bold">عناصر الأوردر</h2>
-          <Button type="button" variant="outline" size="sm" disabled={busy || items.length >= 100} onClick={addItem}><Plus className="size-4" /> إضافة عنصر</Button>
+      <section className="overflow-visible rounded-2xl border border-[#e5e8f1] bg-white shadow-[0_3px_14px_#25335708]">
+        <header className="flex items-center justify-between gap-3 border-b border-[#e9ebf2] px-4 py-3.5 sm:px-5">
+          <h2 className="text-base font-bold">بنود الأوردر <span className="ms-2 rounded-md bg-[#f0edfc] px-2 py-0.5 text-xs font-semibold text-[#6250c9]">{items.length}</span></h2>
         </header>
         <div className="space-y-3 p-3 sm:p-4">
-          {items.map((item, index) => <div key={item.key} className="rounded-xl border bg-muted/15 p-3 sm:p-4">
+          {items.map((item, index) => <div key={item.key} className="rounded-xl border border-[#e8eaf2] bg-[#fbfcfe] p-3 sm:p-4">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-sm font-bold">العنصر {index + 1}</h3>
               {items.length > 1 && <Button type="button" variant="ghost" size="icon-sm" disabled={busy}
@@ -350,7 +351,7 @@ export function OrderCreatePage() {
                 <Trash2 className="size-4 text-destructive" />
               </Button>}
             </div>
-            <div className="grid items-start gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,.8fr)_minmax(0,1fr)]">
+            <div className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(92px,.65fr)_minmax(145px,.95fr)]">
               <div className="scroll-mt-24 space-y-1" data-order-field={"items." + item.key + ".serviceId"}>
                 <label className="text-xs font-semibold">خدمة الطباعة *</label>
                 <SearchableSelect label={"خدمة العنصر " + (index + 1)} placeholder="ابحث عن خدمة..."
@@ -422,7 +423,11 @@ export function OrderCreatePage() {
             </div>}
             {previewError[item.key] && <p role="alert" className="mt-2 text-xs text-destructive">{previewError[item.key]}</p>}
           </div>)}
-          <p className="text-xs text-muted-foreground">يمكن تعديل السعر المتفق عليه يدويًا. الملفات تُرفع بعد حفظ المسودة وقبل تأكيدها.</p>
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <Button type="button" variant="outline" size="sm" className="border-[#bbb0f2] text-[#6250c9] hover:bg-[#f6f3ff]"
+              disabled={busy || items.length >= 100} onClick={addItem}><Plus className="size-4" /> إضافة بند</Button>
+            <p className="text-xs text-muted-foreground">ارفع الملفات بعد حفظ المسودة.</p>
+          </div>
         </div>
       </section>
 
