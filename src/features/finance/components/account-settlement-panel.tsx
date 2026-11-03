@@ -57,7 +57,8 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
   const savedStatementFrom = savedStatementFromOverride ??
     suggestedStatementFrom(record?.dateTo ?? cutoff, previousSaved.data ?? null);
   const lastScopeMismatch = Boolean(latestSettlement.data && latestSettlement.data.dateTo > cutoff);
-  const validStatementPeriod = Boolean(statementFrom && statementFrom <= cutoff && !lastScopeMismatch);
+  const validStatementPeriod = Boolean(statementFrom && statementFrom <= cutoff && !lastScopeMismatch &&
+    (!latestSettlement.data || statementFrom >= suggestedStatementFrom(cutoff, latestSettlement.data)));
   const preview = useQuery({queryKey: ["finance", "settlement-preview", customerId, cutoff],
     queryFn: () => previewAccountSettlement(customerId, cutoff), enabled: mode === "new" && validDate && !record,
     refetchOnWindowFocus: false, retry: false});
@@ -278,7 +279,8 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" disabled={exportingClient || previousSaved.isFetching || previousSaved.isError || savedStatementFrom > record.dateTo}
+        <Button variant="outline" disabled={exportingClient || previousSaved.isFetching || previousSaved.isError || savedStatementFrom > record.dateTo ||
+          (previousSaved.data !== undefined && savedStatementFrom < suggestedStatementFrom(record.dateTo, previousSaved.data))}
           onClick={() => void exportClientSaved(record.id)}>
           <FileSpreadsheet className="size-4"/> كشف حساب للعميل Excel
         </Button>
