@@ -72,10 +72,10 @@ describe("Customer statement tied to the last saved settlement", () => {
   it("keeps the draft unnumbered, shows true due first, and hides historical movement noise", () => {
     const files = unzip(buildCustomerSettlementStatementXlsx({kind: "draft", preview}));
     expect(files.size).toBe(6);
-    expect(files.get("xl/workbook.xml")).toContain('sheet name="كشف حساب التصفية"');
+    expect(files.get("xl/workbook.xml")).toContain('sheet name="تقرير التصفية"');
     const sheet = files.get("xl/worksheets/sheet1.xml")!;
     expect(sheet).toContain('rightToLeft="1"');
-    expect(sheet).toContain("طَبعة | كشف حساب العميل");
+    expect(sheet).toContain("طَبعة | تقرير تصفية حساب العميل");
     expect(sheet).toContain("المطلوب من العميل الآن");
     expect(sheet).toContain("تصفية جديدة — لم تُسجّل بعد");
     expect(sheet).toContain("لا توجد تصفية سابقة");
