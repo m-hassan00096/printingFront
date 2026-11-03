@@ -83,10 +83,13 @@ describe("Finance refunds within the account workspace", () => {
     expect(screen.queryByRole("link", {name: "سجل ردود الأموال"})).toBeNull();
     expect(screen.queryByRole("button", {name: "سجل ردود الأموال"})).toBeNull();
     expect(screen.queryByRole("button", {name: "عرض ردود رصيد العميل"})).toBeNull();
-    const filter = screen.getByRole("button", {name: "ردود الأموال فقط"});
-    await userEvent.setup().click(filter);
-    expect(filter.getAttribute("aria-pressed")).toBe("true");
-    expect((screen.getByRole("combobox", {name: "نوع الحركة المالية"}) as HTMLSelectElement).value).toBe("5");
+    expect(screen.queryByText("الأحدث أولًا.")).toBeNull();
+    expect(screen.queryByRole("button", {name: "ردود الأموال فقط"})).toBeNull();
+    const filter = screen.getByRole("combobox", {name: "نوع الحركة المالية"});
+    await userEvent.setup().selectOptions(filter, "5");
+    expect((filter as HTMLSelectElement).value).toBe("5");
+    await waitFor(() => expect(calls.some(call =>
+      call.url === "/finance/customers/7/ledger" && call.params.get("filter[type]") === "5")).toBe(true));
     expect(await screen.findByRole("button", {name: "REF-2026-00091"})).toBeTruthy();
   });
   it("lists refunds with filters and immutable details without fetching unauthorized accounts", async () => {
@@ -216,7 +219,7 @@ describe("Finance refunds within the account workspace", () => {
     expect(await screen.findByRole("region", {name: "بيانات حساب العميل"})).toBeTruthy();
     expect(window.location.search).toContain("customerId=7");
   });
-  it("keeps Create Refund working and shows the posted movement in the customer's ledger with one-click filtering", async () => {
+  it("keeps Create Refund working and shows the posted movement using the existing ledger movement filter", async () => {
     permissions = ["finance.balances.view", "finance.ledger.view", "finance.refunds.view", "finance.refunds.create"];
     visit("/finance?customerId=7");
     const user = userEvent.setup();
@@ -235,10 +238,9 @@ describe("Finance refunds within the account workspace", () => {
     expect(post.body).toEqual({customerId: 7, amount: "40.00", paymentMethod: 0, reason: "رد متفق عليه للعميل"});
     expect(post.key).toBeTruthy();
     await waitFor(() => expect(screen.queryByRole("dialog", {name: "رد رصيد دائن للعميل"})).toBeNull());
-    const filter = screen.getByRole("button", {name: "ردود الأموال فقط"});
-    await user.click(filter);
-    expect(filter.getAttribute("aria-pressed")).toBe("true");
-    expect((screen.getByRole("combobox", {name: "نوع الحركة المالية"}) as HTMLSelectElement).value).toBe("5");
+    const filter = screen.getByRole("combobox", {name: "نوع الحركة المالية"});
+    await user.selectOptions(filter, "5");
+    expect((filter as HTMLSelectElement).value).toBe("5");
     await waitFor(() => expect(calls.some(call =>
       call.url === "/finance/customers/7/ledger" && call.params.get("filter[type]") === "5")).toBe(true));
     const newReceipt = await screen.findByRole("button", {name: "REF-2026-00092"});
@@ -248,8 +250,8 @@ describe("Finance refunds within the account workspace", () => {
     expect(await within(details).findByText("رد متفق عليه للعميل")).toBeTruthy();
     await user.click(within(details).getAllByRole("button", {name: "إغلاق"})[0]);
     expect(calls.filter(call => call.url === "/finance/refunds" && call.method === "post")).toHaveLength(1);
-    await user.click(filter);
-    expect(filter.getAttribute("aria-pressed")).toBe("false");
+    await user.selectOptions(filter, "");
+    expect((filter as HTMLSelectElement).value).toBe("");
   });
 
   it("offers a single create-refund action within the secondary global history, with no account tab required", async () => {
