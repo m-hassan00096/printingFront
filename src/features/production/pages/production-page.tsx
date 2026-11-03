@@ -70,25 +70,25 @@ function ProductionColumn({ column, filters, page, onPage, count, countLoading,
     groups.set(item.orderId,group);
   }
   const label=PRODUCTION_COLUMNS.find(x=>x.id===column)?.label ?? "مرحلة";
-  return <section aria-label={`عمود ${label}`} className={`min-w-0 rounded-xl border border-[#e6e9f3] bg-[#f8f9fd] shadow-[0_4px_20px_#27396b08] ${visible?"block":"hidden lg:block"}`}>
-    <header className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t-xl border-b border-[#e6e9f3] bg-white px-4 py-3">
+  return <section aria-label={`عمود ${label}`} className={`min-w-0 rounded-xl border border-[#e5e8f1] bg-[#fbfcfe] shadow-[0_4px_20px_#27396b08] ${visible?"block":"hidden lg:block"}`}>
+    <header className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t-xl border-b border-[#e5e8f1] bg-white px-4 py-3">
       <h3 className="text-sm font-bold">{label}</h3>
-      <span className="min-w-7 rounded-md bg-[#edf0ff] px-2 py-1 text-primary text-center text-xs font-bold tabular-nums"
+      <span className="min-w-7 rounded-md bg-[#f0edfc] px-2 py-1 text-primary text-center text-xs font-bold tabular-nums"
         aria-label={`عدد عناصر ${label}`}>{countLoading?"…":count??"—"}</span>
     </header>
     <div className="space-y-2 p-2.5">
       {result.isPending ? <LoadingState/> : result.isError ?
         <ErrorState error={result.error} retry={()=>void result.refetch()}/> :
         groups.size===0 ?
-          <div className="rounded-lg border border-dashed border-[#dfe3ef] bg-white p-6 text-center text-xs text-muted-foreground">
+          <div className="rounded-lg border border-dashed border-[#e5e8f1] bg-white p-6 text-center text-xs text-muted-foreground">
             لا توجد عناصر في هذه المرحلة.
           </div> :
         [...groups.entries()].map(([orderId,items])=>
           <section key={orderId} aria-label={`الأوردر ${items[0].orderNumber}`}
-            className="overflow-hidden rounded-xl border border-[#dfe4f2] bg-[#f6f7fc] shadow-[0_3px_12px_#2536620b]">
-            <header className="border-b border-[#e0e5f2] bg-[#f2f4ff] px-3 py-2.5">
+            className="overflow-hidden rounded-xl border border-[#e5e8f1] bg-[#f7f8fc] shadow-[0_3px_12px_#2536620b]">
+            <header className="border-b border-[#e5e8f1] bg-[#f6f3ff] px-3 py-2.5">
               <div className="flex min-w-0 items-center justify-between gap-2">
-                <p className="min-w-0 truncate text-[13px] font-bold text-[#26334f]"
+                <p className="min-w-0 truncate text-[13px] font-bold text-[#252a40]"
                   title={items[0].customerName}>{items[0].customerName}</p>
                 <span className="shrink-0 font-mono text-[11px] font-semibold text-primary"
                   dir="ltr">{items[0].orderNumber}</span>
@@ -107,8 +107,8 @@ function ProductionColumn({ column, filters, page, onPage, count, countLoading,
                 </span>
                 {(items[0].isLate || items[0].dueDate===cairoToday()) &&
                   <span className={items[0].isLate
-                    ? "rounded-md bg-[#fff0f2] px-2 py-0.5 text-[11px] font-bold text-[#c8384a]"
-                    : "rounded-md bg-[#fff4dc] px-2 py-0.5 text-[11px] font-bold text-[#9c6107]"}>
+                    ? "rounded-md bg-[#fff0f2] px-2 py-0.5 text-[11px] font-bold text-[#c74256]"
+                    : "rounded-md bg-[#fff4dc] px-2 py-0.5 text-[11px] font-bold text-[#a66a19]"}>
                     {items[0].isLate ? uiMessages.production.overdueLabel : uiMessages.production.dueTodayLabel}
                   </span>}
               </div>
@@ -256,11 +256,11 @@ export function ProductionPage() {
     </section>
     {can("production.summary.view") && summary.data && <section aria-label={uiMessages.production.summaryLabel}
       className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-      <div className="rounded-xl border border-[#e8eaf2] bg-white p-3.5 shadow-[0_3px_12px_#27396b07]">
+      <div className="rounded-xl border border-[#e5e8f1] bg-white p-3.5 shadow-[0_3px_12px_#27396b07]">
         <p className="text-xs text-muted-foreground">{uiMessages.production.stageNotStarted}</p>
         <p className="mt-1 text-xl font-bold tabular-nums">{summary.data.notStartedCount}</p>
       </div>
-      <div className="rounded-xl border border-[#e8eaf2] bg-white p-3.5 shadow-[0_3px_12px_#27396b07]">
+      <div className="rounded-xl border border-[#e5e8f1] bg-white p-3.5 shadow-[0_3px_12px_#27396b07]">
         <p className="text-xs text-muted-foreground">{uiMessages.production.stageDesign}</p>
         <p className="mt-1 text-xl font-bold tabular-nums">{summary.data.designInProgressCount+summary.data.designCompletedCount}</p>
         <p className="mt-1.5 text-[11px] text-muted-foreground">
@@ -272,7 +272,7 @@ export function ProductionPage() {
       {[
         [uiMessages.production.stagePrinting,summary.data.printingCount],
         [uiMessages.production.stageReady,summary.data.readyCount],
-      ].map(([label,n])=><div key={label} className="rounded-xl border border-[#e8eaf2] bg-white p-3.5 shadow-[0_3px_12px_#27396b07]">
+      ].map(([label,n])=><div key={label} className="rounded-xl border border-[#e5e8f1] bg-white p-3.5 shadow-[0_3px_12px_#27396b07]">
         <p className="text-xs text-muted-foreground">{label}</p>
         <p className="mt-1 text-xl font-bold tabular-nums">{n}</p>
       </div>)}
@@ -280,7 +280,7 @@ export function ProductionPage() {
         onClick={()=>setLateOnly(current=>!current)}
         className={`rounded-xl border p-3.5 text-right shadow-[0_3px_12px_#27396b07] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${lateOnly
           ? "border-[#f0a6ad] bg-[#fff0f2]"
-          : "border-[#e8eaf2] bg-white hover:border-[#f0a6ad] hover:bg-[#fff8f9]"}`}>
+          : "border-[#e5e8f1] bg-white hover:border-[#f0a6ad] hover:bg-[#fff8f9]"}`}>
         <p className="text-xs text-muted-foreground">{uiMessages.production.overdueOrders}</p>
         <p className="mt-1 text-xl font-bold tabular-nums">{summary.data.lateOrdersCount}</p>
         <p className="mt-1 text-[11px] text-primary">{lateOnly ? uiMessages.production.filterApplied : uiMessages.production.viewOverdue}</p>
