@@ -172,7 +172,7 @@ Backend PR #23 exercises customer-select permission boundaries, including inacti
 
 ### Ledger accounting date and actual posting time (2026-11-03)
 
-- **سجل الحركات** shows two values: `effectiveDate` as the original business/accounting date and `createdAt` as the actual time the movement was recorded. The timestamp is displayed in 24-hour Cairo local time (`Africa/Cairo`) immediately under the date.
+- **سجل الحركات** shows two values: `effectiveDate` as the original business/accounting date and `createdAt` as the actual time the movement was recorded. The timestamp is displayed in 12-hour Cairo local time (`Africa/Cairo`), with Arabic **ص / م** markers (e.g. `2:00 ص`, `2:00 م`), immediately under the date.
 - If the real posting day is different from the effective accounting date (for example, back-dated reversals), the label explicitly shows the **full real posting date + time** rather than implying that the transaction was posted on the accounting date.
 - For old or malformed records without an ISO timestamp and explicit offset, only the effective accounting date is displayed. The UI never guesses 00:00 or derives an invented time from the date.
 - This uses the existing `createdAt` field in the finance ledger GET response. Ledger sorting/filtering and financial posting are unchanged. No backend API, database, or migration changes.
