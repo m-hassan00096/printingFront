@@ -169,3 +169,11 @@ Backend PR #23 exercises customer-select permission boundaries, including inacti
 - **Create Refund remains fully functional**: the selected-customer action **رد رصيد للعميل** and a single **رد رصيد دائن** create action within the global refunds history for `finance.refunds.create`. The existing `CreateRefundDialog`, `POST /finance/refunds`, idempotency key, available-credit guard, payment method/destination, reason, physical payout acknowledgment, query invalidation, and ledger balance updates are untouched.
 - This change does not add/change any backend API, controller, DB table, migration or authorization. Separate refund money from order returns and from canceled collections; the account ledger still shows these as different movement types.
 - UI tests cover permissions, legacy links, global and customer scope separation, refund-only viewers, posted refund visibility in ledger, one-click server filter, refund detail lookup, and a single POST for creation.
+
+### Ledger accounting date and actual posting time (2026-11-03)
+
+- **سجل الحركات** shows two values: `effectiveDate` as the original business/accounting date and `createdAt` as the actual time the movement was recorded. The timestamp is displayed in 24-hour Cairo local time (`Africa/Cairo`) immediately under the date.
+- If the real posting day is different from the effective accounting date (for example, back-dated reversals), the label explicitly shows the **full real posting date + time** rather than implying that the transaction was posted on the accounting date.
+- For old or malformed records without an ISO timestamp and explicit offset, only the effective accounting date is displayed. The UI never guesses 00:00 or derives an invented time from the date.
+- This uses the existing `createdAt` field in the finance ledger GET response. Ledger sorting/filtering and financial posting are unchanged. No backend API, database, or migration changes.
+- Regression coverage includes Cairo daylight saving/winter offsets, offset normalization, date rollovers, missing timestamps, and the UI difference between effective date and recorded date.
