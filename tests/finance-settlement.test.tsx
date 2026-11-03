@@ -83,7 +83,7 @@ describe("Simple two-tab customer accounts and settlement reporting", () => {
     const ledger = await screen.findByRole("tabpanel", {name: "كشف الحساب"});
     const table = await within(ledger).findByRole("table");
     expect(within(table).getAllByRole("columnheader").map(header => header.textContent)).toEqual([
-      "التاريخ", "العملية والتفاصيل", "زيادة على الحساب (+)", "دفعة / تخفيض (−)", "الرصيد بعد الحركة",
+      "التاريخ والوقت", "العملية والتفاصيل", "زيادة على الحساب (+)", "دفعة / تخفيض (−)", "الرصيد بعد الحركة",
     ]);
     expect(within(table).getByText("COL-90")).toBeTruthy();
     await userEvent.setup().click(within(table).getByRole("button", {name: "عرض الملاحظة كاملة"}));
