@@ -36,9 +36,9 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --radius-sm: 5px;
-  --radius-md: 7px;
-  --radius-lg: 11px;
-  --radius-xl: 14px;
+  --radius-md: 9px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 }
 
 /* Approved Tabaa Balanced Modern semantic tokens; see DESIGN_SYSTEM_BALANCED_MODERN.md.
@@ -136,6 +136,10 @@ a, button { transition-property: background-color, border-color, color, opacity,
 }
 
 /* App-wide Balanced Modern readability. Specific workflow layouts remain owned by their pages. */
+.tabaa-page { min-width: 0; }
+.tabaa-page :where(table) { font-variant-numeric: tabular-nums; }
+.tabaa-page :where(table) :where(th, td) { vertical-align: middle; }
+.tabaa-page :where([role="status"]) { line-height: 1.6; }
 :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
   font-size: 13px;
 }
