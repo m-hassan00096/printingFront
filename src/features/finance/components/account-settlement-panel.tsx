@@ -18,11 +18,15 @@ import { renderAccountSettlementEvidence } from "../lib/account-settlement-print
 import { exportAccountSettlementXlsx } from "../lib/account-settlement-xlsx";
 import { exportCustomerSettlementStatementXlsx } from "../lib/customer-settlement-statement-xlsx";
 
+const firstDayOfMonth = (date: string): string => date.slice(0, 8) + "01";
+
 export function AccountSettlementPanel({customerId, customerName, canConfirm, canViewCollections, canDiscount = false}: {
   customerId: number; customerName?: string; canConfirm: boolean; canViewCollections: boolean; canDiscount?: boolean;
 }) {
   const qc = useQueryClient();
   const [cutoff, setCutoff] = useState(cairoToday);
+  const [statementFrom, setStatementFrom] = useState(() => firstDayOfMonth(cairoToday()));
+  const [savedStatementFrom, setSavedStatementFrom] = useState(() => firstDayOfMonth(cairoToday()));
   const [amountInput, setAmountInput] = useState<string | null>(null);
   const [discountInput, setDiscountInput] = useState('0.00');
   const [discountReason, setDiscountReason] = useState('');
@@ -38,6 +42,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
   const [exportingClient, setExportingClient] = useState(false);
   const keys = useRef(new Map<string, string>());
   const validDate = Boolean(cutoff && cutoff <= cairoToday());
+  const validStatementPeriod = Boolean(statementFrom && statementFrom <= cutoff);
   const preview = useQuery({queryKey: ["finance", "settlement-preview", customerId, cutoff],
     queryFn: () => previewAccountSettlement(customerId, cutoff), enabled: mode === "new" && validDate && !record,
     refetchOnWindowFocus: false, retry: false});
@@ -72,7 +77,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
     await preview.refetch();
   }
   async function exportClientDraft() {
-    if (!validDate || !data || preview.isFetching || busy || stale || exportingClient) return;
+    if (!validDate || !validStatementPeriod || !data || preview.isFetching || busy || stale || exportingClient) return;
     if (!proposedValid) {
       toast.error("راجع مبلغ التحصيل والخصم وسبب الخصم قبل تصدير الكشف.");
       return;
@@ -81,7 +86,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
     try {
       // Always re-read the live balance before producing a client-facing statement.
       const fresh = await preview.refetch({throwOnError: true});
-      if (!fresh.data || fresh.data.dateTo !== cutoff) throw Error("تعذر تحديث كشف العميل");
+      if (!fresh.data || fresh.data.dateTo !== cutoff || statementFrom > cutoff) throw Error("تعذر تحديث كشف العميل");
       if (proposed && fresh.data.previewHash !== data.previewHash) {
         setStale(true);
         setError("تغير حساب العميل بعد إدخال المبالغ. حدّث الحساب وراجع المبلغ قبل تصدير كشف يتضمن اقتراحات.");
@@ -92,7 +97,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
         ? {discount: centsToMoney(discountCents), collected: centsToMoney(cents),
           remaining: centsToMoney(projectedRemainder), reason: discountReason.trim()}
         : undefined;
-      exportCustomerSettlementStatementXlsx({kind: "draft", preview: fresh.data, proposal});
+      exportCustomerSettlementStatementXlsx({kind: "draft", preview: fresh.data, periodFrom: statementFrom, proposal});
     } catch (cause) {
       toast.error(getApiErrorMessage(cause, "تعذّر تصدير كشف الحساب. حاول مرة أخرى."));
     } finally {
@@ -106,7 +111,8 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
       // Refresh the historical review flag; never substitute today's live balance for a saved snapshot.
       const latest = await getAccountSettlement(customerId, id);
       if (record?.id === id) setRecord(latest);
-      exportCustomerSettlementStatementXlsx({kind: "saved", record: latest});
+      const periodFrom = record?.id === id ? savedStatementFrom : firstDayOfMonth(latest.dateTo);
+      exportCustomerSettlementStatementXlsx({kind: "saved", record: latest, periodFrom});
     } catch (cause) {
       toast.error(getApiErrorMessage(cause, "تعذّر تصدير كشف التصفية المسجلة."));
     } finally {
@@ -128,6 +134,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
     try {
       const saved = await mutation.mutateAsync({payload, key});
       setRecord(saved);
+      setSavedStatementFrom(statementFrom);
       await Promise.all(["finance", "collections", "customers", "orders", "deliveries"].map(name => qc.invalidateQueries({queryKey: [name]})));
       toast.success(saved.statusLabel);
     } catch (cause) {
@@ -137,7 +144,10 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
   }
   async function openRecord(id: number) {
     setOpeningRecord(true); setError("");
-    try {setRecord(await getAccountSettlement(customerId, id));}
+    try {
+      const saved = await getAccountSettlement(customerId, id);
+      setRecord(saved); setSavedStatementFrom(firstDayOfMonth(saved.dateTo));
+    }
     catch (cause) {setError(getApiErrorMessage(cause, "تعذّر فتح التصفية."));}
     finally {setOpeningRecord(false);}
   }
@@ -167,7 +177,8 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
     }
   }
   function startNew() {
-    setRecord(null); setMode("new"); setCutoff(cairoToday()); setAmountInput(null);
+    const today = cairoToday();
+    setRecord(null); setMode("new"); setCutoff(today); setStatementFrom(firstDayOfMonth(today)); setAmountInput(null);
     setPayment({method: 0, destination: ""}); setNote("");
     setDiscountInput('0.00'); setDiscountReason(''); setDiscountOpen(false);
     setError(""); setStale(false);
@@ -224,8 +235,18 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
         رصيد حساب العميل الكلي بعد العملية: {balanceDescription(record.accountBalanceAfter)} <MoneyAmount amount={absoluteAmount(record.accountBalanceAfter)}/>.
         التصفية تخص الشغل المحدد ولا تمسح مديونيات أوردرات أخرى لم تُسلَّم.
       </p>
+      <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-muted/20 p-3">
+        <div className="w-full max-w-48">
+          <CreatedDatePicker label="من تاريخ كشف العميل" value={savedStatementFrom} max={record.dateTo}
+            disabled={exportingClient} onChange={setSavedStatementFrom}/>
+        </div>
+        <p className="pb-1 text-xs leading-5 text-muted-foreground">
+          أوردرات الفترة حتى {record.dateTo}. اختيار بداية الفترة خاص بملف العميل فقط.
+        </p>
+      </div>
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" disabled={exportingClient} onClick={() => void exportClientSaved(record.id)}>
+        <Button variant="outline" disabled={exportingClient || savedStatementFrom > record.dateTo}
+          onClick={() => void exportClientSaved(record.id)}>
           <FileSpreadsheet className="size-4"/> كشف حساب للعميل Excel
         </Button>
         <Button variant="outline" onClick={() => void printRecord()}><Printer className="size-4"/> طباعة إثبات التصفية</Button>
@@ -255,17 +276,24 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
               onClick={() => void refreshPreview()}>تحديث المراجعة</Button>}
           </div>}
           <div className="mx-auto flex w-full max-w-[820px] flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
-            <div className="w-full max-w-56">
-              <CreatedDatePicker label="الشغل المستلّم حتى" value={cutoff} max={cairoToday()} disabled={busy}
-                onChange={value => {
-                  if (busy) return;
-                  setCutoff(value); setAmountInput(null); setPayment({method: 0, destination: ""});
-                  setDiscountInput('0.00'); setDiscountReason(''); setDiscountOpen(false); setStale(false); setError("");
-                }}/>
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="w-full max-w-44">
+                <CreatedDatePicker label="من تاريخ كشف العميل" value={statementFrom} max={cutoff || cairoToday()}
+                  disabled={busy || exportingClient} onChange={setStatementFrom}/>
+              </div>
+              <div className="w-full max-w-44">
+                <CreatedDatePicker label="الشغل المستلّم حتى" value={cutoff} max={cairoToday()} disabled={busy}
+                  onChange={value => {
+                    if (busy) return;
+                    setCutoff(value); setStatementFrom(firstDayOfMonth(value));
+                    setAmountInput(null); setPayment({method: 0, destination: ""});
+                    setDiscountInput('0.00'); setDiscountReason(''); setDiscountOpen(false); setStale(false); setError("");
+                  }}/>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="text-xs text-muted-foreground">الدفعات محسوبة حتى اليوم</span>
-              <Button variant="outline" size="sm" disabled={busy || exportingClient || preview.isFetching || !validDate || stale || !data}
+              <Button variant="outline" size="sm" disabled={busy || exportingClient || preview.isFetching || !validDate || !validStatementPeriod || stale || !data}
                 onClick={() => void exportClientDraft()}>
                 <FileSpreadsheet className="size-3.5" aria-hidden="true"/> كشف حساب Excel للعميل
               </Button>
@@ -275,6 +303,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
               </Button>
             </div>
           </div>
+          {!validStatementPeriod && <p role="alert" className="text-xs text-destructive">بداية فترة كشف العميل يجب أن تكون قبل تاريخ النهاية أو مساوية له.</p>}
           {!validDate ? <p role="alert" className="text-sm text-destructive">اختر تاريخًا صحيحًا لا يتجاوز اليوم.</p>
             : preview.isPending ? <LoadingState/>
             : preview.isError ? <ErrorState error={preview.error} retry={() => void preview.refetch()}/>
