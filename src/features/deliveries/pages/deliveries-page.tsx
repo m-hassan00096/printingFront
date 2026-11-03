@@ -31,12 +31,12 @@ function ReadyCard({ order, canViewOrder, onPreview }: {
 }) {
   const isLate=!!order.dueDate && order.dueDate<cairoTodayISO();
   const dueToday=!!order.dueDate && order.dueDate===cairoTodayISO();
-  return <article aria-label={`الأوردر ${order.orderNumber}`} className="overflow-hidden rounded-xl border border-[#e4e8f3] bg-card shadow-[0_3px_14px_#24345b08]">
+  return <article aria-label={`الأوردر ${order.orderNumber}`} className="overflow-hidden rounded-xl border border-[#e5e8f1] bg-card shadow-[0_3px_14px_#24345b08]">
     <header className="space-y-3 border-b bg-muted/30 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-bold" dir="ltr">{order.orderNumber}</h3>
         <span className={"rounded-md px-2.5 py-1 text-xs font-bold " +
-          (order.isReadyForDelivery?"bg-[#e5f7ee] text-[#147c58]":"bg-[#fff5df] text-[#a36a0d]")}>
+          (order.isReadyForDelivery?"bg-[#e5f7ee] text-[#15845f]":"bg-[#fff5df] text-[#a66a19]")}>
           {order.isReadyForDelivery?"جاهز للتسليم":"جاهز جزئيًا"}
         </span>
       </div>
@@ -58,10 +58,10 @@ function ReadyCard({ order, canViewOrder, onPreview }: {
         <div><p className="text-xs text-muted-foreground">إجمالي الأوردر</p>
           <p className="mt-1 font-bold"><MoneyAmount amount={order.orderTotal}/></p></div>
         <div><p className="text-xs text-muted-foreground">موعد التسليم</p>
-          <p className={"mt-1 flex flex-wrap items-center gap-1 font-semibold "+(isLate?"text-[#ba3646]":"")}>
+          <p className={"mt-1 flex flex-wrap items-center gap-1 font-semibold "+(isLate?"text-[#c74256]":"")}>
             <span dir="ltr">{order.dueDate?formatCollectionDate(order.dueDate):"بدون موعد"}</span>
             {isLate?<span className="rounded bg-[#fff0f2] px-1.5 py-0.5 text-[11px]">{uiMessages.deliveries.overdue}</span>:
-              dueToday?<span className="rounded bg-[#fff4dc] px-1.5 py-0.5 text-[11px] text-[#9c6107]">{uiMessages.deliveries.dueToday}</span>:null}
+              dueToday?<span className="rounded bg-[#fff4dc] px-1.5 py-0.5 text-[11px] text-[#a66a19]">{uiMessages.deliveries.dueToday}</span>:null}
           </p></div>
         <div><p className="text-xs text-muted-foreground">{uiMessages.deliveries.readyCount}</p>
           <p className="mt-1 font-bold">{order.readyItemsCount} / {order.totalItemsCount}</p></div>
@@ -74,7 +74,7 @@ function ReadyCard({ order, canViewOrder, onPreview }: {
         <p className="text-xs font-semibold text-muted-foreground">{uiMessages.deliveries.itemsLabel} ({order.readyItemsCount}/{order.totalItemsCount})</p>
         {order.items.map(item=><div key={item.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
           <span className="min-w-0 truncate font-medium">{item.serviceName} · كمية {item.quantity.toLocaleString("en-US")}</span>
-          {!order.isReadyForDelivery && <span className={item.productionStage===4?"text-[#147c58]":"text-[#a36a0d]"}>
+          {!order.isReadyForDelivery && <span className={item.productionStage===4?"text-[#15845f]":"text-[#a66a19]"}>
             {item.productionStageLabel}
           </span>}
         </div>)}
@@ -84,7 +84,7 @@ function ReadyCard({ order, canViewOrder, onPreview }: {
           <Button type="button" size="sm" onClick={()=>onPreview(order.orderId)}>
             <ClipboardCheck className="size-4"/> تسليم الأوردر
           </Button>}
-        {!order.isReadyForDelivery && <p className="text-xs font-semibold text-[#a36a0d]">
+        {!order.isReadyForDelivery && <p className="text-xs font-semibold text-[#a66a19]">
           التسليم متاح بعد جاهزية كل المنتجات.
         </p>}
         {canViewOrder && <Button asChild type="button" size="sm" variant="outline">
@@ -234,7 +234,7 @@ export function DeliveriesPage() {
                 <td className="px-3 py-3"><MoneyAmount amount={record.effectiveReceivedAmount}/></td>
                 <td className="whitespace-nowrap px-3 py-3">{dateTime(record.deliveredAt)}</td>
                 <td className="px-3 py-3"><span className={"rounded-full px-2 py-1 text-xs font-bold " +
-                  (record.status===1?"bg-[#e5f7ee] text-[#147c58]":"bg-[#fff0f2] text-rose-800")}>{record.statusLabel}</span></td>
+                  (record.status===1?"bg-[#e5f7ee] text-[#15845f]":"bg-[#fff0f2] text-rose-800")}>{record.statusLabel}</span></td>
                 <td className="px-3 py-3">{canViewDelivery &&
                   <Button type="button" variant="outline" size="sm" onClick={()=>setDetails(record.id)}>
                     <Eye className="size-4"/> التفاصيل
