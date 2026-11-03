@@ -144,7 +144,7 @@ export function DeliveriesPage() {
     setDelivering(null);setDetails(null);
     void qc.invalidateQueries({queryKey:["deliveries"]});
   }
-  return <div className="space-y-4">
+  return <div className="tabaa-page space-y-4 sm:space-y-5">
     <SectionHeader title="التسليمات" detail="تسليم الأوردرات الجاهزة ومراجعة سجل الاستلام والتحصيل."
       actions={<Button type="button" variant="outline" onClick={()=>void qc.invalidateQueries({queryKey:["deliveries"]})}>
         <RefreshCw className="size-4"/> تحديث
