@@ -1,7 +1,7 @@
 import { featureAccessPolicy, identityAccessPolicy, printingServiceAccessPolicy } from "@/app/access-policy";
 import { hasAnyPermission } from "@/features/auth/lib/auth-helpers";
 import {
-  ClipboardList, History, LayoutDashboard, Layers, Printer, ReceiptText, Settings, Truck,
+  ClipboardList, LayoutDashboard, Layers, Printer, ReceiptText, Settings, Truck,
   Users, Wallet, ShieldCheck, type LucideIcon,
 } from "lucide-react";
 
@@ -35,7 +35,6 @@ export const navigationGroups: NavigationGroup[] = [
       { to: "/customers", label: "العملاء", icon: Users, anyOf: featureAccessPolicy.customers },
       { to: "/collections", label: "التحصيلات", icon: ReceiptText, anyOf: featureAccessPolicy.collections },
       { to: "/finance", label: "الحسابات", icon: Wallet, anyOf: featureAccessPolicy.finance },
-      { to: "/finance/refunds", label: "سجل ردود الأموال", icon: History, anyOf: ["finance.refunds.view"] },
     ],
   },
   {
