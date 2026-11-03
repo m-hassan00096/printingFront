@@ -118,7 +118,7 @@ export function OrdersPage() {
   return <div className="tabaa-page space-y-4 sm:space-y-5">
     <SectionHeader title="الأوردرات" detail="متابعة الطلبات والعملاء ومراحل الإنتاج والتسليم."
       actions={perms.includes("orders.create") && <Button asChild><Link to="/orders/new"><Plus /> إضافة أوردر</Link></Button>} />
-    <section className="overflow-hidden rounded-xl border border-[#e8eaf2] bg-white shadow-[0_6px_20px_#26396b08]">
+    <section className="overflow-hidden rounded-xl border border-[#e5e8f1] bg-white shadow-[0_6px_20px_#26396b08]">
       <div role="group" aria-label={uiMessages.orders.filtersLabel}
         className="grid grid-cols-1 gap-3 border-b bg-white p-4 sm:grid-cols-2 xl:flex xl:flex-nowrap xl:items-end xl:gap-3 xl:p-5">
         <div className="min-w-0 sm:col-span-2 xl:min-w-[200px] xl:flex-1 [&>label]:max-w-none">
@@ -160,8 +160,8 @@ export function OrdersPage() {
           </label>
         </div>
       </div>
-      <div className="flex flex-wrap items-end gap-3 border-b border-[#e8eaf2] bg-[#fbfcff] px-4 py-3 xl:px-5">
-        <div className="flex h-9 shrink-0 items-center gap-2 text-xs font-semibold text-[#4c5975]">
+      <div className="flex flex-wrap items-end gap-3 border-b border-[#e5e8f1] bg-[#fbfcfe] px-4 py-3 xl:px-5">
+        <div className="flex h-9 shrink-0 items-center gap-2 text-xs font-semibold text-[#6a7388]">
           <CalendarDays className="size-4 text-primary" />
           {uiMessages.orders.createdDateFilter}
         </div>
