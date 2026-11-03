@@ -21,7 +21,7 @@ export type AccountSettlementPreview = {
 };
 export type AccountSettlementStatus = "closed" | "partial" | "credit" | "needs_review";
 export type AccountSettlementRecord = {
-  id: number; number: string; customerId: number; dateTo: string; settledOn: string;
+  id: number; number: string; customerId: number; dateFrom: string | null; dateTo: string; settledOn: string;
   status: AccountSettlementStatus; originalStatus: Exclude<AccountSettlementStatus, "needs_review">;
   statusLabel: string; needsReview: boolean; balanceBefore: string; amountCollected: string;
   discountAmount: string; discountReason: string | null; discountLedgerEntryId: number | null;
@@ -30,7 +30,7 @@ export type AccountSettlementRecord = {
   snapshot?: {before: AccountSettlementPreview; after: AccountSettlementPreview; receiptNumber: string | null};
 };
 export type AccountSettlementInput = {
-  dateTo: string; previewHash: string; amount: string;
+  dateFrom: string; dateTo: string; previewHash: string; amount: string;
   discountAmount?: string; discountReason?: string;
   paymentMethod?: 0 | 1 | 2; paymentDestinationId?: number; note?: string;
 };
