@@ -205,7 +205,7 @@ export function ProductionPage() {
   function reset() {
     setSearchInput("");setSearch("");setCustomerId("");setServiceId("");setMyDesignWork("");setLateOnly(false);setSort("priority");
   }
-  return <div className="space-y-5">
+  return <div className="tabaa-page space-y-4 sm:space-y-5">
     <SectionHeader title="لوحة الإنتاج" detail="متابعة عناصر الأوردرات المؤكدة من بدء التصميم حتى الجاهزية للتسليم."
       actions={<Button type="button" variant="outline" disabled={busy}
         onClick={()=>{
