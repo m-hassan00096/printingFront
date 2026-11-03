@@ -311,7 +311,7 @@ export function SettingsPage() {
         </div>
       </footer>}
     </section>
-    {form && <ModalFrame size={kind === "e-wallets" ? "lg" : "md"} title={editing !== null ? `تعديل ${names[kind]}` : `إضافة ${names[kind]}`} busy={busy} onClose={() => setForm(null)}>
+    {form && <ModalFrame size="md" title={editing !== null ? `تعديل ${names[kind]}` : `إضافة ${names[kind]}`} busy={busy} onClose={() => setForm(null)}>
       <form onSubmit={(event) => void save(event)} className="space-y-3.5" noValidate>
         {kind === "bank-accounts" ? <>
           <label className="block"><span className={fieldLabel}>اسم البنك *</span><input aria-label="اسم البنك *" className={control} required maxLength={150} value={form.bankName ?? ""} onChange={(e) => change({ bankName: e.target.value })} disabled={busy} aria-invalid={!!fieldErrors.bankName} /><FieldError field="bankName" errors={fieldErrors} /></label>
