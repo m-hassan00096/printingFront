@@ -288,7 +288,7 @@ export function OrderCreatePage() {
     return errors[key] ? <p role="alert" className="mt-1 text-xs text-destructive">{errors[key]}</p> : null;
   }
 
-  return <div className="order-create-workspace mx-auto max-w-[1480px] space-y-4 pb-8">
+  return <div className="tabaa-page order-create-workspace mx-auto max-w-[1480px] space-y-4 pb-8">
     <header className="space-y-1">
       <Button variant="ghost" asChild size="sm" className="h-8 px-0 text-xs">
         <Link to="/orders"><ArrowRight className="size-4" /> الأوردرات</Link>
