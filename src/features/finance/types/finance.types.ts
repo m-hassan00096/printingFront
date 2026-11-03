@@ -1,6 +1,6 @@
 import type { CustomerBalance, LedgerEntry, Pagination, CustomerOption } from "@/features/customers/types/customers.types";
 export type { CustomerBalance, LedgerEntry, Pagination, CustomerOption };
-export type AccountFilters={page:number;dateFrom:string;dateTo:string;type:string};
+export type AccountFilters={page:number;perPage:20|50;dateFrom:string;dateTo:string;type:string};
 export type FinanceBalance=CustomerBalance&{openingBalanceExists:boolean;openingBalance?:{amount:string;type:0|1|2;typeLabel:string}|null};
 export type RunningBalance={amount:string;type:0|1|2;typeLabel:string};
 export type AccountLedgerEntry=LedgerEntry&{runningBalance:RunningBalance;orderNumber:string|null;receiptNumber:string|null;refundNumber:string|null};
