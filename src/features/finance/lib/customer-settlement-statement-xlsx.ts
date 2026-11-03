@@ -253,8 +253,10 @@ export function exportCustomerSettlementStatementXlsx(source: CustomerSettlement
   const safeId = source.kind === "draft"
     ? "draft-" + source.preview.customerId + "-" + source.preview.dateTo
     : source.record.number.replace(/[^A-Za-z0-9_-]/g, "-");
+  const to = source.kind === "draft" ? source.preview.dateTo : source.record.dateTo;
+  const from = source.periodFrom ?? to.slice(0, 8) + "01";
   link.href = url;
-  link.download = "tabaa-customer-settlement-statement-" + safeId + ".xlsx";
+  link.download = "tabaa-customer-statement-" + safeId + "-" + from + "-to-" + to + ".xlsx";
   document.body.append(link);
   link.click();
   link.remove();
