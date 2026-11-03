@@ -1,13 +1,7 @@
 /* Create Order layout-specific refinements; global Balanced Modern colors and font come from src/index.css. */
 .order-create-workspace {
-  --primary: #6250c9;
-  --ring: #6250c9;
-  --secondary: #f0edfc;
-  --secondary-foreground: #5641b9;
-  --border: #e5e8f1;
-  --input: #d9deeb;
-  color: #252a40;
-  font-family: "IBM Plex Sans Arabic", "Cairo", sans-serif;
+  color: var(--foreground);
+  font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.65;
 }
@@ -21,8 +15,8 @@
 }
 
 .order-create-workspace :where(input, select, textarea):focus-visible {
-  border-color: #6250c9;
-  box-shadow: 0 0 0 3px #6250c91c;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 12%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
