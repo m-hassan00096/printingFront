@@ -134,7 +134,7 @@ export function OrderDetailPage() {
   if (order.isError) return <ErrorState error={order.error} retry={() => void order.refetch()} />;
   const item = order.data;
   const draft = item.status === 0;
-  return <div className="space-y-5">
+  return <div className="tabaa-page space-y-4 sm:space-y-5">
     <Button asChild variant="ghost"><Link to="/orders"><ArrowRight /> العودة للأوردرات</Link></Button>
     <header className="flex flex-wrap justify-between gap-4">
       <div className="space-y-1"><p className="text-xs text-muted-foreground">تفاصيل الأوردر</p>
