@@ -73,7 +73,7 @@ export function CustomerDetailPage() {
   const currentDebt = balance.data?.type === 1 ? balance.data.amount : "0.00";
   const currentCredit = balance.data?.type === 2 ? balance.data.amount : "0.00";
 
-  return <div className="space-y-6">
+  return <div className="tabaa-page space-y-4 sm:space-y-5">
     <div>
       <Button asChild variant="link" className="px-0 text-sm"><Link to="/customers"><ArrowRight className="size-4" /> العودة للعملاء</Link></Button>
       <header className="mt-3 flex flex-wrap items-start justify-between gap-4">
