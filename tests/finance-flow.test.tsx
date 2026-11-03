@@ -133,7 +133,8 @@ describe("Finance account page against Laravel existing contracts",()=>{
     expect(secondPageRow.closest("tr")?.textContent).toContain("1,020.00");
     expect(screen.queryByText("حركة 1")).toBeNull();
     expect(screen.getByText("21–40")).toBeTruthy();
-    await user.selectOptions(size,"50");
+    const updatedSize=screen.getByRole("combobox",{name:"عدد الحركات في الصفحة"});
+    await user.selectOptions(updatedSize,"50");
     await waitFor(()=>expect(calls.some(c=>c.url==="/finance/customers/7/ledger"
       &&c.params.get("page")==="1"&&c.params.get("perPage")==="50")).toBe(true));
     expect(await screen.findByText("حركة 45")).toBeTruthy();
