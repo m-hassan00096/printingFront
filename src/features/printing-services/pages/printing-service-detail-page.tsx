@@ -47,7 +47,7 @@ export function PrintingServiceDetailPage() {
     return types.data?.find((type) => type.value === typeId)?.label ?? `نوع عميل #${typeId}`;
   }
 
-  return <div className="space-y-4">
+  return <div className="tabaa-page space-y-4 sm:space-y-5">
     <Button asChild variant="ghost" className="px-0"><Link to="/printing-services"><ArrowRight className="size-4" /> العودة لخدمات الطباعة</Link></Button>
 
     <header className="flex flex-wrap items-center justify-between gap-4">
