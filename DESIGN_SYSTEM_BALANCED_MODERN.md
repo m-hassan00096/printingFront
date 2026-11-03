@@ -86,7 +86,7 @@ Tokens are defined in `src/index.css` and must be used by `bg-primary`, `bg-card
 - **Finance**: readable dense ledger and settlements, separate financial semantics for due/credit/refunds, preserve CSV/XLSX/report functionality.
   - In a selected customer account, **تسجيل تحصيل** (primary) and **رد رصيد للعميل** (secondary) sit side by side. Refund creation stays visibly **disabled** (with an accessible inline reason) until the existing backend `/finance/customers/:id/refundable-credit` preview confirms a positive refundable amount; **hide** the action entirely for roles lacking `finance.refunds.create`.
   - Keep the ledger's `ردود الأموال فقط` filter and individual clickable refund documents. Avoid separate duplicate global/customer refund-register buttons in the account header/menu.
-  - The all-customers audit register lives at **/finance/refunds** in the Finance navigation for `finance.refunds.view`; legacy `?tab=refunds` and `?view=refunds` bookmarks remain supported. Only the one-time **رصيد افتتاحي** action is under **المزيد** (when still permitted/available).
+  - No separate refund-history navigation item: customer refunds are read via the **كشف الحساب** ledger (filter `ردود الأموال فقط` and clickable refund receipt). For backwards compatibility and authorized audit use, the all-customers report remains accessible through its **existing direct URL** `/finance/refunds` (permission `finance.refunds.view`), plus legacy `?tab=refunds` and `?view=refunds` bookmarks; none adds another sidebar entry. The one-time **رصيد افتتاحي** action is under **المزيد** only if available.
 - **Identity & settings**: clear section headings, forms with accessible labels, consistent modal surfaces.
 
 ## 6A. Modal size policy (mandatory)
