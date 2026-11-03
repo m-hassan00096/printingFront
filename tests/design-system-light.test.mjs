@@ -65,20 +65,19 @@ test("All operational pages opt in to the shared page styling", () => {
 
 test("dialogs respect task-specific max widths instead of a global viewport-width override", () => {
   // Unlayered CSS would win over Tailwind's layered max-w utilities.
-  // Do not reintroduce a global [role=dialog] max-width in the app stylesheet.
-  assert.doesNotMatch(css, /\\[role=["']dialog["']\\][^{]*\\{[^}]*max-width\\s*:/s);
+  assert.doesNotMatch(css, /\[role=["']dialog["']\][^{]*\{[^}]*max-width\s*:/s);
   assert.match(docs, /Modal size policy/);
   const settings = get("src/features/settings/pages/settings-page.tsx");
-  assert.match(settings, /max-w-\\[420px\\]/);
-  assert.match(settings, /max-w-\\[560px\\]/);
+  assert.match(settings, /max-w-\[420px\]/);
+  assert.match(settings, /max-w-\[560px\]/);
   for (const path of [
     "src/features/customers/components/customer-form-modal.tsx",
     "src/features/collections/components/collection-dialogs.tsx",
     "src/features/deliveries/components/delivery-dialogs.tsx",
     "src/features/finance/components/refund-dialogs.tsx",
   ]) {
-    assert.match(get(path), /max-w-\\[560px\\]/, path);
-    assert.match(get(path), /max-h-\\[calc\\(100dvh-24px\\)\\]/, path);
+    assert.match(get(path), /max-w-\[560px\]/, path);
+    assert.match(get(path), /max-h-\[calc\(100dvh-24px\)\]/, path);
   }
   // Complex settlement remains deliberately wide, not forced into a CRUD width.
   assert.match(get("src/features/finance/components/account-settlement-panel.tsx"), /max-w-4xl/);
