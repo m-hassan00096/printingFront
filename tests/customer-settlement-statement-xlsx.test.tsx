@@ -108,7 +108,8 @@ describe("Customer statement tied to the last saved settlement", () => {
     expect(sheet).not.toContain("رد للعميل");
     expect(sheet).not.toContain("<f>");
     expect(sheet).not.toContain("previewHash");
-    expect(new DOMParser().parseFromString(sheet, "application/xml").querySelector("parsererror")).toBeNull();
+    for (const xml of [summary, details])
+      expect(new DOMParser().parseFromString(xml, "application/xml").querySelector("parsererror")).toBeNull();
   });
 
   it("builds a valid two-sheet Arabic workbook with purpose-specific content, relationships and print setup", () => {
@@ -185,7 +186,9 @@ describe("Customer statement tied to the last saved settlement", () => {
     expect(sheet).not.toContain("COL-90");
     expect(sheet).not.toContain("ملاحظة داخلية");
     expect(sheet).not.toContain("دفعة متوقعة");
-    expect(new DOMParser().parseFromString(sheet, "application/xml").querySelector("parsererror")).toBeNull();
+    const savedBytes = buildCustomerSettlementStatementXlsx({kind: "saved", record});
+    for (const xml of [xmlSummary(savedBytes), xmlDetails(savedBytes)])
+      expect(new DOMParser().parseFromString(xml, "application/xml").querySelector("parsererror")).toBeNull();
   });
 
   it("warns about a reviewed historical settlement without changing saved figures", () => {
