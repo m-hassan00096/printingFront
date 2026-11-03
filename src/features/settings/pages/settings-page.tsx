@@ -216,7 +216,7 @@ export function SettingsPage() {
     ليس لديك صلاحية عرض أي قسم من أقسام الإعدادات.
   </div>;
 
-  return <div className="space-y-6">
+  return <div className="tabaa-page space-y-4 sm:space-y-5">
     <header>
       <h2 className="text-xl font-semibold">الإعدادات</h2>
       <p className="mt-2 text-sm leading-7 text-muted-foreground">إدارة قوائم التشغيل ووسائل التحصيل. التغييرات تخضع لصلاحياتك وقواعد النظام.</p>
