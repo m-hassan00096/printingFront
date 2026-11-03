@@ -326,7 +326,7 @@ export function customerSettlementStatementFilename(
     ? source.record.snapshot?.before.customerName ?? ""
     : source.preview.customerName;
   const customer = Array.from(name
-    .replace(/[<>:"/\\|?*\u0000-\u001f\u007f]/g, " ")
+    .replace(/[<>:"\/\\|?*\p{Cc}]/gu, " ")
     .replace(/\s+/g, " ")
     .trim()
     .replace(/[. ]+$/g, "")
