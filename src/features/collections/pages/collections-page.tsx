@@ -53,7 +53,7 @@ export function CollectionsPage(){
   const hasFilters=Boolean(searchInput||filters.search||filters.dateFrom||filters.dateTo||filters.paymentMethod||advancedCount);
   function reset(){setSearchInput("");setFilters(defaults);setAdvancedOpen(false);}
   function done(){setCreating(false);closeDetails();void qc.invalidateQueries({queryKey:["collections"]});}
-  return <div className="space-y-4">
+  return <div className="tabaa-page space-y-4 sm:space-y-5">
     <SectionHeader title="التحصيلات" detail="إدارة إيصالات تحصيل العملاء ومراجعة العمليات المعتمدة والمعكوسة."
       actions={<div className="flex gap-2">
         <Button variant="outline" onClick={()=>void qc.invalidateQueries({queryKey:["collections"]})}>
