@@ -76,21 +76,18 @@ beforeEach(() => {apiClient.defaults.adapter = adapter; permissions = ["finance.
 afterEach(() => {apiClient.defaults.adapter = original;});
 
 describe("Finance refunds within the account workspace", () => {
-  it("keeps the global refund register in Finance navigation, not in the customer action header", async () => {
+  it("keeps customer refunds exclusively in the ledger with no duplicate sidebar item", async () => {
     permissions = ["finance.balances.view", "finance.ledger.view", "finance.refunds.view"];
     visit("/finance?customerId=7");
-    const banner = await screen.findByRole("banner");
-    expect(within(banner).queryByText("مساحة العمل")).toBeNull();
     expect(await screen.findByRole("heading", {level: 1, name: "حسابات العملاء"})).toBeTruthy();
+    expect(screen.queryByRole("link", {name: "سجل ردود الأموال"})).toBeNull();
     expect(screen.queryByRole("button", {name: "سجل ردود الأموال"})).toBeNull();
     expect(screen.queryByRole("button", {name: "عرض ردود رصيد العميل"})).toBeNull();
-    const report = screen.getByRole("link", {name: "سجل ردود الأموال"});
-    expect(report.getAttribute("href")).toBe("/finance/refunds");
-    await userEvent.setup().click(report);
-    expect(window.location.pathname).toBe("/finance/refunds");
-    expect(await screen.findByRole("heading", {level: 1, name: "سجل ردود الأموال"})).toBeTruthy();
-    expect(await screen.findByRole("region", {name: "سجل ردود الأموال"})).toBeTruthy();
-    expect(screen.queryByRole("region", {name: "بيانات حساب العميل"})).toBeNull();
+    const filter = screen.getByRole("button", {name: "ردود الأموال فقط"});
+    await userEvent.setup().click(filter);
+    expect(filter.getAttribute("aria-pressed")).toBe("true");
+    expect((screen.getByRole("combobox", {name: "نوع الحركة المالية"}) as HTMLSelectElement).value).toBe("5");
+    expect(await screen.findByRole("button", {name: "REF-2026-00091"})).toBeTruthy();
   });
   it("lists refunds with filters and immutable details without fetching unauthorized accounts", async () => {
     permissions = ["finance.refunds.view"]; visit("/finance");
@@ -145,7 +142,7 @@ describe("Finance refunds within the account workspace", () => {
     await waitFor(() => expect(refund.hasAttribute("disabled")).toBe(false));
     expect(within(actions).queryByRole("button", {name: "عرض ردود رصيد العميل"})).toBeNull();
     expect(screen.queryByRole("button", {name: "سجل ردود الأموال"})).toBeNull();
-    expect(screen.getByRole("link", {name: "سجل ردود الأموال"})).toBeTruthy();
+    expect(screen.queryByRole("link", {name: "سجل ردود الأموال"})).toBeNull();
     expect(screen.queryByText("المزيد")).toBeNull(); // No opening-balance action when already registered
     expect(window.location.search).not.toContain("view=refunds");
     await user.click(refund);
@@ -181,35 +178,31 @@ describe("Finance refunds within the account workspace", () => {
     visit("/finance?customerId=7");
     const card = await screen.findByRole("region", {name: "بيانات حساب العميل"});
     expect(within(card).queryByRole("button", {name: "رد رصيد للعميل"})).toBeNull();
-    expect(screen.getByRole("link", {name: "سجل ردود الأموال"})).toBeTruthy();
+    expect(screen.queryByRole("link", {name: "سجل ردود الأموال"})).toBeNull();
     expect(calls.some(call => call.url === "/finance/customers/7/refundable-credit")).toBe(false);
   });
-  it("opens the global register through Finance navigation and returns to accounts", async () => {
+  it("keeps existing global report URLs available to authorized users without a sidebar link", async () => {
     permissions = ["finance.balances.view", "finance.ledger.view", "finance.refunds.view"];
-    visit("/finance?customerId=7");
-    const user = userEvent.setup();
-    await user.click(await screen.findByRole("link", {name: "سجل ردود الأموال"}));
-    expect(window.location.pathname).toBe("/finance/refunds");
+    visit("/finance/refunds");
+    expect(screen.queryByRole("link", {name: "سجل ردود الأموال"})).toBeNull();
     expect(await screen.findByRole("heading", {name: "سجل ردود الأموال"})).toBeTruthy();
     expect(await screen.findByText("REF-2026-00091")).toBeTruthy();
     expect(screen.getByRole("button", {name: "العودة لحسابات العملاء"})).toBeTruthy();
-    await user.click(screen.getByRole("button", {name: "العودة لحسابات العملاء"}));
+    await userEvent.setup().click(screen.getByRole("button", {name: "العودة لحسابات العملاء"}));
     expect(window.location.pathname).toBe("/finance");
-    expect(window.location.search).not.toContain("tab=refunds");
     expect(await screen.findByRole("region", {name: "قائمة حسابات العملاء"})).toBeTruthy();
   });
-  it("preserves legacy customer-specific refund deep links without showing duplicate account actions", async () => {
+  it("retains legacy scoped refund URLs without displaying duplicate account actions", async () => {
     records = [...records, {...originalRecord, id: 92, refundNumber: "REF-2026-00092", customerId: 8, customerName: "مؤسسة النور"}];
     permissions = ["finance.balances.view", "finance.ledger.view", "finance.refunds.view"];
     visit("/finance?customerId=7&view=refunds");
-    const user = userEvent.setup();
     expect(await screen.findByText("REF-2026-00091")).toBeTruthy();
     expect(screen.queryByText("REF-2026-00092")).toBeNull();
+    expect(screen.queryByRole("link", {name: "سجل ردود الأموال"})).toBeNull();
     expect(screen.queryByRole("button", {name: "عرض ردود رصيد العميل"})).toBeNull();
-    await user.click(screen.getByRole("link", {name: "سجل ردود الأموال"}));
-    expect(window.location.pathname).toBe("/finance/refunds");
-    expect(await screen.findByText("REF-2026-00092")).toBeTruthy();
-    expect(calls.some(call => call.url === "/finance/refunds" && !call.params.has("filter[customerId]"))).toBe(true);
+    expect(calls.some(call => call.url === "/finance/refunds" && call.params.get("filter[customerId]") === "7")).toBe(true);
+    await userEvent.setup().click(screen.getByRole("button", {name: "العودة لكشف الحساب"}));
+    expect(window.location.search).toContain("view=ledger");
   });
   it("opens global refund deep links without loading a selected account until requested", async () => {
     permissions = ["finance.balances.view", "finance.ledger.view", "finance.refunds.view"];
