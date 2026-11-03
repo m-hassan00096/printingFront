@@ -45,6 +45,7 @@ const adapter:AxiosAdapter=async config=>{
     if(type!==null)accounts=accounts.filter(x=>String(x.type)===type);
     return ok(config,{accounts,pagination:{currentPage:1,lastPage:1,perPage:20,total:accounts.length}});
   }
+  if(url==="/finance/customers/7/refundable-credit"&&method==="get") return ok(config, {customerId:7, availableCredit: balance.type === 2 ? balance.amount : "0.00", canRefund: balance.type === 2 && Number(balance.amount) > 0});
   if(url==="/finance/customers/7/opening-balance-status"&&method==="get")
     return ok(config,{customerId:7,openingBalanceExists:hasOpening});
   if(url==="/finance/customers/7/balance"&&method==="get")return ok(config,{...balance,openingBalanceExists:hasOpening,
@@ -111,6 +112,8 @@ describe("Finance account page against Laravel existing contracts",()=>{
     permissions=["finance.opening_balances.create"];
     visit();
     const user=userEvent.setup();
+    const more=await screen.findByText("المزيد");
+    await user.click(more);
     expect(await screen.findByRole("button",{name:"رصيد افتتاحي"})).toBeTruthy();
     expect(calls.some(c=>c.url==="/finance/customers/7/ledger")).toBe(false);
     expect(calls.some(c=>c.url==="/finance/customers/7/balance")).toBe(false);
@@ -187,6 +190,7 @@ describe("Finance account page against Laravel existing contracts",()=>{
     expect(screen.queryByText("500.00 ج.م")).toBeNull();
     expect(screen.queryByText("بيانات الحساب وتغيير العميل")).toBeNull();
     expect(screen.queryByRole("button",{name:"رصيد افتتاحي"})).toBeNull();
+    expect(screen.queryByText("المزيد")).toBeNull();
     expect(calls.some(c=>c.url==="/finance/customers/7/opening-balance-status")).toBe(true);
   });
   it("links ledger movements to real receipt and linked order and opens complete notes",async()=>{
