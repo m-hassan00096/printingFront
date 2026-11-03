@@ -196,7 +196,7 @@ export function FinancePage() {
               </div>}
               <div className="space-y-4 p-4 sm:p-5">
           {view === "refunds" && canRefundHistory && <><Button size="sm" variant="ghost" onClick={() => changeView("ledger")}>{copy.backToLedger}</Button><RefundsPanel key={customerId} customerId={customerId}/></>}
-          {canLedger && view === "settlements" && <div role="tabpanel" id="account-settlements-panel" aria-labelledby="account-settlements-tab"><AccountSettlementPanel key={customerId} customerId={customerId} customerName={customerName} canConfirm={canCollect} canViewOrders={canViewOrders} canViewCollections={canViewCollections} canDiscount={permissions.includes('finance.settlements.discount')}/></div>}
+          {canLedger && view === "settlements" && <div role="tabpanel" id="account-settlements-panel" aria-labelledby="account-settlements-tab"><AccountSettlementPanel key={customerId} customerId={customerId} customerName={customerName} canConfirm={canCollect} canViewCollections={canViewCollections} canDiscount={permissions.includes('finance.settlements.discount')}/></div>}
           {canLedger && view === "ledger" && <section role="tabpanel" id="account-ledger-panel" aria-labelledby="account-ledger-tab" className="space-y-3">
             <p className="text-xs leading-5 text-muted-foreground">الأحدث أولًا. الرصيد بعد الحركة تراكمي من كامل الحساب، وليس مجموع الصفوف المعروضة بعد الفلترة.</p>
             <div className="grid gap-3 rounded-lg border bg-muted/20 p-3 md:grid-cols-3">
