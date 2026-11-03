@@ -72,17 +72,31 @@ beforeEach(()=>{
   balance={customerId:7,amount:"250.00",type:1,typeLabel:"مدين"};
   calls=[];
   hasOpening=false;
+  ledgerEntries[0].createdAt="2026-10-26T10:00:00+03:00";
 });
 afterEach(()=>{apiClient.defaults.adapter=original;});
 describe("Finance account page against Laravel existing contracts",()=>{
   it("shows current debit balance and paginated ledger with signed debit/credit distinction",async()=>{
     visit();
-    expect(await screen.findByRole("tab",{name:"حسابات العملاء"})).toBeTruthy();
+    expect(await screen.findByRole("heading",{level:1,name:"حسابات العملاء"})).toBeTruthy();
     expect(await screen.findByText("سداد دين")).toBeTruthy();
     expect(screen.getAllByText("250.00 ج.م").length).toBeGreaterThan(0);
     expect(screen.getByText("50.00 ج.م")).toBeTruthy();
     expect(screen.getByText("26/10/2026")).toBeTruthy();
+    expect(screen.getByText("10:00 ص")).toBeTruthy();
+    expect(screen.getByTitle("وقت تسجيل الحركة فعليًا بتوقيت القاهرة").textContent).toContain("الساعة");
     expect(calls.some(c=>c.url==="/finance/customers/7/balance")).toBe(true);
+    expect(calls.some(c=>c.url==="/finance/customers/7/ledger")).toBe(true);
+  });
+  it("shows accounting date separately when a payment was registered on a different day",async()=>{
+    ledgerEntries[0].createdAt="2026-11-03T09:14:00Z";
+    visit();
+    const ledger=await screen.findByRole("tabpanel",{name:"كشف الحساب"});
+    expect(await within(ledger).findByText("26/10/2026")).toBeTruthy();
+    const posting=within(ledger).getByTitle("وقت تسجيل الحركة فعليًا بتوقيت القاهرة");
+    expect(posting.textContent).toContain("سُجّلت");
+    expect(posting.textContent).toContain("03/11/2026");
+    expect(posting.textContent).toContain("11:14 ص");
     expect(calls.some(c=>c.url==="/finance/customers/7/ledger")).toBe(true);
   });
   it("sends the backend-specific ledger type filter and no unsupported sort",async()=>{

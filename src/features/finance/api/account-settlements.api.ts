@@ -21,3 +21,20 @@ export async function getAccountSettlement(customerId: number, id: number): Prom
   const { data } = await apiClient.get<ApiResponse<AccountSettlementRecord>>(path(customerId) + `/${id}`);
   return data.data;
 }
+
+/**
+ * Records are newest-ID-first, with immutable snapshots loaded only from show().
+ * Fetch the record preceding an older saved settlement as well as the latest
+ * one for a new draft; never mistake the draft's future settlement for posted cash.
+ */
+export async function findPreviousAccountSettlement(customerId: number, beforeId?: number): Promise<AccountSettlementRecord | null> {
+  let page = 1, lastPage = 1;
+  do {
+    const history = await listAccountSettlements(customerId, page);
+    const reference = history.settlements.find(row => beforeId === undefined || row.id < beforeId);
+    if (reference) return getAccountSettlement(customerId, reference.id);
+    lastPage = history.pagination.lastPage;
+    page += 1;
+  } while (page <= lastPage);
+  return null;
+}

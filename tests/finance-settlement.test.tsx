@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { AxiosAdapter, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { App } from "@/App";
@@ -28,6 +28,7 @@ const adapter: AxiosAdapter = async config => {
     refundId: null, refundNumber: null, orderId: null, orderNumber: null, note: "ملاحظة تجريبية للحركة",
   }], balance: {amount: "4950.00", type: 1, typeLabel: "مدين"}, openingBalanceExists: true,
     pagination: {currentPage: 1, perPage: 20, lastPage: 1, total: 1}});
+  if (url === "/finance/customers/7/settlements" && (config.method ?? "get") === "get") return response(config, {settlements: [], pagination: {currentPage: 1, perPage: 15, lastPage: 1, total: 0}});
   if (url === "/finance/customers/7/settlements/preview") return response(config, {
     customerId: 7, customerName: "شركة النور", customerPhone: "01012345678",
     dateTo: params.get("dateTo"), paymentsThrough: params.get("dateTo"),
@@ -56,120 +57,70 @@ function visit(query = "customerId=7") {window.history.replaceState({}, "", "/fi
 beforeEach(() => {apiClient.defaults.adapter = adapter; permissions = ["finance.balances.view", "finance.ledger.view"]; calls = [];});
 afterEach(() => {apiClient.defaults.adapter = originalAdapter;});
 
-describe("Read-only delivered work statement", () => {
-  it("loads the default month when its tab opens and never creates a payment or settlement", async () => {
+describe("Simple two-tab customer accounts and settlement reporting", () => {
+  it("shows only the ledger and settlement tabs, without a delivered-work report action", async () => {
     visit();
-    const user = userEvent.setup();
-    const tab = await screen.findByRole("tab", {name: "الشغل المستلّم"});
-    expect(calls.some(call => call.url.endsWith("/settlement"))).toBe(false);
-    await user.click(tab);
-    const panel = screen.getByRole("region", {name: "كشف الشغل المسلّم للعميل"});
-    expect(await within(panel).findByText("كروت شخصية — وجهين")).toBeTruthy();
-    expect(within(panel).queryByText("COL-90")).toBeNull();
-    expect(within(panel).queryByText("رصيد افتتاحي")).toBeNull();
-    expect(within(panel).queryByText("4,950.00 ج.م")).toBeNull();
-    expect(within(panel).getByRole("table", {name: "تفاصيل الشغل المستلّم"})).toBeTruthy();
-    expect(within(panel).getByRole("button", {name: "طباعة / PDF"})).toBeTruthy();
-    expect(within(panel).getByRole("button", {name: "تصدير Excel"})).toBeTruthy();
-    const call = calls.find(item => item.url.endsWith("/settlement"))!;
-    expect(call.params.get("dateFrom")).toMatch(/^\d{4}-\d{2}-01$/);
-    expect(call.params.get("dateTo")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(calls.some(call => call.method === "post")).toBe(false);
-    await user.click(screen.getByRole("tab", {name: "كشف الحساب"}));
-    expect(screen.getByRole("tabpanel", {name: "كشف الحساب"})).toBeTruthy();
-    expect(screen.queryByRole("region", {name: "كشف الشغل المسلّم للعميل"})).toBeNull();
-  });
-  it("groups account tabs and content in a distinct section below the customer summary", async () => {
-    visit();
-    const user = userEvent.setup();
-    const summary = await screen.findByRole("region", {name: "بيانات حساب العميل"});
+    await screen.findByRole("tabpanel", {name: "كشف الحساب"});
     const details = await screen.findByRole("region", {name: "تفاصيل الحساب"});
-    expect(summary).not.toBe(details);
-    expect(details.parentElement?.className).toContain("pt-2");
-    expect(details.className).toContain("rounded-xl");
-    expect(details.className).toContain("border");
-
     const tabs = within(details).getByRole("tablist", {name: "تفاصيل حساب العميل"});
-    const ledgerTab = within(tabs).getByRole("tab", {name: "كشف الحساب"});
-    const deliveredTab = within(tabs).getByRole("tab", {name: "الشغل المستلّم"});
-    expect(ledgerTab.className).toContain("border-primary");
-    expect(ledgerTab.className).toContain("text-primary");
-    expect(ledgerTab.className).not.toContain("bg-primary");
-    expect(within(details).queryByRole("heading", {name: "كشف الحساب"})).toBeNull();
-    expect(within(details).getByRole("tabpanel", {name: "كشف الحساب"})).toBeTruthy();
-
-    await user.click(deliveredTab);
-    expect(deliveredTab.className).toContain("border-primary");
-    expect(ledgerTab.className).toContain("border-transparent");
-    const report = await within(details).findByRole("region", {name: "كشف الشغل المسلّم للعميل"});
-    expect(report.className).not.toContain("border");
-    expect(await within(report).findByText("كروت شخصية — وجهين")).toBeTruthy();
-
-    await user.click(ledgerTab);
-    expect(ledgerTab.className).toContain("border-primary");
+    expect(within(tabs).getAllByRole("tab").map(tab => tab.textContent)).toEqual([
+      "كشف الحساب", "تصفية الحساب",
+    ]);
+    expect(screen.queryByRole("tab", {name: "الشغل المستلّم"})).toBeNull();
+    expect(screen.queryByRole("button", {name: "تقرير الشغل فقط"})).toBeNull();
+    const user = userEvent.setup();
+    await user.click(within(tabs).getByRole("tab", {name: "تصفية الحساب"}));
+    expect(within(details).getByRole("tabpanel", {name: "تصفية الحساب"})).toBeTruthy();
+    expect(within(details).getByRole("button", {name: "تصفية جديدة"})).toBeTruthy();
+    expect(within(details).queryByText("مستندات وإثباتات")).toBeNull();
+    expect(calls.some(call => call.url.endsWith("/settlement"))).toBe(false);
+    await user.click(within(tabs).getByRole("tab", {name: "كشف الحساب"}));
     expect(within(details).getByRole("tabpanel", {name: "كشف الحساب"})).toBeTruthy();
   });
-  it("keeps the ledger readable with five columns and nested receipt and note details", async () => {
+
+  it("keeps the ledger readable with five columns, receipt and note details", async () => {
     visit();
     const ledger = await screen.findByRole("tabpanel", {name: "كشف الحساب"});
     const table = await within(ledger).findByRole("table");
     expect(within(table).getAllByRole("columnheader").map(header => header.textContent)).toEqual([
-      "التاريخ", "العملية والتفاصيل", "زيادة على الحساب (+)", "دفعة / تخفيض (−)", "الرصيد بعد الحركة",
+      "التاريخ والوقت", "العملية والتفاصيل", "زيادة على الحساب (+)", "دفعة / تخفيض (−)", "الرصيد بعد الحركة",
     ]);
     expect(within(table).getByText("COL-90")).toBeTruthy();
     await userEvent.setup().click(within(table).getByRole("button", {name: "عرض الملاحظة كاملة"}));
     expect(within(screen.getByRole("dialog", {name: "تفاصيل الحركة المالية"})).getByText("ملاحظة تجريبية للحركة")).toBeTruthy();
   });
-  it("shows the delivery total alone rather than duplicating the customer's debt and cash statement", async () => {
+
+  it("redirects old delivered-work URLs to settlement without rendering the retired report", async () => {
     visit("customerId=7&view=delivered");
-    const panel = await screen.findByRole("region", {name: "كشف الشغل المسلّم للعميل"});
-    expect(await within(panel).findByText("كروت شخصية — وجهين")).toBeTruthy();
-    const summary = within(panel).getByLabelText("ملخص الشغل المستلّم");
-    expect(within(summary).getByText("عدد الأوردرات المستلّمة")).toBeTruthy();
-    expect(within(summary).getByText("إجمالي الشغل المستلّم")).toBeTruthy();
-    expect(within(summary).getByText("صافي الشغل خلال الفترة")).toBeTruthy();
-    expect(within(summary).queryByText("رصيد افتتاحي سُجل داخل الفترة")).toBeNull();
-    expect(within(summary).queryByText("5,000.00 ج.م")).toBeNull();
-    expect(within(summary).queryByText("4,950.00 ج.م")).toBeNull();
-    expect(within(panel).queryByText("COL-90")).toBeNull();
-    const table = within(panel).getByRole("table", {name: "تفاصيل الشغل المستلّم"});
-    expect(within(table).getAllByRole("columnheader").map(x => x.textContent)).toEqual([
-      "تاريخ الحركة", "رقم الأوردر", "الشغل / الحالة", "الكمية", "سعر القطعة", "القيمة",
-    ]);
-    expect(within(table).getByText("ORD-10")).toBeTruthy();
-    expect(within(table).queryByText("تحصيل من العميل")).toBeNull();
-    expect(within(table).queryByText("رصيد افتتاحي")).toBeNull();
+    await waitFor(() => expect(window.location.search).toContain("view=settlements"));
+    expect(await screen.findByRole("tabpanel", {name: "تصفية الحساب"})).toBeTruthy();
+    expect(screen.queryByRole("button", {name: "تقرير الشغل فقط"})).toBeNull();
+    expect(screen.queryByRole("region", {name: "كشف الشغل المسلّم للعميل"})).toBeNull();
+    expect(calls.some(call => call.url.endsWith("/settlement"))).toBe(false);
   });
-  it("links delivered orders only when the staff has the order-read permission", async () => {
-    permissions = ["finance.balances.view", "finance.ledger.view", "orders.view"];
-    visit("customerId=7&view=delivered");
-    const table = await screen.findByRole("table", {name: "تفاصيل الشغل المستلّم"});
-    const order = within(table).getByRole("link", {name: "ORD-10"});
-    expect(order.getAttribute("href")).toBe("/orders/10");
-  });
-  it("opens the same customer's ledger from payment details without reposting or re-entering the customer", async () => {
+
+  it("links to the general ledger from a new settlement without posting or losing the customer", async () => {
     visit("customerId=7&view=settlements");
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", {name: "تصفية جديدة"}));
     await user.click(await screen.findByText("عرض تفاصيل الحساب والشغل"));
     expect(screen.getByText("صافي دفعات العميل السابقة")).toBeTruthy();
-    expect(screen.queryByText("تفصيل الدفعات والمقدمات")).toBeNull();
     const link = screen.getByRole("link", {name: "عرض حركات الدفعات في كشف الحساب"});
     expect(link.getAttribute("href")).toBe("/finance?customerId=7&view=ledger");
     await user.click(link);
     const ledger = await screen.findByRole("tabpanel", {name: "كشف الحساب"});
-    expect(screen.getByRole("tab", {name: "كشف الحساب"}).getAttribute("aria-selected")).toBe("true");
     expect(await within(ledger).findByText("COL-90")).toBeTruthy();
-    expect(window.location.search).toContain("customerId=7");
     expect(window.location.search).toContain("view=ledger");
     expect(calls.some(call => call.method === "post")).toBe(false);
   });
-  it("requires ledger permission even for a direct delivered-report URL", async () => {
+
+  it("does not expose settlement or work-report actions without ledger permission", async () => {
     permissions = ["finance.balances.view"];
     visit("customerId=7&view=delivered");
     await screen.findByRole("region", {name: "بيانات حساب العميل"});
-    expect(screen.queryByRole("tab", {name: "الشغل المستلّم"})).toBeNull();
     expect(screen.queryByRole("tab", {name: "تصفية الحساب"})).toBeNull();
+    expect(screen.queryByRole("tab", {name: "الشغل المستلّم"})).toBeNull();
+    expect(screen.queryByRole("button", {name: "تقرير الشغل فقط"})).toBeNull();
     expect(calls.some(call => call.url.endsWith("/settlement") || call.url.includes("/settlements"))).toBe(false);
   });
 });

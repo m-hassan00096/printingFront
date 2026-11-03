@@ -109,7 +109,7 @@ Backend PR #23 exercises customer-select permission boundaries, including inacti
 
 ## Delivered-work tab: operational report, not a financial statement (2026-11-02)
 
-- The **الشغل المستلّم** tab now answers *what was actually delivered, when, for what agreed amount, and whether delivery was cancelled*. It is distinct from both **كشف الحساب** (all financial movements, debts and payments) and **تصفية الحساب** (recording and evidencing financial settlement).
+- The historical **الشغل المستلّم** operational report has a standalone implementation retained in code, but its account tab and extra action are hidden in the current two-tab finance UI. The customer-facing **تقرير التصفية Excel** replaces its role for customer communications.
 - It reuses the existing read-only `GET /finance/customers/{id}/settlement` response, but displays/prints/exports **only** `delivered_item` and `delivery_cancellation` rows. Opening balances, receipts, refunds, historical running balances, and undelivered Finance debts are **not** part of this delivered-work report. No new debt or payment is posted by opening it.
 - Summary: unique orders with delivered items in the selected period; gross delivered-work value; delivery cancellations; and authoritative backend `deliveredTotal` as the **net** (a work value, not a receivable). The total can be affected by cancellation of a delivery made before the selected period. Empty results are based on delivery rows, not on cash movements.
 - The table and output formats show delivery date, order reference (a link only with `orders.view`), item description including dimensions when recorded, quantity, agreed per-piece price, signed value, and negative cancellation rows. Area-unit rates must **not** be presented as the per-piece price.
@@ -119,7 +119,7 @@ Backend PR #23 exercises customer-select permission boundaries, including inacti
 
 ## Integrated customer-account settlement and fixed discount (2026-11-02)
 
-- **Basis:** the original V2 finance workspace (#25) with three distinct account detail tabs: ledger, delivered work, settlement. It is intentionally **not** replaced by the parallel V2 discount screen (#26).
+- **Basis:** the original V2 finance workspace (#25); the current account UI intentionally has two tabs, ledger and settlement.
 - Opening **تصفية الحساب** first displays the saved immutable settlement history. **تصفية جديدة** opens one compact modal containing the cumulative delivered-work cutoff, real current customer funds, fixed discount, optional cash collection and an optional explanatory breakdown.
 - Previous **discountsTotal** is shown separately from **netPayments**; neither the UI nor print evidence should treat a fixed discount as money received.
 - The fixed-discount field is visible only with \`finance.settlements.discount\`. A nonzero discount needs a reason, cannot exceed the delivered-work balance or real account debit, and cannot create customer credit.
@@ -128,3 +128,52 @@ Backend PR #23 exercises customer-select permission boundaries, including inacti
 - Historical evidence keeps the discount, its reason, real cash, receipt, original balance and remaining balance separately; reversal/cancellation warnings from the original backend V2 are preserved. The ledger filter adds the discount movement type.
 - Requires backend integrated PR #42 (migration and permission seeders) deployed before the frontend PR #27. Old V2 PRs #25/#40 and the parallel drafts #26/#41 must **not** be merged independently.
 - Verify actual currency arithmetic, staff roles, cash receipts, historical snapshots, mobile RTL and printed evidence in staging before deployment.
+
+## Customer-facing settlement account statement Excel (2026-11-02)
+
+- Dedicated Arabic RTL **one-sheet client-facing XLSX** available in new settlement preview, saved settlement result, and each saved history row (one-click).
+- The customer-facing settlement report is separate from internal immutable evidence, which remains in the code but is no longer offered as a second on-screen action.
+- The client sees **only** customer identity, the selected order reporting period, prominent due/remaining balance, a short summary (opening balance, prior delivered work, delivered work in period, net previous payments, applicable discounts and settled payment), and **only orders delivered during the chosen From/To period**, each with delivery date, order number, item, dimensions, quantity, unit price and total. A detailed per-transaction reversal/refund/payment ledger is intentionally omitted: the internal evidence and Finance ledger remain available for audit.
+- The modal now has **بداية فترة التصفية** (`dateFrom`) and **الشغل المستلّم حتى** (`dateTo`). Both dates are persisted by the backend on confirmation, with automatic defaults after the previous saved settlement, or the first of the month when none exists. This is the saved reporting period, not a filter on the cumulative financial due. The client report shows verified cash posted since the prior settlement.
+- **Draft:** re-read the latest backend preview before exporting; always label as NOT posted. Valid entered discount and cash can appear only as proposals, with projected balance explicitly hypothetical, not a receipt. Stale preview rejects proposed figures until user refreshes.
+- **Saved:** re-fetch individual saved snapshot and review flag; actual collected cash and actual discount are separate, remaining balance historical, and a later reversal/refund triggers a clear warning.
+- Numerics/dates use Excel value types; customer strings are escaped inline text, preventing formula injection. The existing settlement POST now carries `dateFrom`; an additive migration adds nullable `scope_from`, while `scope_to` already stores the end. Never leak idempotency keys, internal identifiers or internal operator notes.
+- Verify `npm test`, `npm run typecheck`, `npm run lint` and `npm run build` before merge; check customer-facing statements against actual receipts in staging.
+
+
+### Statement since the last settlement (2026-11-03)
+
+- The client statement defaults **بداية فترة التصفية** to the day after the **last saved settlement's delivery cutoff** (`dateTo`), or to the beginning of the selected month if none exists. The saved **إلى** date remains the official delivered-work cutoff. Changing the start does not alter the backend cumulative account balance, but it is now saved as immutable period metadata upon confirmation.
+- Before posting a new settlement, the customer Excel says **تصفية جديدة — لم تُسجّل بعد** and shows no invented current settlement number. It shows the most recent actual settlement number, saved date, delivery cutoff and remaining amount from that immutable record.
+- The account bridge between that previous recorded settlement and the live preview reconciles: previous recorded remainder + newly delivered work + any delivered-work adjustments − **net actual customer payments** − saved non-cash discounts + other movements = the server-authoritative amount now due. It never treats a draft collection as paid cash.
+- Payments are selected by `sourceManifest.ledgerMaxId` from the prior saved **after** snapshot, **not simply effectiveDate**: receipts and reversals on the same calendar day are distinguished correctly. Client Excel lists receipt/date, collection/reversal/refund and signed money amount, alongside the subtotal. If no prior settlement exists, display movements from the chosen date onward and carry other account activity into the opening summary.
+- A previously saved settlement export uses its immutable `snapshot.before` and the *preceding* saved settlement, never the newest current balance or the settlement itself as its own previous settlement. The settlement being exported may display its recorded number and real collected amount; post-settlement transactions are never fabricated.
+- Previous saved statements are discovered through the existing paginated history and individual show GET endpoints; no new route or extra POST. Saved settlements now expose `dateFrom` from their immutable date column, if available. If a historical snapshot lacks the required ledger high-water mark, the report rejects rather than guessing which same-day payments happened after the prior settlement. Historical reversal/review warnings remain intact.
+- Before confirmation, the operator can change the proposed start date (never before the prior settlement cutoff). After confirmation, `dateFrom` and `dateTo` are read-only and shown from the stored record; old rows with NULL `dateFrom` explicitly show an unknown start and permit only a legacy report-time override.
+
+### Persistent settlement period and simplified action UI (2026-11-03)
+
+- Finance accounts retain two tabs: **كشف الحساب** and **تصفية الحساب**. No visible **تقرير الشغل فقط** button or separate work report in either the history or saved result. The retired work-report component and its independent export code remain available internally for future needs.
+- **بداية فترة التصفية** and **الشغل المستلّم حتى** are submitted together as `dateFrom` and `dateTo` on confirmation. Backend PR #43 adds `scope_from` (nullable to preserve historical unknown starts), writes both atomically with the settlement receipt/discount and returns them via `dateFrom` and `dateTo` in history, saved detail and store.
+- The start auto-defaults to the day after the previous settlement cutoff, or the first day of the month for the first settlement, and can be edited within the permitted range. Legacy clients omitting `dateFrom` receive a server-computed stored start. The cumulative accounting algorithm remains unchanged.
+- New saved settlement records display **فترة التصفية** using the two dates actually stored. Old records with `scope_from = NULL` display **غير مسجّل**; no historical backfill or fabricated period. Legacy record reports can use a clearly marked report-only date picker.
+- In the saved result the only customer-facing Excel action is **تقرير التصفية Excel**. The extra **مستندات وإثباتات** menu and visible work-only report button are removed. Internal evidence print/export generators remain in the repo (not exposed in this screen). A posted collection receipt link remains when permitted.
+- The client Excel uses stored `dateFrom` first when present, making the report period align with the immutable settlement. Old NULL-start records display an explicit legacy-period caveat.
+- Backend must be deployed **before** frontend and migrated (`php artisan migrate --force`). Frontend PR #28 and backend PR #43 are kept Draft until CI/manual QA; no production migrations or deployment from this change.
+
+### Refund history consolidated into the customer accounts UI (2026-11-03)
+
+- **Presentation-only change.** Remove the top-level **سجل الردود العام** tab beside **حسابات العملاء**. The refunds register is still accessible via a quiet **سجل ردود الأموال** action in the page header for authorized users, with **العودة لحسابات العملاء** navigation. The legacy `?tab=refunds` deep link continues to open the global refunds register directly, without loading private customer balances.
+- For a selected customer, **كشف الحساب** already contains refund movement type `5` and access to the linked immutable refund document (only when staff has `finance.refunds.view`). Add a quick **ردود الأموال فقط** toggle next to the existing date and full movement-type filters. It uses exactly the same server ledger `filter[type]=5`; no duplicate financial computation or frontend filtering of a paginated list.
+- Keep customer-scoped refund history (`?view=refunds`) reachable from **إجراءات أخرى** for staff with `finance.refunds.view`, with its original search/date/payment method filters and its original `RefundDetailsDialog`. Keep global refunds history accessible even if a role has only `finance.refunds.view` and not `finance.ledger.view` or `finance.balances.view`.
+- **Create Refund remains fully functional**: the selected-customer action **رد رصيد للعميل** and a single **رد رصيد دائن** create action within the global refunds history for `finance.refunds.create`. The existing `CreateRefundDialog`, `POST /finance/refunds`, idempotency key, available-credit guard, payment method/destination, reason, physical payout acknowledgment, query invalidation, and ledger balance updates are untouched.
+- This change does not add/change any backend API, controller, DB table, migration or authorization. Separate refund money from order returns and from canceled collections; the account ledger still shows these as different movement types.
+- UI tests cover permissions, legacy links, global and customer scope separation, refund-only viewers, posted refund visibility in ledger, one-click server filter, refund detail lookup, and a single POST for creation.
+
+### Ledger accounting date and actual posting time (2026-11-03)
+
+- **سجل الحركات** shows two values: `effectiveDate` as the original business/accounting date and `createdAt` as the actual time the movement was recorded. The timestamp is displayed in 12-hour Cairo local time (`Africa/Cairo`), with Arabic **ص / م** markers (e.g. `2:00 ص`, `2:00 م`), immediately under the date.
+- If the real posting day is different from the effective accounting date (for example, back-dated reversals), the label explicitly shows the **full real posting date + time** rather than implying that the transaction was posted on the accounting date.
+- For old or malformed records without an ISO timestamp and explicit offset, only the effective accounting date is displayed. The UI never guesses 00:00 or derives an invented time from the date.
+- This uses the existing `createdAt` field in the finance ledger GET response. Ledger sorting/filtering and financial posting are unchanged. No backend API, database, or migration changes.
+- Regression coverage includes Cairo daylight saving/winter offsets, offset normalization, date rollovers, missing timestamps, and the UI difference between effective date and recorded date.

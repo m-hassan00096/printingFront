@@ -14,13 +14,14 @@ export type AccountSettlementPreview = {
   netPayments: string; discountsTotal: string; advancesForOtherWork: string; balanceBefore: string;
   dueNow: string; creditInScope: string; accountBalance: string; outsideBalance: string;
   hasWork: boolean; items: AccountSettlementItem[];
+  sourceManifest?: {ledgerMaxId: number; creditEntryIds: number[]; deliveryIds: number[]; orderIds: number[]};
   payments: {entryId: number; type: number; typeLabel: string; effectiveDate: string;
     signedAmount: string; collectionId: number | null; receiptNumber: string | null;
     orderId: number | null; outsideWorkScope: boolean}[];
 };
 export type AccountSettlementStatus = "closed" | "partial" | "credit" | "needs_review";
 export type AccountSettlementRecord = {
-  id: number; number: string; customerId: number; dateTo: string; settledOn: string;
+  id: number; number: string; customerId: number; dateFrom: string | null; dateTo: string; settledOn: string;
   status: AccountSettlementStatus; originalStatus: Exclude<AccountSettlementStatus, "needs_review">;
   statusLabel: string; needsReview: boolean; balanceBefore: string; amountCollected: string;
   discountAmount: string; discountReason: string | null; discountLedgerEntryId: number | null;
@@ -29,7 +30,7 @@ export type AccountSettlementRecord = {
   snapshot?: {before: AccountSettlementPreview; after: AccountSettlementPreview; receiptNumber: string | null};
 };
 export type AccountSettlementInput = {
-  dateTo: string; previewHash: string; amount: string;
+  dateFrom: string; dateTo: string; previewHash: string; amount: string;
   discountAmount?: string; discountReason?: string;
   paymentMethod?: 0 | 1 | 2; paymentDestinationId?: number; note?: string;
 };

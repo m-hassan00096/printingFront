@@ -45,7 +45,7 @@ export function CustomerSettlementPanel({customerId, canViewOrders = false}: {cu
 
   return <section className="space-y-4" aria-label="كشف الشغل المسلّم للعميل">
     <p className="text-sm leading-6 text-muted-foreground">
-      الشغل الذي استلمه العميل بالفعل خلال الفترة. المدفوعات والمديونيات في «كشف الحساب»، والتحصيل والتقفيل في «تصفية الحساب».
+      تقرير مستقل للأوردرات المستلّمة وإلغاءات التسليم خلال الفترة، مع Excel وPDF. لا يسجّل دفعات أو يغيّر المديونية.
     </p>
 
     <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">

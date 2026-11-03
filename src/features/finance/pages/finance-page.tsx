@@ -13,12 +13,12 @@ import { uiMessages } from "@/shared/translations/ar/ui";
 import { useFinanceCustomers, useFinanceBalance, useFinanceLedger, useFinanceOpeningStatus } from "../hooks/use-finance";
 import { RefundsPanel } from "../components/refunds-panel";
 import { FinanceAccountsOverview } from "../components/finance-accounts-overview";
-import { CustomerSettlementPanel } from "../components/customer-settlement-panel";
 import { AccountSettlementPanel } from "../components/account-settlement-panel";
 import { AccountCollectionDialog } from "../components/account-collection-dialog";
 import { CreateRefundDialog, RefundDetailsDialog } from "../components/refund-dialogs";
 import { OpeningBalanceDialog } from "../components/opening-balance-dialog";
 import { accountTypeLabel } from "../lib/account-display";
+import { formatLedgerRecordedAt } from "../lib/ledger-recorded-at";
 import type { AccountFilters } from "../types/finance.types";
 
 const defaultFilters: AccountFilters = {page: 1, dateFrom: "", dateTo: "", type: ""};
@@ -29,7 +29,7 @@ const movementTypes = [
   {value: "4", label: "إلغاء تحصيل سابق"}, {value: "5", label: "رد مبلغ للعميل"},
   {value: "6", label: "رصيد افتتاحي"}, {value: "7", label: "خصم تصفية حساب"},
 ];
-type AccountView = "ledger" | "delivered" | "settlements" | "refunds";
+type AccountView = "ledger" | "settlements" | "refunds";
 
 export function FinancePage() {
   const permissions = useCurrentUser().data?.permissions ?? [];
@@ -49,7 +49,17 @@ export function FinancePage() {
   const customerId = Number.isSafeInteger(parsedId) && parsedId > 0 ? parsedId : 0;
   const globalRefunds = canRefundHistory && (!canAccountDetails || params.get("tab") === "refunds");
   const rawView = params.get("view");
-  const view: AccountView = rawView === "delivered" || rawView === "settlements" || rawView === "refunds" ? rawView : "ledger";
+  const view: AccountView = rawView === "delivered" || rawView === "settlements"
+    ? "settlements" : rawView === "refunds" ? "refunds" : "ledger";
+  // Preserve bookmarked legacy delivered-report URLs without exposing a third tab.
+  useEffect(() => {
+    if (rawView !== "delivered") return;
+    setParams(previous => {
+      const next = new URLSearchParams(previous);
+      next.set("view", "settlements");
+      return next;
+    }, {replace: true});
+  }, [rawView, setParams]);
   const customers = useFinanceCustomers(canAccountDetails && !globalRefunds && (customerId > 0 || !canBalance));
   const selected = customers.data?.find(item => item.value === customerId);
   const selectedParts = selected?.label.match(/^(.*)\s[-–]\s(\+?\d+)$/);
@@ -101,25 +111,28 @@ export function FinancePage() {
     setParams(previous => {const next = new URLSearchParams(previous); if (tab === "refunds") next.set("tab", "refunds"); else next.delete("tab"); return next;});
   }
   const accountViews: {key: AccountView; title: string}[] = canLedger ? [
-    {key: "ledger", title: "كشف الحساب"}, {key: "delivered", title: "الشغل المستلّم"}, {key: "settlements", title: "تصفية الحساب"},
+    {key: "ledger", title: "كشف الحساب"}, {key: "settlements", title: "تصفية الحساب"},
   ] : [];
 
   return <div className="space-y-4">
-    <div className="flex flex-wrap items-center justify-between gap-4">
-      <h1 className="text-2xl font-bold tracking-tight">حسابات العملاء</h1>
-      <Button type="button" variant="outline" onClick={refresh}><RefreshCw className="size-4"/> تحديث</Button>
-    </div>
-    {(canAccountDetails || canRefundHistory) && <div className="pb-2">
-      <div role="tablist" aria-label={copy.moduleTabs} className="flex flex-wrap items-center gap-6 border-b border-border">
-      {canAccountDetails && <button type="button" role="tab" id="finance-accounts-tab" aria-controls="finance-accounts-panel" aria-selected={!globalRefunds} onClick={() => selectFinanceTab("accounts")}
-        className={"-mb-px border-b-2 px-1 pb-3 pt-2 text-sm font-semibold transition-colors focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary " +
-          (!globalRefunds ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>{copy.accountsTab}</button>}
-      {canRefundHistory && <button type="button" role="tab" id="finance-refunds-tab" aria-controls="finance-refunds-panel" aria-selected={globalRefunds} onClick={() => selectFinanceTab("refunds")}
-        className={"-mb-px border-b-2 px-1 pb-3 pt-2 text-sm font-semibold transition-colors focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary " +
-          (globalRefunds ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>{copy.globalRefundsTab}</button>}
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <h1 className="text-2xl font-bold tracking-tight">{globalRefunds ? "سجل ردود الأموال" : "حسابات العملاء"}</h1>
+      <div className="flex flex-wrap items-center gap-2">
+        {globalRefunds ? <>
+          {canRefund && <Button type="button" size="sm" onClick={() => setRefunding(true)}>
+            <RotateCcw className="size-4"/> رد رصيد دائن
+          </Button>}
+          {canAccountDetails && <Button type="button" variant="outline" size="sm" onClick={() => selectFinanceTab("accounts")}>
+            العودة لحسابات العملاء
+          </Button>}
+        </> : canRefundHistory && <Button type="button" variant="outline" size="sm"
+          onClick={() => selectFinanceTab("refunds")}>
+          <History className="size-4"/> سجل ردود الأموال
+        </Button>}
+        <Button type="button" variant="outline" onClick={refresh}><RefreshCw className="size-4"/> تحديث</Button>
       </div>
-    </div>}
-    {canAccountDetails && <div role="tabpanel" id="finance-accounts-panel" aria-labelledby="finance-accounts-tab" hidden={globalRefunds} className="space-y-4">
+    </div>
+    {canAccountDetails && <div hidden={globalRefunds} className="space-y-4">
       {!globalRefunds && <>
         {canBalance && !customerId && <FinanceAccountsOverview onSelect={id => chooseCustomer(String(id))}/>}
         {!customerId && !canBalance && <section className="rounded-xl border bg-card p-5" aria-label="اختيار حساب العميل">
@@ -187,10 +200,16 @@ export function FinancePage() {
               </div>}
               <div className="space-y-4 p-4 sm:p-5">
           {view === "refunds" && canRefundHistory && <><Button size="sm" variant="ghost" onClick={() => changeView("ledger")}>{copy.backToLedger}</Button><RefundsPanel key={customerId} customerId={customerId}/></>}
-          {canLedger && view === "delivered" && <div role="tabpanel" id="account-delivered-panel" aria-labelledby="account-delivered-tab"><CustomerSettlementPanel key={customerId} customerId={customerId} canViewOrders={canViewOrders}/></div>}
           {canLedger && view === "settlements" && <div role="tabpanel" id="account-settlements-panel" aria-labelledby="account-settlements-tab"><AccountSettlementPanel key={customerId} customerId={customerId} customerName={customerName} canConfirm={canCollect} canViewCollections={canViewCollections} canDiscount={permissions.includes('finance.settlements.discount')}/></div>}
           {canLedger && view === "ledger" && <section role="tabpanel" id="account-ledger-panel" aria-labelledby="account-ledger-tab" className="space-y-3">
-            <p className="text-xs leading-5 text-muted-foreground">الأحدث أولًا. الرصيد بعد الحركة تراكمي من كامل الحساب، وليس مجموع الصفوف المعروضة بعد الفلترة.</p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs leading-5 text-muted-foreground">الأحدث أولًا. الرصيد بعد الحركة تراكمي من كامل الحساب، وليس مجموع الصفوف المعروضة بعد الفلترة.</p>
+              <Button type="button" size="sm" variant={filters.type === "5" ? "secondary" : "outline"}
+                aria-pressed={filters.type === "5"}
+                onClick={() => changeFilter("type", filters.type === "5" ? "" : "5")}>
+                <RotateCcw className="size-4"/> ردود الأموال فقط
+              </Button>
+            </div>
             <div className="grid gap-3 rounded-lg border bg-muted/20 p-3 md:grid-cols-3">
               <CreatedDatePicker label="من تاريخ" value={filters.dateFrom} max={filters.dateTo || undefined} onChange={value => changeFilter("dateFrom", value)}/>
               <CreatedDatePicker label="إلى تاريخ" value={filters.dateTo} min={filters.dateFrom || undefined} onChange={value => changeFilter("dateTo", value)}/>
@@ -200,13 +219,22 @@ export function FinancePage() {
             {ledger.isPending ? <LoadingState/> : ledger.isError ? <ErrorState error={ledger.error} retry={() => void ledger.refetch()}/> : ledger.data?.entries.length ? <div className="overflow-hidden rounded-xl border bg-card">
               <header className="flex justify-between border-b px-4 py-3"><h3 className="font-bold">سجل الحركات</h3><span className="text-sm text-muted-foreground">{ledger.data.pagination.total.toLocaleString("ar-EG")} حركة</span></header>
               <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-right text-sm"><thead className="bg-muted/50"><tr>
-                {["التاريخ", "العملية والتفاصيل", "زيادة على الحساب (+)", "دفعة / تخفيض (−)", "الرصيد بعد الحركة"].map(title => <th key={title} className="whitespace-nowrap px-3 py-3 text-xs font-semibold">{title}</th>)}
+                {["التاريخ والوقت", "العملية والتفاصيل", "زيادة على الحساب (+)", "دفعة / تخفيض (−)", "الرصيد بعد الحركة"].map(title => <th key={title} className="whitespace-nowrap px-3 py-3 text-xs font-semibold">{title}</th>)}
               </tr></thead><tbody className="divide-y">
                 {ledger.data.entries.map(entry => {
                   const credit = entry.signedAmount.startsWith("-");
+                  const accountingDate = formatCollectionDate(entry.effectiveDate);
+                  const recordedAt = formatLedgerRecordedAt(entry.createdAt);
                   const reference = entry.collectionId && entry.receiptNumber ? entry.receiptNumber : entry.refundId && entry.refundNumber ? entry.refundNumber : entry.orderNumber ?? null;
                   return <tr key={entry.id} className="hover:bg-muted/20">
-                    <td className="whitespace-nowrap px-3 py-3"><span dir="ltr" className="inline-block">{formatCollectionDate(entry.effectiveDate)}</span></td>
+                    <td className="whitespace-nowrap px-3 py-3">
+                      <span dir="ltr" className="inline-block" title="تاريخ الحركة المحاسبي">{accountingDate}</span>
+                      {recordedAt && <span className="mt-1 block text-xs text-muted-foreground" title="وقت تسجيل الحركة فعليًا بتوقيت القاهرة">
+                        {recordedAt.date === accountingDate ?
+                          <>الساعة <span dir="ltr" className="inline-block tabular-nums">{recordedAt.time}</span></> :
+                          <>سُجّلت <span dir="ltr" className="inline-block tabular-nums">{recordedAt.date} · {recordedAt.time}</span></>}
+                      </span>}
+                    </td>
                     <td className="min-w-[220px] px-3 py-3">
                       <p className="font-semibold">{entry.type === 4 ? "إلغاء تحصيل سابق" : entry.type === 5 ? "رد مبلغ للعميل" : entry.typeLabel}</p>
                       {reference && <div className="mt-1 space-y-1 text-xs">
@@ -235,8 +263,8 @@ export function FinancePage() {
         </>}
       </>}
     </div>}
-    {canRefund && !canAccountDetails && <section className="rounded-xl border bg-card p-4"><h2 className="mb-3 font-bold">رد الأرصدة الدائنة</h2><Button onClick={() => setRefunding(true)}>رد رصيد دائن</Button></section>}
-    {canRefundHistory && <section role="tabpanel" id="finance-refunds-panel" aria-labelledby="finance-refunds-tab" hidden={!globalRefunds}>{globalRefunds && <RefundsPanel key="global"/>}</section>}
+    {canRefund && !canAccountDetails && !globalRefunds && <section className="rounded-xl border bg-card p-4"><h2 className="mb-3 font-bold">رد الأرصدة الدائنة</h2><Button onClick={() => setRefunding(true)}>رد رصيد دائن</Button></section>}
+    {canRefundHistory && globalRefunds && <section role="region" aria-label="سجل ردود الأموال"><RefundsPanel key="global"/></section>}
     {selectedNote !== null && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4"><section role="dialog" aria-modal="true" aria-label={copy.noteDialog} className="w-full max-w-md rounded-xl bg-card p-5">
       <header className="mb-3 flex justify-between"><h3 className="font-bold">{copy.noteDialog}</h3><Button variant="ghost" size="icon-sm" aria-label={copy.returnAccount} onClick={() => setSelectedNote(null)}><X className="size-4"/></Button></header><p className="whitespace-pre-wrap break-words text-sm">{selectedNote}</p>
     </section></div>}

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -17,6 +17,7 @@ let calls: {url: string; method: string; body: Record<string, unknown>; key: str
 let preview: AccountSettlementPreview;
 let fail: "none" | "conflict" | "network";
 let lastRecord: AccountSettlementRecord;
+let previousSaved: AccountSettlementRecord | null;
 let saved = false;
 function ok(config: InternalAxiosRequestConfig, data: unknown): AxiosResponse {
   return {config, status: 200, statusText: "OK", headers: {}, data: {success: true, message: "", data}};
@@ -27,8 +28,12 @@ const adapter: AxiosAdapter = async config => {
   const body = typeof config.data === "string" ? JSON.parse(config.data) as Record<string, unknown> : {};
   calls.push({url, method, body, key: config.headers.get("Idempotency-Key")?.toString() ?? null});
   if (url.endsWith("/settlements/preview")) return ok(config, preview);
-  if (url.endsWith("/settlements") && method === "get") return ok(config, {settlements: saved ? [lastRecord] : [], pagination: {currentPage: 1, lastPage: 1, perPage: 15, total: saved ? 1 : 0}});
+  if (url.endsWith("/settlements") && method === "get") {
+    const settlements = [...(saved ? [lastRecord] : []), ...(previousSaved ? [previousSaved] : [])];
+    return ok(config, {settlements, pagination: {currentPage: 1, lastPage: 1, perPage: 15, total: settlements.length}});
+  }
   if (url.endsWith("/settlements/5")) return ok(config, lastRecord);
+  if (url.endsWith("/settlements/3") && previousSaved) return ok(config, previousSaved);
   if (url.endsWith("/settlements") && method === "post") {
     if (fail === "conflict") throw new AxiosError("Changed account", "ERR_BAD_REQUEST", config, undefined, {...ok(config, null), status: 409, data: {success: false, message: "تغيّر حساب العميل. حدّث المراجعة."}});
     if (fail === "network") throw new AxiosError("Network unavailable", "ERR_NETWORK", config);
@@ -36,7 +41,7 @@ const adapter: AxiosAdapter = async config => {
     const discount = String(body.discountAmount ?? '0.00');
     const after = (Number(preview.balanceBefore) - Number(amount) - Number(discount)).toFixed(2);
     const status = Number(after) > 0 ? "partial" : Number(after) < 0 ? "credit" : "closed";
-    lastRecord = {id: 5, number: "SET-2026-00005", customerId: 7, dateTo: preview.dateTo, settledOn: cairoToday(),
+    lastRecord = {id: 5, number: "SET-2026-00005", customerId: 7, dateFrom: String(body.dateFrom), dateTo: preview.dateTo, settledOn: cairoToday(),
       status, originalStatus: status, statusLabel: status === "partial" ? "تصفية جزئية — يوجد متبقٍ" : status === "credit" ? "رصيد دائن محفوظ" : "مقفولة بالكامل ضمن النطاق",
       needsReview: false, balanceBefore: preview.balanceBefore, amountCollected: amount,
       discountAmount: discount, discountReason: body.discountReason ? String(body.discountReason) : null,
@@ -65,9 +70,22 @@ async function openCreate(): Promise<void> {
   await screen.findByRole("dialog", {name: "تصفية حساب جديدة"});
 }
 const posts = () => calls.filter(call => call.method === "post");
+
+function mockClientStatementDownload() {
+  const descriptor = Object.getOwnPropertyDescriptor(URL, "createObjectURL");
+  const create = vi.fn(() => "blob:customer-statement");
+  Object.defineProperty(URL, "createObjectURL", {configurable: true, writable: true, value: create});
+  const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+  return {create, restore() {
+    if (descriptor) Object.defineProperty(URL, "createObjectURL", descriptor);
+    else Reflect.deleteProperty(URL, "createObjectURL");
+    click.mockRestore();
+  }};
+}
+
 beforeEach(() => {
   apiClient.defaults.adapter = adapter;
-  calls = []; fail = "none"; saved = false;
+  calls = []; fail = "none"; saved = false; previousSaved = null;
   preview = {customerId: 7, customerName: "شركة النور", customerPhone: "01012345678", dateTo: cairoToday(), paymentsThrough: cairoToday(),
     scope: "cumulative_delivered_work", previewHash: "a".repeat(64), openingBalance: "0.00", deliveredTotal: "1000.00",
     grossCollections: "700.00", collectionReversals: "0.00", refundsTotal: "0.00", netPayments: "700.00", discountsTotal: "0.00", advancesForOtherWork: "0.00",
@@ -78,6 +96,103 @@ beforeEach(() => {
 afterEach(() => {apiClient.defaults.adapter = original;});
 
 describe("Financial settlement workspace", () => {
+  it("automatically starts the next client statement after the last settlement cutoff", async () => {
+    const today = cairoToday();
+    const date = new Date(today + "T00:00:00Z");
+    date.setUTCDate(date.getUTCDate() - 1);
+    const previousCutoff = date.toISOString().slice(0, 10);
+    const prior: AccountSettlementPreview = {
+      ...preview, dateTo: previousCutoff,
+      sourceManifest: {ledgerMaxId: 90, creditEntryIds: [], deliveryIds: [], orderIds: []},
+    };
+    previousSaved = {
+      id: 3, number: "SET-2026-00003", customerId: 7, dateFrom: previousCutoff, dateTo: previousCutoff,
+      settledOn: previousCutoff, status: "partial", originalStatus: "partial",
+      statusLabel: "تصفية جزئية", needsReview: false,
+      balanceBefore: "300.00", amountCollected: "0.00", discountAmount: "0.00",
+      discountReason: null, discountLedgerEntryId: null, balanceAfter: "300.00",
+      accountBalanceAfter: "2300.00", collectionId: null, receiptNumber: null,
+      createdAt: previousCutoff + "T12:00:00Z", createdBy: 1, note: null,
+      snapshot: {before: prior, after: prior, receiptNumber: null},
+    };
+    visit(); await openCreate();
+    const dialog = screen.getByRole("dialog", {name: "تصفية حساب جديدة"});
+    await waitFor(() => expect(within(dialog).getByText("SET-2026-00003")).toBeTruthy());
+    expect(within(dialog).getByRole("button", {name: "بداية فترة التصفية"}).textContent)
+      .toContain(formatCollectionDate(today));
+    expect(within(dialog).getByRole("button", {name: "الشغل المستلّم حتى"}).textContent)
+      .toContain(formatCollectionDate(today));
+    expect(posts()).toHaveLength(0);
+    expect(screen.getByRole<HTMLInputElement>("textbox", {name: "مبلغ التصفية المستلم"}).value).toBe("");
+  });
+
+  it("defaults the customer statement period to the first of the month without changing the settlement cutoff", async () => {
+    visit(); await openCreate();
+    const dialog = screen.getByRole("dialog", {name: "تصفية حساب جديدة"});
+    const start = within(dialog).getByRole("button", {name: "بداية فترة التصفية"});
+    expect(start.textContent).toContain(formatCollectionDate(cairoToday().slice(0, 8) + "01"));
+    expect(within(dialog).getByRole("button", {name: "الشغل المستلّم حتى"}).textContent)
+      .toContain(formatCollectionDate(cairoToday()));
+    const user = userEvent.setup();
+    await user.click(start);
+    expect(screen.getByRole("dialog", {name: "اختيار بداية فترة التصفية"})).toBeTruthy();
+    await user.click(screen.getByRole("gridcell", {name: cairoToday().slice(0, 8) + "01"}));
+    expect(posts()).toHaveLength(0);
+    expect(screen.getByRole<HTMLInputElement>("textbox", {name: "مبلغ التصفية المستلم"}).value).toBe("");
+  });
+
+  it("exports the fresh draft statement with one click and no settlement POST or receipt", async () => {
+    const download = mockClientStatementDownload();
+    try {
+      visit(); await openCreate();
+      const button = await screen.findByRole("button", {name: "تقرير التصفية Excel"});
+      const count = calls.filter(call => call.url.endsWith("/settlements/preview")).length;
+      await userEvent.setup().click(button);
+      await waitFor(() => expect(download.create).toHaveBeenCalledTimes(1));
+      expect(calls.filter(call => call.url.endsWith("/settlements/preview")).length).toBe(count + 1);
+      expect(posts()).toHaveLength(0);
+      expect(screen.getByRole<HTMLInputElement>("textbox", {name: "مبلغ التصفية المستلم"}).value).toBe("");
+    } finally {
+      download.restore();
+    }
+  });
+
+  it("refuses to export an entered settlement proposal if the live preview changed", async () => {
+    const download = mockClientStatementDownload();
+    try {
+      visit(); await openCreate();
+      const user = userEvent.setup();
+      await user.type(screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"}), "100");
+      preview = {...preview, previewHash: "b".repeat(64), balanceBefore: "200.00", dueNow: "200.00"};
+      await user.click(screen.getByRole("button", {name: "تقرير التصفية Excel"}));
+      expect(await screen.findByText(/تغير حساب العميل بعد إدخال المبالغ/)).toBeTruthy();
+      expect(download.create).not.toHaveBeenCalled();
+      expect(posts()).toHaveLength(0);
+      expect(screen.getByRole("button", {name: "تأكيد تحصيل 100.00 ج.م"}).hasAttribute("disabled")).toBe(true);
+    } finally {
+      download.restore();
+    }
+  });
+
+  it("exports saved settlement history in one click using the full saved snapshot", async () => {
+    const download = mockClientStatementDownload();
+    try {
+      visit(); await openCreate();
+      const user = userEvent.setup();
+      await user.type(screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"}), "50");
+      await user.click(screen.getByRole("button", {name: "تأكيد تحصيل 50.00 ج.م"}));
+      const result = await screen.findByRole("region", {name: "نتيجة التصفية"});
+      expect(within(result).getByRole("button", {name: "تقرير التصفية Excel"})).toBeTruthy();
+      await user.click(screen.getByRole("button", {name: "التصفيات السابقة"}));
+      await user.click(await screen.findByRole("button", {name: "تقرير التصفية Excel"}));
+      await waitFor(() => expect(download.create).toHaveBeenCalledTimes(1));
+      expect(calls.some(call => call.url.endsWith("/settlements/5") && call.method === "get")).toBe(true);
+      expect(posts()).toHaveLength(1); // only the initial explicit settlement, never a new posting
+    } finally {
+      download.restore();
+    }
+  });
+
   it("does not post while previewing and confirms only the unpaid balance with one settlement request", async () => {
     visit(); await openCreate();
     const confirm = await screen.findByRole("button", {name: "تأكيد التصفية"});
@@ -90,7 +205,7 @@ describe("Financial settlement workspace", () => {
     expect(await screen.findByRole("region", {name: "نتيجة التصفية"})).toBeTruthy();
     expect(posts()).toHaveLength(1);
     expect(posts()[0].url).toBe("/finance/customers/7/settlements");
-    expect(posts()[0].body).toMatchObject({dateTo: cairoToday(), previewHash: "a".repeat(64), amount: "300.00", paymentMethod: 0});
+    expect(posts()[0].body).toMatchObject({dateFrom: cairoToday().slice(0, 8) + "01", dateTo: cairoToday(), previewHash: "a".repeat(64), amount: "300.00", paymentMethod: 0});
     expect(posts()[0].key).toBeTruthy();
     expect(screen.getByRole("link", {name: /إيصال التحصيل COL-90/}).getAttribute("href")).toBe("/collections?receiptId=90");
     expect(screen.getByText("2,000.00 ج.م")).toBeTruthy();
@@ -191,7 +306,7 @@ describe("Financial settlement workspace", () => {
     expect(dateField.textContent).toContain(formatCollectionDate(cairoToday()));
     expect(dateField.getAttribute("aria-expanded")).toBe("false");
     expect(within(dialog).queryByRole("button", {name: "تغيير التاريخ"})).toBeNull();
-    expect(within(dialog).getByText("الدفعات محسوبة حتى اليوم")).toBeTruthy();
+    expect(within(dialog).getByText(/الدفعات محسوبة حتى اليوم/)).toBeTruthy();
     const balanceSection = within(dialog).getByText("المستحق على العميل").parentElement?.parentElement;
     expect(balanceSection?.className).toContain("bg-primary/5");
     expect(within(dialog).getByRole("region", {name: "تسجيل التصفية"})).toBeTruthy();
@@ -268,8 +383,50 @@ describe("Financial settlement workspace", () => {
     const table = await screen.findByRole("table");
     expect(within(table).getByRole("columnheader", {name: "المتبقي بعد العملية"})).toBeTruthy();
     expect(within(table).getByText("200.00 ج.م")).toBeTruthy();
-    expect(screen.getByText(/رصيد التصفية وقت تسجيلها/)).toBeTruthy();
+    expect(screen.getByText(/المتبقي هو الرصيد وقت التسجيل وليس بالضرورة رصيد العميل الحالي/)).toBeTruthy();
   });
+  it("shows the persisted date interval and the client Excel report without work or evidence controls", async () => {
+    visit(); await openCreate();
+    const user = userEvent.setup();
+    await user.type(screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"}), "100.00");
+    await user.click(screen.getByRole("button", {name: "تأكيد تحصيل 100.00 ج.م"}));
+    const result = await screen.findByRole("region", {name: "نتيجة التصفية"});
+    expect(within(result).getByRole("button", {name: "تقرير التصفية Excel"})).toBeTruthy();
+    expect(within(result).getByText("فترة التصفية المحفوظة:")).toBeTruthy();
+    expect(result.textContent).toContain("من " + formatCollectionDate(lastRecord.dateFrom!));
+    expect(result.textContent).toContain("إلى " + formatCollectionDate(lastRecord.dateTo));
+    expect(within(result).queryByText("مستندات وإثباتات")).toBeNull();
+    expect(within(result).queryByRole("button", {name: "طباعة إثبات التصفية"})).toBeNull();
+    expect(within(result).queryByRole("button", {name: "إثبات التصفية Excel"})).toBeNull();
+    expect(screen.queryByRole("button", {name: "تقرير الشغل فقط"})).toBeNull();
+    expect(lastRecord.dateFrom).toBe(cairoToday().slice(0, 8) + "01");
+    expect(posts()).toHaveLength(1);
+  });
+
+  it("displays only stored dateFrom and dateTo in history, keeping an old NULL start visibly unknown", async () => {
+    visit(); await openCreate();
+    const user = userEvent.setup();
+    await user.type(screen.getByRole("textbox", {name: "مبلغ التصفية المستلم"}), "100.00");
+    await user.click(screen.getByRole("button", {name: "تأكيد تحصيل 100.00 ج.م"}));
+    await screen.findByRole("region", {name: "نتيجة التصفية"});
+    const dt = new Date(cairoToday() + "T00:00:00Z");
+    dt.setUTCDate(dt.getUTCDate() - 1);
+    const previousDate = dt.toISOString().slice(0, 10);
+    previousSaved = {...lastRecord, id: 3, number: "SET-2026-00003",
+      dateFrom: null, dateTo: previousDate, settledOn: previousDate};
+    await user.click(screen.getByRole("button", {name: "التصفيات السابقة"}));
+    const table = await screen.findByRole("table");
+    expect(within(table).getByRole("columnheader", {name: "فترة التصفية"})).toBeTruthy();
+    expect(within(table).queryByRole("columnheader", {name: "فترة التقرير"})).toBeNull();
+    expect(within(table).getByText("من: " + formatCollectionDate(lastRecord.dateFrom!))).toBeTruthy();
+    expect(within(table).getByText("إلى: " + formatCollectionDate(cairoToday()))).toBeTruthy();
+    expect(within(table).getByText("من: غير مسجّل")).toBeTruthy();
+    expect(within(table).getAllByRole("button", {name: "تقرير التصفية Excel"})).toHaveLength(2);
+    expect(within(table).getAllByRole("button", {name: "عرض التفاصيل"})).toHaveLength(2);
+    expect(screen.getByText(/التواريخ المعروضة محفوظة مع التصفيات الجديدة/)).toBeTruthy();
+    expect(posts()).toHaveLength(1);
+  });
+
   it("labels a smaller amount as partial and never presents it as a full close", async () => {
     visit(); await openCreate(); const user = userEvent.setup();
     const amount = await screen.findByRole("textbox", {name: "مبلغ التصفية المستلم"});
@@ -302,7 +459,7 @@ describe("Financial settlement workspace", () => {
     await userEvent.setup().click(button);
     await screen.findByRole("region", {name: "نتيجة التصفية"});
     expect(posts()).toHaveLength(1);
-    expect(posts()[0].body).toEqual({dateTo: cairoToday(), previewHash: "a".repeat(64), amount: "0.00"});
+    expect(posts()[0].body).toEqual({dateFrom: cairoToday().slice(0, 8) + "01", dateTo: cairoToday(), previewHash: "a".repeat(64), amount: "0.00"});
     expect(screen.getByText("لم يُسجّل تحصيل جديد في هذه العملية.")).toBeTruthy();
   });
   it("rejects a stale preview visibly and requires refresh before another confirmation", async () => {
