@@ -73,7 +73,7 @@ export function CustomersPage() {
     }
   }
 
-  return <div className="space-y-6">
+  return <div className="tabaa-page space-y-4 sm:space-y-5">
     <SectionHeader title="العملاء" detail="قائمة العملاء وبيانات التواصل والحالات وأنواع العملاء."
       actions={canCreate && <Button onClick={() => setEditing("new")}><Plus /> إضافة عميل</Button>} />
     <section className="overflow-hidden rounded-lg border bg-card ">
