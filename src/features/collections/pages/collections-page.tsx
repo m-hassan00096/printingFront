@@ -169,7 +169,7 @@ export function CollectionsPage(){
                 </td>
                 <td className="whitespace-nowrap px-3 py-2.5"><span dir="ltr" className="inline-block tabular-nums">{formatCollectionDate(c.collectedOn)}</span></td>
                 <td className="px-3 py-2.5"><span className={"rounded-full px-2 py-1 text-xs font-bold "+(c.status===1?
-                  "bg-[#e5f7ee] text-[#147c58]":"bg-[#fff5df] text-[#a36a0d]")}>{c.statusLabel}</span></td>
+                  "bg-[#e5f7ee] text-[#15845f]":"bg-[#fff5df] text-[#a66a19]")}>{c.statusLabel}</span></td>
                 <td className="whitespace-nowrap px-2 py-2.5"><Button variant="outline" size="sm" className="h-8 gap-1 px-2" onClick={()=>setDetails(c.id)}>
                   <Eye className="size-4"/> التفاصيل
                 </Button></td>
