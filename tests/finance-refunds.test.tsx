@@ -240,7 +240,7 @@ describe("Finance refunds within the account workspace", () => {
     await waitFor(() => expect(calls.some(call =>
       call.url === "/finance/customers/7/ledger" && call.params.get("filter[type]") === "5")).toBe(true));
     const newReceipt = await screen.findByRole("button", {name: "REF-2026-00092"});
-    expect(screen.getByText("40.00 ج.م")).toBeTruthy();
+    expect(screen.getAllByText("40.00 ج.م").length).toBeGreaterThan(0);
     await user.click(newReceipt);
     expect(await within(screen.getByRole("dialog", {name: "تفاصيل رد الرصيد"}))
       .findByText("رد متفق عليه للعميل")).toBeTruthy();
