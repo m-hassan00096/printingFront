@@ -244,7 +244,7 @@ describe("Finance refunds within the account workspace", () => {
     await user.click(newReceipt);
     const details = await screen.findByRole("dialog", {name: "تفاصيل رد الرصيد"});
     expect(await within(details).findByText("رد متفق عليه للعميل")).toBeTruthy();
-    await user.click(within(details).getByRole("button", {name: "إغلاق"}));
+    await user.click(within(details).getAllByRole("button", {name: "إغلاق"})[0]);
     expect(calls.filter(call => call.url === "/finance/refunds" && call.method === "post")).toHaveLength(1);
     await user.click(filter);
     expect(filter.getAttribute("aria-pressed")).toBe("false");
