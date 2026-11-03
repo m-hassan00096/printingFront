@@ -30,10 +30,29 @@ export function EmptyState({ title = "لا توجد نتائج", detail = "جر�
     <p className="text-sm font-extrabold">{title}</p><p className="text-sm text-muted-foreground">{detail}</p>
   </div>;
 }
-export function PaginationBar({ pagination, onPage }: { pagination: Pagination; onPage: (page: number) => void }) {
+export function PaginationBar({ pagination, onPage, pageSizeOptions, onPageSizeChange }: {
+  pagination: Pagination;
+  onPage: (page: number) => void;
+  pageSizeOptions?: readonly number[];
+  onPageSizeChange?: (perPage: number) => void;
+}) {
+  const first = pagination.total ? (pagination.currentPage - 1) * pagination.perPage + 1 : 0;
+  const last = Math.min(pagination.currentPage * pagination.perPage, pagination.total);
   return <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-xs text-muted-foreground">
-    <span>إجمالي النتائج: {pagination.total.toLocaleString("ar-EG")}</span>
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-3">
+      {pageSizeOptions && onPageSizeChange
+        ? <span>عرض <span className="tabular-nums">{first}–{last}</span> من {pagination.total.toLocaleString("ar-EG")} حركة</span>
+        : <span>إجمالي النتائج: {pagination.total.toLocaleString("ar-EG")}</span>}
+      {pageSizeOptions && onPageSizeChange && <label className="flex items-center gap-2">
+        <span>حركات لكل صفحة</span>
+        <select className="h-9 rounded-lg border border-input bg-card px-2 text-xs text-foreground"
+          aria-label="عدد الحركات في الصفحة" value={pagination.perPage}
+          onChange={event => onPageSizeChange(Number(event.target.value))}>
+          {pageSizeOptions.map(size => <option key={size} value={size}>{size}</option>)}
+        </select>
+      </label>}
+    </div>
+    <div className="flex items-center gap-2" aria-label="التنقل بين الصفحات">
       <Button variant="outline" size="icon-sm" disabled={pagination.currentPage <= 1} aria-label="الصفحة السابقة" onClick={() => onPage(pagination.currentPage - 1)}><ChevronRight className="size-4" /></Button>
       <span className="min-w-22 text-center tabular-nums">{pagination.currentPage} / {Math.max(1, pagination.lastPage)}</span>
       <Button variant="outline" size="icon-sm" disabled={pagination.currentPage >= pagination.lastPage} aria-label="الصفحة التالية" onClick={() => onPage(pagination.currentPage + 1)}><ChevronLeft className="size-4" /></Button>
