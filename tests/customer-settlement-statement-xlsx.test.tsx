@@ -191,6 +191,37 @@ describe("Customer statement tied to the last saved settlement", () => {
     }
   });
 
+  it("keeps customer identity and financial results in the summary only, with details starting at the tables", () => {
+    const bytes = buildCustomerSettlementStatementXlsx({kind: "saved", record});
+    const summary = xmlSummary(bytes), details = xmlDetails(bytes);
+
+    expect(summary).toContain("العميل: " + preview.customerName.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+    expect(summary).toContain("الفترة: 01/11/2026 إلى 01/11/2026");
+    expect(summary).toContain("رقم التصفية: SET-2026-00005");
+    expect(summary).toContain("المتبقي بعد التصفية");
+    expect(summary).toContain("COL-94");
+
+    expect(details).toContain('<pane ySplit="3" topLeftCell="A4"');
+    expect(details).toContain('<row r="1"');
+    expect(details).toContain('<row r="2"');
+    expect(details).toContain('<row r="3"');
+    expect(details.indexOf("تفاصيل الشغل والمدفوعات")).toBeLessThan(details.indexOf("الشغل المستلّم (1 أوردر)"));
+    expect(details.indexOf("الشغل المستلّم (1 أوردر)")).toBeLessThan(details.indexOf("رقم الأوردر"));
+    expect(details).not.toContain("العميل:");
+    expect(details).not.toContain("الفترة:");
+    expect(details).not.toContain("رقم التصفية:");
+    expect(details).not.toContain("آخر تصفية سابقة");
+    expect(details).not.toContain("المتبقي بعد التصفية");
+    expect(details).not.toContain("إجراءات التصفية");
+    expect(details).not.toContain("COL-94");
+    expect(details).toContain("ORD-11");
+    expect(details).toContain("المدفوعات والردود");
+
+    // No opening metadata block followed by another multi-row financial hero.
+    expect((summary.match(/<row r="/g) ?? []).length).toBeLessThanOrEqual(14);
+    expect((details.match(/<row r="/g) ?? []).length).toBeLessThanOrEqual(10);
+  });
+
   it("labels an unposted payment as a proposal and does not remove it from the real due", () => {
     const sheet = xmlSheet(buildCustomerSettlementStatementXlsx({kind: "draft", preview,
       proposal: {discount: "1000.00", collected: "500.00", remaining: "1000.00", reason: "اتفاق مع العميل"}}));
