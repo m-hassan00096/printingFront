@@ -11,7 +11,7 @@
 - React Router للتنقل
 - Axios للاتصال بالـ API
 - React Hook Form + Zod للنماذج والتحقق من البيانات
-- Lucide للأيقونات وCairo للواجهة العربية
+- Lucide للأيقونات وIBM Plex Sans Arabic للواجهة العربية (مع Cairo كخط احتياطي)
 
 ## التشغيل المحلي
 
@@ -48,4 +48,4 @@ npm run format
 4. حالات التحميل والفراغ والأخطاء والصلاحيات جزء من التصميم وليست حالات ثانوية.
 5. الواجهة عربية RTL أولًا، مع تصميم هادئ ومتسق وقابل للوصول.
 
-اقرأ دليل [المعمارية](docs/frontend-architecture.md) و[معايير UI/UX](docs/ui-ux-guidelines.md) قبل إضافة أي شاشة أعمال.
+اقرأ [نظام التصميم المعتمد Balanced Modern](DESIGN_SYSTEM_BALANCED_MODERN.md) أولًا، ثم دليل [المعمارية](docs/frontend-architecture.md) و[معايير UI/UX](docs/ui-ux-guidelines.md) قبل إضافة أي شاشة أعمال.

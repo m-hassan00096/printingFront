@@ -12,7 +12,7 @@ export function Topbar({ title, hidePageContext = false }: TopbarProps) {
   const toggleMobileSidebar = useUiStore((state) => state.toggleMobileSidebar);
   const { data: user } = useCurrentUser();
   return (
-    <header className="sticky top-0 z-20 flex h-[72px] items-center justify-between gap-3 border-b border-border/80 bg-white px-4 sm:px-6 lg:px-8 shadow-[0_2px_9px_#1d2b5805]">
+    <header className="sticky top-0 z-20 flex h-[72px] items-center justify-between gap-3 border-b border-border bg-white/95 px-4 shadow-[0_2px_9px_#1d2b5805] backdrop-blur sm:px-6 lg:px-8">
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         <Button
           variant="ghost"
@@ -37,8 +37,7 @@ export function Topbar({ title, hidePageContext = false }: TopbarProps) {
         </Button>
 
         {!hidePageContext && <div className="min-w-0">
-          <p className="hidden text-[10px] font-medium text-muted-foreground sm:block">مساحة العمل</p>
-          <h1 className="truncate text-xs font-semibold text-[#525f78] sm:mt-0.5 sm:text-sm">{title}</h1>
+          <p className="truncate text-sm font-semibold text-foreground">{title}</p>
         </div>}
       </div>
 
@@ -47,7 +46,7 @@ export function Topbar({ title, hidePageContext = false }: TopbarProps) {
           <p className="max-w-40 truncate text-xs font-bold">{user?.name}</p>
           <p className="mt-0.5 max-w-40 truncate text-[11px] text-muted-foreground">{user?.roleAlias || user?.role || "مستخدم"}</p>
         </div>
-        <span className="flex size-8 items-center justify-center rounded-full border border-[#dfe3ff] bg-[#ebeeff] text-xs font-bold text-primary" aria-hidden="true">
+        <span className="flex size-9 items-center justify-center rounded-full border border-[#ddd5ff] bg-[#f0edfc] text-sm font-semibold text-primary" aria-hidden="true">
           {user?.name?.charAt(0) ?? "ط"}
         </span>
 

@@ -1,11 +1,11 @@
-@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Cairo:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Cairo", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans Arabic", "Cairo", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -25,6 +25,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-muted: var(--sidebar-muted);
@@ -34,44 +36,44 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --radius-sm: 5px;
-  --radius-md: 7px;
-  --radius-lg: 11px;
-  --radius-xl: 14px;
+  --radius-md: 9px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 }
 
-/* The screenshot reference is LIGHT. These are the authoritative UI tokens;
-   the source DESIGN.md described a dark concept and is retained as provenance. */
+/* Approved Tabaa Balanced Modern semantic tokens; see DESIGN_SYSTEM_BALANCED_MODERN.md.
+   Older exploratory dark-mode concepts are historical, not the active design source. */
 :root {
   color-scheme: light;
-  --radius: 11px;
+  --radius: 12px;
   --background: #f7f8fc;
-  --foreground: #222633;
+  --foreground: #252a40;
   --card: #ffffff;
-  --card-foreground: #222633;
+  --card-foreground: #252a40;
   --popover: #ffffff;
-  --popover-foreground: #222633;
-  --primary: #535fd1;
+  --popover-foreground: #252a40;
+  --primary: #6250c9;
   --primary-foreground: #ffffff;
-  --secondary: #eef0fc;
-  --secondary-foreground: #454fad;
-  --muted: #f3f5fa;
-  --muted-foreground: #71798d;
-  --accent: #eceefe;
-  --accent-foreground: #434eb5;
-  --destructive: #d93e4f;
-  --border: #e8eaf1;
-  --input: #d9deea;
-  --ring: #5965d9;
-  --sidebar: #f6f8fc;
-  --sidebar-foreground: #252d40;
-  --sidebar-muted: #808ba3;
-  --sidebar-border: #e9ecf4;
-  --sidebar-accent: #e9ecff;
-  --sidebar-accent-foreground: #454fc3;
-  --sidebar-primary: #535fd1;
+  --secondary: #f0edfc;
+  --secondary-foreground: #5140ad;
+  --muted: #f4f5fa;
+  --muted-foreground: #6a7388;
+  --accent: #f1effc;
+  --accent-foreground: #5140ad;
+  --destructive: #c74256;
+  --border: #e5e8f1;
+  --input: #d9deeb;
+  --ring: #6250c9;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #252a40;
+  --sidebar-muted: #748096;
+  --sidebar-border: #e5e8f1;
+  --sidebar-accent: #f0edfc;
+  --sidebar-accent-foreground: #6250c9;
+  --sidebar-primary: #6250c9;
   --sidebar-primary-foreground: #fff;
-  --success: #17825d;
-  --warning: #ab6a09;
+  --success: #15845f;
+  --warning: #a66a19;
 }
 
 * { box-sizing: border-box; border-color: var(--border); }
@@ -79,7 +81,7 @@ html { min-width: 320px; direction: rtl; }
 body {
   min-width: 320px; min-height: 100vh; margin: 0;
   background: var(--background); color: var(--foreground);
-  font: 400 14px/1.6 "Cairo", "Inter", sans-serif;
+  font: 400 14px/1.65 "IBM Plex Sans Arabic", "Cairo", "Inter", sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -89,7 +91,7 @@ button:disabled { cursor: not-allowed; }
 input, textarea, select { color: var(--foreground); accent-color: var(--primary); }
 input::placeholder, textarea::placeholder { color: var(--muted-foreground); opacity: .82; }
 option { background: #fff; color: var(--foreground); }
-::selection { background: #dfe3ff; color: #293685; }
+::selection { background: #e7e0ff; color: #31256e; }
 :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 a, button { transition-property: background-color, border-color, color, opacity, box-shadow; transition-duration: 140ms; }
 @media (prefers-reduced-motion: reduce) {
@@ -97,23 +99,25 @@ a, button { transition-property: background-color, border-color, color, opacity,
 }
 
 @layer components {
-  .violet-panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 3px 16px rgba(38,48,105,.035); }
-  .violet-elevated { background: #fff; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 22px 55px rgba(38,48,105,.13); }
-  .violet-shortcut { font: 11px "JetBrains Mono", monospace; border: 1px solid #e1e4ed; background: #f8f9fd; border-radius: 5px; padding: 1px 6px; color: #7b8396; direction: ltr; }
+  .violet-panel { background: var(--card); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 3px 14px rgba(37,51,87,.035); }
+  .violet-elevated { background: #fff; border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 22px 55px rgba(37,51,87,.12); }
+  .violet-shortcut { font: 11px "JetBrains Mono", monospace; border: 1px solid #e5e8f1; background: #f8f9fc; border-radius: 6px; padding: 1px 6px; color: #6a7388; direction: ltr; }
+  .tabaa-surface { background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 3px 14px rgba(37,51,87,.035); }
+  .tabaa-section-title { color: var(--foreground); font-size: 16px; font-weight: 700; line-height: 1.5; }
 }
 :where(table) { border-collapse: collapse; font-variant-numeric: tabular-nums; }
 :where(table) thead { background: #f8f9fc; }
-:where(table) th { color: #70798b; font-size: 11px; font-weight: 700; letter-spacing: .005em; white-space: nowrap; }
+:where(table) th { color: #626c80; font-size: 12px; font-weight: 700; letter-spacing: 0; white-space: nowrap; }
 :where(table) tbody tr { transition: background-color 140ms; }
-:where(table) tbody tr:hover { background: #f9faff; }
-:where([role="dialog"]) { border: 1px solid var(--border); box-shadow: 0 20px 55px rgba(28,37,83,.15); }
-:where([role="menu"], [role="listbox"]) { background: #fff; color: var(--foreground); border-color: var(--border); box-shadow: 0 12px 32px rgba(28,37,83,.1); }
-:where(input, select, textarea):focus-visible { border-color: var(--primary); box-shadow: 0 0 0 3px #535fd126; outline: none; }
+:where(table) tbody tr:hover { background: #f9f8ff; }
+:where([role="dialog"]) { border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 20px 55px rgba(37,51,87,.14); }
+:where([role="menu"], [role="listbox"]) { background: #fff; color: var(--foreground); border-color: var(--border); box-shadow: 0 12px 32px rgba(37,51,87,.1); }
+:where(input, select, textarea):focus-visible { border-color: var(--primary); box-shadow: 0 0 0 3px #6250c926; outline: none; }
 :where(input,select,textarea):disabled { background: #f3f4f7; cursor: not-allowed; }
-:where([data-sonner-toast]) { font-family: "Cairo", sans-serif; }
+:where([data-sonner-toast]) { font-family: "IBM Plex Sans Arabic", "Cairo", sans-serif; }
 
 /* Soft elevation from the user's light dashboard reference. */
-:where(section.rounded-lg.border.bg-card, section.rounded-xl.border.bg-card, article.rounded-lg.border.bg-card, article.rounded-xl.border.bg-card) { box-shadow: 0 4px 22px rgba(33, 44, 98, .045); }
+:where(section.rounded-lg.border.bg-card, section.rounded-xl.border.bg-card, article.rounded-lg.border.bg-card, article.rounded-xl.border.bg-card, [data-slot="card"]) { border-color: var(--border); box-shadow: 0 3px 14px rgba(37,51,87,.035); }
 :where(table) tbody tr { border-color: #edf0f6; }
 :where([role="dialog"]) { background-color: #fff; }
 
@@ -121,12 +125,36 @@ a, button { transition-property: background-color, border-color, color, opacity,
    Falls back to native accessible selects where not supported. */
 @supports (appearance: base-select) {
   select:not([multiple]), select:not([multiple])::picker(select) { appearance: base-select; }
-  select:not([multiple]) { display: flex; align-items: center; justify-content: space-between; gap: .5rem; cursor: pointer; background-color: #fff; color: var(--foreground); border-radius: 9px; }
-  select:not([multiple])::picker-icon { color: #858eaa; transition: transform 140ms; }
+  select:not([multiple]) { display: flex; align-items: center; justify-content: space-between; gap: .5rem; cursor: pointer; background-color: #fff; color: var(--foreground); border-radius: 10px; }
+  select:not([multiple])::picker-icon { color: #6a7388; transition: transform 140ms; }
   select:not([multiple]):open::picker-icon { transform: rotate(180deg); }
-  select:not([multiple])::picker(select) { border: 1px solid #e1e5f0; border-radius: 11px; padding: 5px; margin-top: 5px; background: #fff; box-shadow: 0 14px 38px rgba(27,41,94,.15); color: #26304a; max-height: min(320px, 55vh); overflow: auto; }
-  select:not([multiple]) option { padding: 10px 12px; border-radius: 7px; color: #303951; font-size: 13px; cursor: pointer; }
-  select:not([multiple]) option:hover, select:not([multiple]) option:focus-visible { background: #f1f3ff; color: #454fc3; }
-  select:not([multiple]) option:checked { background: #edf0ff; color: #454fc3; font-weight: 700; }
-  select:not([multiple]) option::checkmark { color: #535fd1; }
+  select:not([multiple])::picker(select) { border: 1px solid var(--border); border-radius: 12px; padding: 5px; margin-top: 5px; background: #fff; box-shadow: 0 14px 38px rgba(37,51,87,.12); color: var(--foreground); max-height: min(320px, 55vh); overflow: auto; }
+  select:not([multiple]) option { padding: 10px 12px; border-radius: 8px; color: var(--foreground); font-size: 13px; cursor: pointer; }
+  select:not([multiple]) option:hover, select:not([multiple]) option:focus-visible { background: #f0edfc; color: #5140ad; }
+  select:not([multiple]) option:checked { background: #f0edfc; color: #5140ad; font-weight: 700; }
+  select:not([multiple]) option::checkmark { color: #6250c9; }
 }
+
+/* App-wide Balanced Modern readability. Specific workflow layouts remain owned by their pages. */
+.tabaa-page { min-width: 0; }
+.tabaa-page :where(table) { font-variant-numeric: tabular-nums; }
+.tabaa-page :where(table) :where(th, td) { vertical-align: middle; }
+.tabaa-page :where([role="status"]) { line-height: 1.6; }
+:where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  font-size: 13px;
+}
+:where(table) td { font-size: 13px; }
+:where(table) thead th { background: #f8f9fc; }
+:where([role="tabpanel"]) { min-width: 0; }
+:where(.tabaa-app) :where(section, article).rounded-lg.border.bg-card {
+  border-radius: 14px;
+}
+:where(.tabaa-app) :where(section, article).rounded-xl.border.bg-card {
+  border-radius: 16px;
+}
+:where(.tabaa-app) :where(input:not([type="checkbox"]):not([type="radio"]), select) {
+  min-height: 36px;
+}
+/* Dialog width is owned by each modal's max-w-* size utility.
+   Do NOT set an unlayered max-width on [role="dialog"]: it overrides all
+   Tailwind utility layers and stretches simple dialogs to viewport width. */

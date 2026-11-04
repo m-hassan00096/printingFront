@@ -112,6 +112,15 @@ List filters: `filter[search]` (name/phone/number), `filter[status]`, `filter[pr
 - **Deployment order:** merge Backend PR #19, run `php artisan migrate`, then test the frontend branch. Until that migration is applied, saving a draft with intended payment will fail; do not merge Frontend PR #6 first.
 - Details view now has two tabs, **تفاصيل الأوردر** and **سجل الأحداث**. Profile editing controls are removed from Details; the draft customer reassignment remains in the header editor. Customer profile edits are handled in the Customers module (and the new-order customer context if permitted).
 
+## Printable order PDF (2026-11-04)
+
+- **UI:** the Orders list row and Order Details header offer **طباعة PDF** only to staff authorized for both `orders.view` and `finance.collections.view`. The link opens `/orders/:id/print` in a separate authenticated tab, outside the application shell.
+- **Output:** printable Arabic RTL **A4** page styled with Balanced Modern tokens: customer name/phone, order number/status/dates, every order item with service/specifications/dimensions, quantity, confirmed API unit price and agreed line total, order total, and genuine deposit payment method/date/amount/**COL receipt reference**. Browser native Print/Save as PDF is triggered after loading (with a visible print button for retries).
+- **Source of truth:** `GET /orders/:id` is read-only and includes item price snapshots. `GET /finance/collections?filter[search]={orderNumber}&filter[source]=1&filter[status]=1` retrieves only **posted order-deposit** collections; every result is checked against the **exact order and customer IDs** and paginated until complete. This is distinct from delivery or general collections.
+- **Safety:** draft planned deposits never count as collected and are marked as unconfirmed. Reversed/corrected original receipts, delivery receipts and other-order receipts are excluded. If the receipt API or order items fail, the document is not printed with fabricated zero payments. The report says it is an **order statement, not a separate receipt or the customer's up-to-date net balance**; later refunds/collections and settlements remain in Finance.
+- **Permissions:** both `orders.view` and `finance.collections.view` are required for direct URL use as well as buttons. Reception already has both in the Operational Staff seeder. No backend schema, endpoints, postings, finance calculation or role permissions changed.
+- **QA:** test preview/print interaction, amounts, Arabic item text, cash and noncash receipts, corrected/reversed deposits, drafts, failure-state refusal and least-privilege access. Visual review should verify Chrome/Edge print-to-PDF with multipage items and long Arabic specifications before deployment.
+
 ## QA before merging
 
 1. Create multiple items using searchable comboboxes; create a customer inline and verify it is selected, validate 422 errors and agreed totals.

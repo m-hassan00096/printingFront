@@ -229,7 +229,7 @@ function PrintingServiceForm({ service }: { service?: PrintingService }) {
     <option value={id}>نوع العميل #{id} (غير متاح حاليًا)</option>
   );
 
-  return <div className="mx-auto w-full max-w-6xl space-y-5">
+  return <div className="tabaa-page mx-auto w-full max-w-6xl space-y-4 sm:space-y-5">
     <Button asChild variant="ghost" className="px-0">
       <Link to={service ? `/printing-services/${service.id}` : "/printing-services"}>
         <ArrowRight className="size-4" /> العودة لخدمات الطباعة

@@ -13,7 +13,7 @@ export async function financeBalance(id:number):Promise<FinanceBalance>{
   return data.data;
 }
 export async function financeLedger(id:number,filters:AccountFilters):Promise<AccountLedger>{
-  const params=new URLSearchParams({page:String(filters.page),perPage:"20"});
+  const params=new URLSearchParams({page:String(filters.page),perPage:String(filters.perPage)});
   if(filters.dateFrom)params.set("filter[dateFrom]",filters.dateFrom);
   if(filters.dateTo)params.set("filter[dateTo]",filters.dateTo);
   if(filters.type)params.set("filter[type]",filters.type);

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { History, Plus, RefreshCw, RotateCcw, X } from "lucide-react";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Plus, RefreshCw, RotateCcw, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
@@ -11,6 +11,7 @@ import { formatCollectionDate } from "@/features/collections/lib/collection-date
 import { CreatedDatePicker } from "@/features/orders/components/created-date-picker";
 import { uiMessages } from "@/shared/translations/ar/ui";
 import { useFinanceCustomers, useFinanceBalance, useFinanceLedger, useFinanceOpeningStatus } from "../hooks/use-finance";
+import { useRefundCredit } from "../hooks/use-refunds";
 import { RefundsPanel } from "../components/refunds-panel";
 import { FinanceAccountsOverview } from "../components/finance-accounts-overview";
 import { AccountSettlementPanel } from "../components/account-settlement-panel";
@@ -21,7 +22,7 @@ import { accountTypeLabel } from "../lib/account-display";
 import { formatLedgerRecordedAt } from "../lib/ledger-recorded-at";
 import type { AccountFilters } from "../types/finance.types";
 
-const defaultFilters: AccountFilters = {page: 1, dateFrom: "", dateTo: "", type: ""};
+const defaultFilters: AccountFilters = {page: 1, perPage: 20, dateFrom: "", dateTo: "", type: ""};
 const copy = uiMessages.financeAccounts;
 const movementTypes = [
   {value: "", label: "كل الحركات"}, {value: "1", label: "مديونية أوردر"},
@@ -33,6 +34,8 @@ type AccountView = "ledger" | "settlements" | "refunds";
 
 export function FinancePage() {
   const permissions = useCurrentUser().data?.permissions ?? [];
+  const location = useLocation();
+  const navigate = useNavigate();
   const canBalance = permissions.includes("finance.balances.view");
   const canLedger = permissions.includes("finance.ledger.view");
   const canOpening = permissions.includes("finance.opening_balances.create");
@@ -47,7 +50,7 @@ export function FinancePage() {
   const rawId = params.get("customerId") ?? "";
   const parsedId = Number(rawId);
   const customerId = Number.isSafeInteger(parsedId) && parsedId > 0 ? parsedId : 0;
-  const globalRefunds = canRefundHistory && (!canAccountDetails || params.get("tab") === "refunds");
+  const globalRefunds = canRefundHistory && (location.pathname === "/finance/refunds" || !canAccountDetails || params.get("tab") === "refunds");
   const rawView = params.get("view");
   const view: AccountView = rawView === "delivered" || rawView === "settlements"
     ? "settlements" : rawView === "refunds" ? "refunds" : "ledger";
@@ -75,6 +78,7 @@ export function FinancePage() {
   const balance = useFinanceBalance(customerId, canBalance && !globalRefunds);
   const ledger = useFinanceLedger(customerId, filters, canLedger && !globalRefunds && (view === "ledger" || !canBalance));
   const openingStatus = useFinanceOpeningStatus(customerId, canOpening && !globalRefunds);
+  const refundableCredit = useRefundCredit(customerId, canRefund && customerId > 0 && !globalRefunds);
   const actualBalance = canBalance ? balance.data : canLedger ? ledger.data?.balance : null;
   const balanceReady = canBalance ? balance.isSuccess : canLedger ? ledger.isSuccess : false;
   useEffect(() => setFilters(defaultFilters), [customerId]);
@@ -102,33 +106,36 @@ export function FinancePage() {
     void Promise.all(["finance", "customers", "collections"].map(name => qc.invalidateQueries({queryKey: [name]})));
   }
   const hasOpening = openingStatus.isSuccess && openingStatus.data.openingBalanceExists;
-  const canRefundSelected = canRefund && customerId > 0 && ((!canBalance && !canLedger) || (balanceReady && actualBalance?.type === 2));
+  // A ledger credit can include non-refundable amounts; only enable refund when
+  // the existing backend refundable-credit preview confirms an available amount.
+  const canRefundSelected = canRefund && customerId > 0 && refundableCredit.isSuccess &&
+    refundableCredit.data.canRefund && Number(refundableCredit.data.availableCredit) > 0;
   const refundUnavailableReason = !canRefund || !customerId || canRefundSelected ? "" :
-    !balanceReady ? (balance.isError || ledger.isError ? copy.refundBalanceError : copy.refundBalanceLoading) :
-    actualBalance?.type === 1 ? copy.refundDebitHint : actualBalance?.type === 0 ? copy.refundZeroHint : copy.refundNoCreditHint;
-  function selectFinanceTab(tab: "accounts" | "refunds") {
-    if ((tab === "accounts" && !canAccountDetails) || (tab === "refunds" && !canRefundHistory)) return;
-    setParams(previous => {const next = new URLSearchParams(previous); if (tab === "refunds") next.set("tab", "refunds"); else next.delete("tab"); return next;});
+    refundableCredit.isPending ? copy.refundBalanceLoading :
+    refundableCredit.isError ? copy.refundBalanceError :
+    actualBalance?.type === 1 ? copy.refundDebitHint :
+    actualBalance?.type === 0 ? copy.refundZeroHint : copy.refundNoCreditHint;
+  function returnToAccounts() {
+    if (!canAccountDetails) return;
+    if (location.pathname === "/finance/refunds") { navigate("/finance"); return; }
+    setParams(previous => {const next = new URLSearchParams(previous); next.delete("tab"); return next;});
   }
   const accountViews: {key: AccountView; title: string}[] = canLedger ? [
     {key: "ledger", title: "كشف الحساب"}, {key: "settlements", title: "تصفية الحساب"},
   ] : [];
 
-  return <div className="space-y-4">
+  return <div className="tabaa-page space-y-4 sm:space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h1 className="text-2xl font-bold tracking-tight">{globalRefunds ? "سجل ردود الأموال" : "حسابات العملاء"}</h1>
       <div className="flex flex-wrap items-center gap-2">
-        {globalRefunds ? <>
+        {globalRefunds && <>
           {canRefund && <Button type="button" size="sm" onClick={() => setRefunding(true)}>
             <RotateCcw className="size-4"/> رد رصيد دائن
           </Button>}
-          {canAccountDetails && <Button type="button" variant="outline" size="sm" onClick={() => selectFinanceTab("accounts")}>
+          {canAccountDetails && <Button type="button" variant="outline" size="sm" onClick={returnToAccounts}>
             العودة لحسابات العملاء
           </Button>}
-        </> : canRefundHistory && <Button type="button" variant="outline" size="sm"
-          onClick={() => selectFinanceTab("refunds")}>
-          <History className="size-4"/> سجل ردود الأموال
-        </Button>}
+        </>}
         <Button type="button" variant="outline" onClick={refresh}><RefreshCw className="size-4"/> تحديث</Button>
       </div>
     </div>
@@ -161,28 +168,28 @@ export function FinancePage() {
                 <p className="text-xs text-muted-foreground">يشمل الأوردرات المؤكدة حتى غير المستلّمة.</p>
               </div>
             </div>
-            {(canCollect || canRefund || canRefundHistory || (canOpening && openingStatus.isSuccess && !hasOpening)) &&
+            {(canCollect || canRefund || (canOpening && openingStatus.isSuccess && !hasOpening)) &&
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-3" aria-label={copy.accountActions}>
                 {canCollect && <Button onClick={() => setCollecting(true)}><Plus className="size-4"/> تسجيل تحصيل</Button>}
-                {(canRefund || canRefundHistory || (canOpening && openingStatus.isSuccess && !hasOpening)) &&
+                {canRefund && <>
+                  <span title={refundUnavailableReason || (refundableCredit.data?.availableCredit ? copy.refundableAmount + ": " + refundableCredit.data.availableCredit + " ج.م" : undefined)}>
+                    <Button type="button" variant="outline" disabled={!canRefundSelected}
+                      aria-describedby={!canRefundSelected ? "account-refund-unavailable" : undefined}
+                      onClick={() => setRefunding(true)}>
+                      <RotateCcw className="size-4"/>{copy.refundAction}
+                    </Button>
+                  </span>
+                  {!canRefundSelected && <span id="account-refund-unavailable" role="status" className="text-xs leading-5 text-muted-foreground">
+                    {refundUnavailableReason}
+                  </span>}
+                </>}
+                {canOpening && openingStatus.isSuccess && !hasOpening &&
                   <details className="relative">
-                    <summary className="cursor-pointer rounded-lg border px-3 py-2 text-sm font-semibold">إجراءات أخرى</summary>
-                    <div className="absolute start-0 z-20 mt-2 w-72 space-y-2 rounded-xl border bg-card p-3 shadow-lg">
-                      {canRefund && <>
-                        <Button className="w-full justify-start" size="sm" variant="outline" disabled={!canRefundSelected} title={refundUnavailableReason || undefined} onClick={() => setRefunding(true)}>
-                          <RotateCcw className="size-4"/>{copy.refundAction}
-                        </Button>
-                        <p role="status" className="text-xs leading-5 text-muted-foreground">
-                          {canRefundSelected && actualBalance?.type === 2 ? <>{copy.refundableAmount}: <MoneyAmount amount={actualBalance.amount}/></> : refundUnavailableReason || copy.refundValidatedByServer}
-                        </p>
-                      </>}
-                      {canRefundHistory && <Button className="w-full justify-start" size="sm" variant="outline" onClick={() => changeView("refunds")}>
-                        <History className="size-4"/>{copy.customerRefundsAction}
-                      </Button>}
-                      {canOpening && openingStatus.isSuccess && !hasOpening &&
-                        <Button className="w-full justify-start" size="sm" variant="outline" onClick={() => setOpening(true)}>
-                          <Plus className="size-4"/>{copy.openingAction}
-                        </Button>}
+                    <summary className="cursor-pointer rounded-lg border border-input bg-card px-3 py-2.5 text-sm font-semibold hover:bg-muted">المزيد</summary>
+                    <div className="absolute start-0 z-20 mt-2 w-52 rounded-xl border bg-card p-2 shadow-lg">
+                      <Button className="w-full justify-start" size="sm" variant="ghost" onClick={() => setOpening(true)}>
+                        <Plus className="size-4"/>{copy.openingAction}
+                      </Button>
                     </div>
                   </details>}
               </div>}
@@ -202,14 +209,6 @@ export function FinancePage() {
           {view === "refunds" && canRefundHistory && <><Button size="sm" variant="ghost" onClick={() => changeView("ledger")}>{copy.backToLedger}</Button><RefundsPanel key={customerId} customerId={customerId}/></>}
           {canLedger && view === "settlements" && <div role="tabpanel" id="account-settlements-panel" aria-labelledby="account-settlements-tab"><AccountSettlementPanel key={customerId} customerId={customerId} customerName={customerName} canConfirm={canCollect} canViewCollections={canViewCollections} canDiscount={permissions.includes('finance.settlements.discount')}/></div>}
           {canLedger && view === "ledger" && <section role="tabpanel" id="account-ledger-panel" aria-labelledby="account-ledger-tab" className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs leading-5 text-muted-foreground">الأحدث أولًا. الرصيد بعد الحركة تراكمي من كامل الحساب، وليس مجموع الصفوف المعروضة بعد الفلترة.</p>
-              <Button type="button" size="sm" variant={filters.type === "5" ? "secondary" : "outline"}
-                aria-pressed={filters.type === "5"}
-                onClick={() => changeFilter("type", filters.type === "5" ? "" : "5")}>
-                <RotateCcw className="size-4"/> ردود الأموال فقط
-              </Button>
-            </div>
             <div className="grid gap-3 rounded-lg border bg-muted/20 p-3 md:grid-cols-3">
               <CreatedDatePicker label="من تاريخ" value={filters.dateFrom} max={filters.dateTo || undefined} onChange={value => changeFilter("dateFrom", value)}/>
               <CreatedDatePicker label="إلى تاريخ" value={filters.dateTo} min={filters.dateFrom || undefined} onChange={value => changeFilter("dateTo", value)}/>
@@ -253,8 +252,10 @@ export function FinancePage() {
                   </tr>;
                 })}
               </tbody></table></div>
+              {ledger.data.pagination.total > 20 && <PaginationBar pagination={ledger.data.pagination}
+                onPage={page => setFilters(previous => ({...previous, page}))}
+                pageSizeOptions={[20, 50]} onPageSizeChange={perPage => changeFilter("perPage", perPage === 50 ? 50 : 20)}/>}
             </div> : <EmptyState title="لا توجد حركات مالية" detail="لا توجد حركات للعميل ضمن الفلاتر الحالية."/>}
-            {ledger.data && ledger.data.pagination.lastPage > 1 && <PaginationBar pagination={ledger.data.pagination} onPage={page => setFilters(previous => ({...previous, page}))}/>}
           </section>}
               </div>
             </section>

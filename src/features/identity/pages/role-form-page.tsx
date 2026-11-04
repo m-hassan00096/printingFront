@@ -151,7 +151,7 @@ export function RoleFormPage() {
   if (!isNew && role.isPending) return <LoadingState />;
   if (!isNew && role.isError) return <ErrorState error={role.error} retry={() => void role.refetch()} />;
 
-  return <div className="mx-auto max-w-5xl space-y-6">
+  return <div className="tabaa-page mx-auto max-w-5xl space-y-4 sm:space-y-5">
     <Button asChild variant="ghost"><Link to="/roles" onClick={guardCancel}><ArrowRight className="size-4" /> العودة للأدوار</Link></Button>
     <SectionHeader title={isNew ? "إضافة دور" : "تعديل الدور"}
       detail="اختر الصلاحيات المناسبة لكل دور لتحديد ما يمكن لمستخدميه الوصول إليه." />

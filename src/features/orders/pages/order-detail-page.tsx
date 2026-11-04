@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { ArrowRight, CheckCircle2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ArrowRight, CheckCircle2, FileDown, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -134,7 +134,7 @@ export function OrderDetailPage() {
   if (order.isError) return <ErrorState error={order.error} retry={() => void order.refetch()} />;
   const item = order.data;
   const draft = item.status === 0;
-  return <div className="space-y-5">
+  return <div className="tabaa-page space-y-4 sm:space-y-5">
     <Button asChild variant="ghost"><Link to="/orders"><ArrowRight /> العودة للأوردرات</Link></Button>
     <header className="flex flex-wrap justify-between gap-4">
       <div className="space-y-1"><p className="text-xs text-muted-foreground">تفاصيل الأوردر</p>
@@ -144,6 +144,11 @@ export function OrderDetailPage() {
         <p className="text-sm text-muted-foreground">{item.customerName} — {item.customerPhone}</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
+        {perms.includes("orders.view") && perms.includes("finance.collections.view") && <Button variant="outline" asChild>
+          <Link to={"/orders/" + item.id + "/print"} target="_blank" rel="noopener noreferrer">
+            <FileDown className="size-4" /> طباعة PDF
+          </Link>
+        </Button>}
         {draft && mayEdit && <Button variant="outline" onClick={() => setEditHeader(true)}><Pencil className="size-4" /> تعديل البيانات</Button>}
 
         {draft && mayConfirm && <Button onClick={() => openPaymentDialog("confirm")}><CheckCircle2 className="size-4" /> تأكيد الأوردر</Button>}

@@ -10,6 +10,7 @@ const original=apiClient.defaults.adapter;
 let permissions=["finance.balances.view","finance.ledger.view","finance.opening_balances.create"];
 let balance={customerId:7,amount:"250.00",type:1,typeLabel:"مدين"};
 let hasOpening=false;
+let ledgerTotal=1;
 const ledgerEntries=[{
   id:100,type:2,typeLabel:"تحصيل",amount:"50.00",signedAmount:"-50.00",
   orderId:4,orderNumber:"ORD-261026004",collectionId:12,receiptNumber:"COL-2026-00012",refundId:null,refundNumber:null,effectiveDate:"2026-10-26",
@@ -45,16 +46,24 @@ const adapter:AxiosAdapter=async config=>{
     if(type!==null)accounts=accounts.filter(x=>String(x.type)===type);
     return ok(config,{accounts,pagination:{currentPage:1,lastPage:1,perPage:20,total:accounts.length}});
   }
+  if(url==="/finance/customers/7/refundable-credit"&&method==="get") return ok(config, {customerId:7, availableCredit: balance.type === 2 ? balance.amount : "0.00", canRefund: balance.type === 2 && Number(balance.amount) > 0});
   if(url==="/finance/customers/7/opening-balance-status"&&method==="get")
     return ok(config,{customerId:7,openingBalanceExists:hasOpening});
   if(url==="/finance/customers/7/balance"&&method==="get")return ok(config,{...balance,openingBalanceExists:hasOpening,
     openingBalance:hasOpening?{amount:"500.00",type:1,typeLabel:"مدين"}:null});
-  if(url==="/finance/customers/7/ledger"&&method==="get")return ok(config,{
-    entries:params.get("filter[type]")==="6"?[]:ledgerEntries,
-    balance:{amount:balance.amount,type:balance.type,typeLabel:balance.typeLabel},
-    openingBalanceExists:hasOpening,
-    pagination:{currentPage:1,lastPage:1,perPage:20,total:params.get("filter[type]")==="6"?0:1},
-  });
+  if(url==="/finance/customers/7/ledger"&&method==="get"){
+    const page=Number(params.get("page")??"1"),perPage=Number(params.get("perPage")??"20");
+    const total=params.get("filter[type]")==="6"?0:ledgerTotal;
+    const entries=total===0?[]:total===1?ledgerEntries:Array.from({length:total},(_,i)=>({
+      ...ledgerEntries[0],id:100+i,note:"حركة "+(i+1),
+      runningBalance:{amount:(1000+i).toFixed(2),type:1,typeLabel:"مدين"},
+    })).slice((page-1)*perPage,page*perPage);
+    return ok(config,{
+      entries,balance:{amount:balance.amount,type:balance.type,typeLabel:balance.typeLabel},
+      openingBalanceExists:hasOpening,
+      pagination:{currentPage:page,lastPage:Math.max(1,Math.ceil(total/perPage)),perPage,total},
+    });
+  }
   if(url==="/finance/customers/7/opening-balance"&&method==="post"){
     hasOpening=true;
     balance={customerId:7,amount:String(body.amount),type:Number(body.type),typeLabel:Number(body.type)===1?"مدين":"دائن"};
@@ -72,6 +81,7 @@ beforeEach(()=>{
   balance={customerId:7,amount:"250.00",type:1,typeLabel:"مدين"};
   calls=[];
   hasOpening=false;
+  ledgerTotal=1;
   ledgerEntries[0].createdAt="2026-10-26T10:00:00+03:00";
 });
 afterEach(()=>{apiClient.defaults.adapter=original;});
@@ -107,10 +117,51 @@ describe("Finance account page against Laravel existing contracts",()=>{
     await waitFor(()=>expect(calls.some(c=>c.url==="/finance/customers/7/ledger"&&c.params.get("filter[type]")==="6")).toBe(true));
     expect(calls.filter(c=>c.url==="/finance/customers/7/ledger").every(c=>!c.params.has("sort"))).toBe(true);
   });
+  it("uses server pagination and keeps per-movement running balances across pages",async()=>{
+    ledgerTotal=45;
+    visit();
+    const user=userEvent.setup();
+    const size=await screen.findByRole("combobox",{name:"عدد الحركات في الصفحة"});
+    expect((size as HTMLSelectElement).value).toBe("20");
+    expect(await screen.findByText("حركة 1")).toBeTruthy();
+    expect(screen.getByText("1–20")).toBeTruthy();
+    expect(screen.getByRole("button",{name:"الصفحة السابقة"}).hasAttribute("disabled")).toBe(true);
+    await user.click(screen.getByRole("button",{name:"الصفحة التالية"}));
+    await waitFor(()=>expect(calls.some(c=>c.url==="/finance/customers/7/ledger"
+      &&c.params.get("page")==="2"&&c.params.get("perPage")==="20")).toBe(true));
+    const secondPageRow=await screen.findByText("حركة 21");
+    expect(secondPageRow.closest("tr")?.textContent).toContain("1,020.00");
+    expect(screen.queryByText("حركة 1")).toBeNull();
+    expect(screen.getByText("21–40")).toBeTruthy();
+    const updatedSize=screen.getByRole("combobox",{name:"عدد الحركات في الصفحة"});
+    await user.selectOptions(updatedSize,"50");
+    await waitFor(()=>expect(calls.some(c=>c.url==="/finance/customers/7/ledger"
+      &&c.params.get("page")==="1"&&c.params.get("perPage")==="50")).toBe(true));
+    expect(await screen.findByText("حركة 45")).toBeTruthy();
+    expect(screen.getByText("1–45")).toBeTruthy();
+    expect(screen.getByRole("button",{name:"الصفحة التالية"}).hasAttribute("disabled")).toBe(true);
+  });
+
+  it("resets ledger page to one after changing movement type, preserving page size",async()=>{
+    ledgerTotal=45;
+    visit();
+    const user=userEvent.setup();
+    await screen.findByText("حركة 1");
+    await user.click(screen.getByRole("button",{name:"الصفحة التالية"}));
+    await screen.findByText("حركة 21");
+    await user.selectOptions(screen.getByRole("combobox",{name:"نوع الحركة المالية"}),"6");
+    await waitFor(()=>expect(calls.some(c=>c.url==="/finance/customers/7/ledger"
+      &&c.params.get("page")==="1"&&c.params.get("filter[type]")==="6")).toBe(true));
+    expect(await screen.findByText("لا توجد حركات مالية")).toBeTruthy();
+    expect(screen.queryByRole("button",{name:"ردود الأموال فقط"})).toBeNull();
+  });
+
   it("allows authorized opening without read permission but requires explicit one-time confirmation",async()=>{
     permissions=["finance.opening_balances.create"];
     visit();
     const user=userEvent.setup();
+    const more=await screen.findByText("المزيد");
+    await user.click(more);
     expect(await screen.findByRole("button",{name:"رصيد افتتاحي"})).toBeTruthy();
     expect(calls.some(c=>c.url==="/finance/customers/7/ledger")).toBe(false);
     expect(calls.some(c=>c.url==="/finance/customers/7/balance")).toBe(false);
@@ -187,6 +238,7 @@ describe("Finance account page against Laravel existing contracts",()=>{
     expect(screen.queryByText("500.00 ج.م")).toBeNull();
     expect(screen.queryByText("بيانات الحساب وتغيير العميل")).toBeNull();
     expect(screen.queryByRole("button",{name:"رصيد افتتاحي"})).toBeNull();
+    expect(screen.queryByText("المزيد")).toBeNull();
     expect(calls.some(c=>c.url==="/finance/customers/7/opening-balance-status")).toBe(true);
   });
   it("links ledger movements to real receipt and linked order and opens complete notes",async()=>{

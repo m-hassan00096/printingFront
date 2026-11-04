@@ -47,7 +47,7 @@ export function PrintingServiceDetailPage() {
     return types.data?.find((type) => type.value === typeId)?.label ?? `نوع عميل #${typeId}`;
   }
 
-  return <div className="space-y-4">
+  return <div className="tabaa-page space-y-4 sm:space-y-5">
     <Button asChild variant="ghost" className="px-0"><Link to="/printing-services"><ArrowRight className="size-4" /> العودة لخدمات الطباعة</Link></Button>
 
     <header className="flex flex-wrap items-center justify-between gap-4">
@@ -100,7 +100,7 @@ export function PrintingServiceDetailPage() {
         </div>
         <strong className="shrink-0 text-base">{item.costPrice === null ? copy.costNotSet : <Currency amount={item.costPrice} />}</strong>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-4 border-t bg-[#f8f9ff] px-5 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t bg-[#f8f6ff] px-5 py-3">
         <div className="min-w-0">
           <p className="text-sm font-bold text-foreground">{copy.basePrice}</p>
           <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{copy.basePriceDescription}</p>

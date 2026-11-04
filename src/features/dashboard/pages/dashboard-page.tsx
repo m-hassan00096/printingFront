@@ -21,20 +21,20 @@ function MetricCard({label,value,detail,icon:Icon,tone}:{
   tone:"blue"|"red"|"green"|"amber";
 }){
   const colors={
-    blue:"bg-primary/10 text-[#4d5ac6]",
-    red:"bg-[#fff0f2] text-[#c8384a]",
-    green:"bg-[#e5f7ee] text-[#147c58]",
-    amber:"bg-[#fff5df] text-[#a36a0d]",
+    blue:"bg-primary/10 text-[#6250c9]",
+    red:"bg-[#fff0f2] text-[#c74256]",
+    green:"bg-[#e5f7ee] text-[#15845f]",
+    amber:"bg-[#fff5df] text-[#a66a19]",
   };
-  return <article className="rounded-xl border border-border bg-card p-5 shadow-[0_6px_25px_#26396c08] sm:p-6">
+  return <article className="rounded-2xl border border-border bg-card p-4 shadow-[0_3px_14px_#25335709] sm:p-5">
     <div className="flex items-center justify-between gap-3">
       <span className="text-xs font-semibold text-muted-foreground">{label}</span>
       <span className={"flex size-10 items-center justify-center rounded-lg "+colors[tone]}>
         <Icon className="size-5" aria-hidden="true"/>
       </span>
     </div>
-    <div className="mt-4 text-[28px] font-bold leading-9 tracking-tight tabular-nums">{integer(value)}</div>
-    <p className="mt-1 text-[11px] text-muted-foreground">{detail}</p>
+    <div className="mt-3 text-[26px] font-bold leading-9 tracking-tight tabular-nums">{integer(value)}</div>
+    <p className="mt-1 text-xs leading-5 text-muted-foreground">{detail}</p>
   </article>;
 }
 function SectionTitle({title,detail,link,label}:{title:string;detail:string;link?:string;label?:string}){
@@ -50,7 +50,7 @@ function OrderSummary({order,allowView}:{order:DashboardOrder;allowView:boolean}
   const content=<>
     <div className="flex min-w-0 flex-1 items-center gap-3">
       <span className={"flex size-9 shrink-0 items-center justify-center rounded-xl "+
-        (order.isOverdue?"bg-[#fff0f2] text-[#c8384a]":"bg-secondary text-primary")}>
+        (order.isOverdue?"bg-[#fff0f2] text-[#c74256]":"bg-secondary text-primary")}>
         {order.isOverdue?<AlertTriangle className="size-4"/>:<ClipboardList className="size-4"/>}
       </span>
       <div className="min-w-0">
@@ -64,7 +64,7 @@ function OrderSummary({order,allowView}:{order:DashboardOrder;allowView:boolean}
       </div>
     </div>
     <span className={"shrink-0 rounded-lg px-2 py-1 text-[11px] font-bold "+
-      (order.isOverdue?"bg-[#fff0f2] text-[#c8384a]":"bg-muted text-foreground/70")}>
+      (order.isOverdue?"bg-[#fff0f2] text-[#c74256]":"bg-muted text-foreground/70")}>
       {order.isOverdue?"متأخر":order.productionStatusLabel??"قيد المتابعة"}
     </span>
     {allowView&&<ArrowUpLeft className="size-4 shrink-0 text-muted-foreground"/>}
@@ -76,13 +76,13 @@ function OrderSummary({order,allowView}:{order:DashboardOrder;allowView:boolean}
 function PressureCard({data,canProduction}:{data:DashboardData["productionPressure"];canProduction:boolean}){
   const stages=[
     {name:"لم يبدأ",value:data.notStarted,bar:"bg-muted-foreground"},
-    {name:"التصميم",value:data.design,bar:"bg-[#7580e0]"},
+    {name:"التصميم",value:data.design,bar:"bg-[#9387db]"},
     {name:"الطباعة",value:data.printing,bar:"bg-primary/100"},
-    {name:"جاهز للتسليم",value:data.ready,bar:"bg-[#e5f7ee]0"},
+    {name:"جاهز للتسليم",value:data.ready,bar:"bg-[#15845f]"},
   ];
   const max=Math.max(...stages.map(s=>s.value),1);
   const total=stages.reduce((sum,s)=>sum+s.value,0);
-  return <section aria-label="ضغط الإنتاج" className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-[0_6px_25px_#26396c08] sm:p-6">
+  return <section aria-label="ضغط الإنتاج" className="space-y-4 rounded-2xl border border-border bg-card p-4 shadow-[0_3px_14px_#25335709] sm:p-5">
     <SectionTitle title="ضغط الإنتاج" detail="عدد بنود الطلبات النشطة في كل مرحلة"
       link={canProduction?"/production":undefined} label="فتح لوحة الإنتاج"/>
     <div className="space-y-3">
@@ -111,7 +111,7 @@ function QuickActions({permissions}:{permissions:readonly string[]}){
   return <section aria-label="إجراءات سريعة" className="space-y-3 rounded-lg border bg-card p-4  sm:p-5">
     <SectionTitle title="إجراءات سريعة" detail="اختصارات لمهامك اليومية"/>
     <div className="grid grid-cols-2 gap-2">
-      {links.map(link=><Link to={link.to} key={link.to} className="flex min-h-20 flex-col justify-between rounded-lg border border-[#e8ebf5] bg-[#fafbff] p-3 text-sm font-semibold hover:border-primary/35 hover:bg-muted/30">
+      {links.map(link=><Link to={link.to} key={link.to} className="flex min-h-20 flex-col justify-between rounded-lg border border-[#e5e8f1] bg-[#faf9ff] p-3 text-sm font-semibold hover:border-primary/35 hover:bg-muted/30">
         <link.icon className="size-5 text-primary" aria-hidden="true"/>
         <span>{link.label}</span>
       </Link>)}
@@ -129,7 +129,7 @@ export function DashboardPage(){
   const data=query.data;
   // Designers work only in production; skip the order KPI home page entirely.
   if(!canOrders&&canProduction)return <Navigate to="/production" replace/>;
-  return <div className="space-y-5">
+  return <div className="tabaa-page space-y-4 sm:space-y-5">
     <SectionHeader title="لوحة التحكم" detail="ملخص العمل اليومي، الأوردرات التي تحتاج متابعة، وحالة الإنتاج."
       actions={<div className="flex flex-wrap gap-2">
         <Button variant="outline" type="button" onClick={()=>void qc.invalidateQueries({queryKey:dashboardKey})}
@@ -183,13 +183,13 @@ export function DashboardPage(){
                       <th key={h} className="px-4 py-3 font-mono text-xs font-medium">{h}</th>)}</tr>
                   </thead>
                   <tbody className="divide-y">{data.latestOrders.map(o=><tr key={o.id} className="hover:bg-muted/30">
-                    <td className="px-4 py-3 font-mono text-xs font-semibold">{canOrderDetail?<Link className="text-[#4d5ac6] hover:underline"
+                    <td className="px-4 py-3 font-mono text-xs font-semibold">{canOrderDetail?<Link className="text-[#6250c9] hover:underline"
                       to={`/orders/${o.id}`}>{o.orderNumber??`#${o.id}`}</Link>:
                       o.orderNumber??`#${o.id}`}</td>
                     <td className="px-4 py-3">{o.customerName}</td>
                     <td className="whitespace-nowrap px-4 py-3"><DateLabel value={o.dueDate}/></td>
                     <td className="px-4 py-3"><span className={"rounded-lg px-2 py-1 text-xs font-semibold "+
-                      (o.isOverdue?"bg-[#fff0f2] text-[#c8384a]":"bg-muted text-foreground/75")}>
+                      (o.isOverdue?"bg-[#fff0f2] text-[#c74256]":"bg-muted text-foreground/75")}>
                       {o.productionStatusLabel??"—"}</span></td>
                   </tr>)}</tbody>
                 </table>

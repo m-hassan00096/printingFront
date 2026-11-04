@@ -108,7 +108,7 @@ export function CustomerFormModal({ customer, onClose, onSaved }: {
     onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) onClose(); }}>
     <section role="dialog" aria-modal="true" aria-label={customer ? "تعديل عميل" : "إضافة عميل"}
       onKeyDown={(event) => { if (event.key === "Escape" && !busy) onClose(); }}
-      className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-lg bg-card p-5 shadow-2xl sm:p-7">
+      className="max-h-[calc(100dvh-24px)] w-full max-w-[560px] overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-2xl sm:max-h-[90dvh] sm:p-5">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div><h3 className="text-xl font-extrabold">{customer ? "تعديل عميل" : "إضافة عميل"}</h3>
           <p className="mt-1 text-xs text-muted-foreground">الحقول المميزة بالنجمة مطلوبة.</p></div>

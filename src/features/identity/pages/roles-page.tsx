@@ -52,7 +52,7 @@ export function RolesPage() {
       setDeleting(null);
     } catch (error: unknown) { toast.error(getApiErrorMessage(error)); }
   }
-  return <div className="space-y-6">
+  return <div className="tabaa-page space-y-4 sm:space-y-5">
     <SectionHeader title="الأدوار والصلاحيات" detail="إدارة أدوار الفريق وحالة كل دور وعدد المستخدمين المرتبطين به."
       actions={permissions.includes("identity.roles.create") && <Button asChild><Link to="/roles/new"><Plus className="size-4" /> إضافة دور</Link></Button>}
     />

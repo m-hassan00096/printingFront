@@ -33,33 +33,32 @@ export function Sidebar() {
   return (
     <aside aria-label="القائمة الرئيسية"
       className={cn(
-        "fixed inset-y-0 right-0 z-40 flex w-[238px] flex-col border-l border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width,transform] duration-150",
+        "fixed inset-y-0 right-0 z-40 flex w-[238px] flex-col border-l border-sidebar-border bg-sidebar text-sidebar-foreground shadow-[2px_0_14px_#1d254009] transition-[width,transform] duration-150",
         isSidebarCollapsed && "lg:w-[66px]",
         isMobileSidebarOpen ? "translate-x-0 shadow-2xl" : "translate-x-full lg:translate-x-0",
       )}>
-      <div className="flex h-[72px] shrink-0 items-center gap-3 border-b border-sidebar-border bg-white/70 px-4">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary text-white shadow-[0_4px_10px_#535fd130]">
+      <div className="flex h-[72px] shrink-0 items-center gap-3 border-b border-sidebar-border bg-white px-4">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-[0_5px_12px_#6250c929]">
           <Printer className="size-5" strokeWidth={2} aria-hidden="true" />
         </div>
         <div className={cn("min-w-0", isSidebarCollapsed && "lg:hidden")}>
-          <p className="text-base leading-6 font-extrabold tracking-tight">طَبعة</p>
-          <p className="text-[10px] font-semibold tracking-wide text-sidebar-muted">إدارة الطباعة والإنتاج</p>
+          <p className="text-lg leading-7 font-bold tracking-tight">طَبعة</p>
         </div>
       </div>
-      <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-5">
+      <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
         {groups.map(group => (
           <section key={group.label} className="space-y-1.5">
-            <h2 className={cn("px-3 text-[10px] font-bold text-sidebar-muted", isSidebarCollapsed && "lg:hidden")}>{group.label}</h2>
+            <h2 className={cn("px-3 text-[11px] font-semibold text-sidebar-muted", isSidebarCollapsed && "lg:hidden")}>{group.label}</h2>
             <div className="space-y-1">
               {group.items.map(item => {
                 const Icon = item.icon;
                 return (
-                  <NavLink key={item.to} to={item.to} end={item.to === "/"}
+                  <NavLink key={item.to} to={item.to} end={item.to === "/" || item.to === "/finance"}
                     title={isSidebarCollapsed ? item.label : undefined} aria-label={item.label}
                     onClick={closeMobileSidebar}
                     className={({isActive}) => cn(
-                      "group flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors duration-150",
-                      isActive ? "bg-white text-primary shadow-[0_2px_9px_#26366a0d]" : "text-[#75829a] hover:bg-white/80 hover:text-[#3b4773]",
+                      "group flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-semibold transition-colors duration-150",
+                      isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-[#69758a] hover:bg-[#f7f5ff] hover:text-[#41348e]",
                       isSidebarCollapsed && "lg:justify-center lg:px-0",
                     )}>
                     <Icon className="size-[17px] shrink-0" strokeWidth={1.9} aria-hidden="true" />
@@ -71,11 +70,11 @@ export function Sidebar() {
           </section>
         ))}
       </nav>
-      <div className="shrink-0 border-t border-sidebar-border bg-white/75 p-3">
+      <div className="shrink-0 border-t border-sidebar-border bg-white p-3">
         <button type="button" aria-label={uiMessages.sidebar.logout} title={uiMessages.sidebar.logout}
           disabled={logout.isPending} onClick={() => void handleLogout()}
           className={cn(
-            "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-start text-[13px] font-bold text-[#b33c4b] transition-colors hover:bg-[#fff0f2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-60",
+            "flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-start text-[13px] font-semibold text-[#ae3f51] transition-colors hover:bg-[#fff0f2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-60",
             isSidebarCollapsed && "lg:justify-center lg:px-0",
           )}>
           {logout.isPending ? <LoaderCircle className="size-[18px] shrink-0 animate-spin" /> : <LogOut className="size-[18px] shrink-0" />}

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AxiosError, type AxiosAdapter, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 import { App } from "@/App";
@@ -113,6 +113,38 @@ describe("Settings permissions and backend integration", () => {
     await userEvent.setup().click(screen.getByRole("tab", { name: /أنواع العملاء/ }));
     expect(await screen.findByText("عميل جملة")).toBeTruthy();
     expect(requests.some((r) => r.path === "/settings/parameter-values" && r.params.get("parameterId") === "31")).toBe(true);
+  });
+
+  it("keeps customer-type CRUD dialogs compact with distinct confirm size and existing actions", async () => {
+    visit("/settings?tab=customer-types");
+    expect(await screen.findByText("عميل جملة")).toBeTruthy();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", {name: "إضافة نوع عميل"}));
+    const formDialog = await screen.findByRole("dialog", {name: "إضافة نوع عميل"});
+    expect(formDialog.classList.contains("max-w-[560px]")).toBe(true);
+    expect(formDialog.classList.contains("max-h-[calc(100dvh-24px)]")).toBe(true);
+    expect(screen.getByRole("textbox", {name: "الاسم *"})).toBeTruthy();
+    const description = screen.getByRole("textbox", {name: "الوصف (اختياري)"});
+    expect(description.getAttribute("rows")).toBe("3");
+    expect(within(formDialog).getByRole("combobox", {name: "الحالة"})).toBeTruthy();
+    await user.click(screen.getByRole("button", {name: "إلغاء"}));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await user.click(screen.getByRole("button", {name: "حذف عميل جملة"}));
+    const confirmation = screen.getByRole("dialog", {name: "تأكيد الحذف"});
+    expect(confirmation.classList.contains("max-w-[420px]")).toBe(true);
+    await user.click(screen.getByRole("button", {name: "إلغاء"}));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(requests.some(req => req.method === "post" || req.method === "delete")).toBe(false);
+  });
+
+  it("keeps bank and wallet settings at an appropriate medium size", async () => {
+    visit("/settings?tab=e-wallets");
+    expect(await screen.findByText("فودافون كاش")).toBeTruthy();
+    await userEvent.setup().click(screen.getByRole("button", {name: "إضافة محفظة إلكترونية"}));
+    const dialog = screen.getByRole("dialog", {name: "إضافة محفظة إلكترونية"});
+    expect(dialog.classList.contains("max-w-[560px]")).toBe(true);
+    expect(screen.getByRole("textbox", {name: "رقم المحفظة *"})).toBeTruthy();
+    expect(screen.getByRole("textbox", {name: "اسم صاحب الحساب *"})).toBeTruthy();
   });
 
   it("displays backend bank accounts and saves a newly created account", async () => {

@@ -35,7 +35,7 @@ const principles = [
 
 const foundations = [
   { title: "معمارية المشروع", detail: "React + TypeScript + Feature-based structure", status: "مجهزة" },
-  { title: "نظام التصميم", detail: "RTL عربي، Cairo، ألوان ومسافات موحدة", status: "مجهز" },
+  { title: "نظام التصميم", detail: "RTL عربي، IBM Plex Sans Arabic، ألوان ومسافات موحدة", status: "مجهز" },
   { title: "الاتصال بالـ API", detail: "Axios وتهيئة CSRF دون تخزين Bearer Token", status: "مهيأ للربط" },
 ];
 
