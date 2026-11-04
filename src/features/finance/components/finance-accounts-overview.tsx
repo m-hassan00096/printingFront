@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useMobileListLayout } from "@/shared/hooks/use-mobile-list-layout";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
 import { EmptyState, ErrorState, LoadingState, PaginationBar } from "@/features/identity/components/identity-ui";
@@ -11,6 +12,7 @@ const copy = uiMessages.financeAccounts;
 const initial: AccountListFilters = {search: "", type: "", sort: "-balance", page: 1};
 const inputClass = "h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/20";
 export function FinanceAccountsOverview({onSelect}: {onSelect: (id: number) => void}) {
+  const mobile = useMobileListLayout();
   const [filters, setFilters] = useState<AccountListFilters>(initial);
   const [search, setSearch] = useState("");
   const query = useFinanceAccounts(filters, true);
@@ -43,7 +45,29 @@ export function FinanceAccountsOverview({onSelect}: {onSelect: (id: number) => v
     {query.isPending ? <LoadingState/> : query.isError ? <ErrorState error={query.error} retry={() => void query.refetch()}/> : query.data?.accounts.length ?
       <div className="overflow-hidden rounded-xl border bg-card">
         <header className="flex flex-wrap items-center justify-between gap-2 border-b p-4"><h2 className="font-bold">{copy.accountsTitle}</h2><span className="text-sm text-muted-foreground">{query.data.pagination.total.toLocaleString("ar-EG")} {copy.customer}</span></header>
-        <div className="overflow-x-auto"><table className="w-full min-w-[600px] text-right text-sm">
+
+        {mobile && <div className="divide-y md:hidden" aria-label="قائمة حسابات العملاء للموبايل">
+          {query.data.accounts.map(account => <article key={account.customerId} className="space-y-3 px-3 py-4">
+            <div className="min-w-0">
+              <button type="button" className="break-words text-right text-sm font-bold text-primary underline-offset-2 hover:underline"
+                onClick={() => onSelect(account.customerId)}>{account.customerName}</button>
+              <p className="mt-1 text-xs text-muted-foreground"><bdi dir="ltr">{account.customerPhone}</bdi></p>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/40 p-3">
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">الرصيد الكلي حتى الآن</p>
+                <p className={"mt-1 break-words text-sm font-bold " +
+                  (account.type===1?"text-destructive":account.type===2?"text-emerald-700":"")}>
+                  {accountTypeLabel(account.type)} · <MoneyAmount amount={account.amount}/>
+                </p>
+              </div>
+              <Button type="button" size="sm" variant="outline" onClick={() => onSelect(account.customerId)}>
+                {copy.viewAccount}
+              </Button>
+            </div>
+          </article>)}
+        </div>}
+        {!mobile && <div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[600px] text-right text-sm">
           <thead className="bg-muted/50"><tr>{[copy.customer, copy.phone, "الرصيد الكلي حتى الآن", copy.actions].map(title => <th key={title} scope="col" className="px-4 py-3 text-xs font-semibold">{title}</th>)}</tr></thead>
           <tbody className="divide-y">{query.data.accounts.map(account => <tr key={account.customerId} className="hover:bg-muted/20">
             <td className="px-4 py-4 font-semibold"><button type="button" className="text-start hover:text-primary hover:underline" onClick={() => onSelect(account.customerId)}>{account.customerName}</button></td>
@@ -53,7 +77,7 @@ export function FinanceAccountsOverview({onSelect}: {onSelect: (id: number) => v
             </td>
             <td className="px-4 py-4"><Button type="button" size="sm" variant="outline" onClick={() => onSelect(account.customerId)}>{copy.viewAccount}</Button></td>
           </tr>)}</tbody>
-        </table></div>
+        </table></div>}
         <p className="border-t px-4 py-3 text-xs leading-5 text-muted-foreground">الرصيد يشمل الأوردرات المؤكدة حتى لو لم تُسلّم. افتح الحساب لمراجعة التفاصيل أو تسجيل تحصيل أو تصفية الشغل المسلّم.</p>
       </div> : <EmptyState title={copy.noAccounts} detail={copy.noAccountsHint}/>}
     {query.data && query.data.pagination.lastPage > 1 && <PaginationBar pagination={query.data.pagination} onPage={page => setFilters(previous => ({...previous, page}))}/>}
