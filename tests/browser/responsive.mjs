@@ -215,7 +215,10 @@ try {
         const visible=await page.locator('[aria-label="التنقل السريع للموبايل"]').isVisible();
         assert.equal(visible,false,"desktop should not show bottom nav");
       }
-      for(const route of ["/customers","/orders","/collections","/finance","/deliveries","/production"]) {
+      const routes = role === "admin"
+        ? ["/customers","/orders","/collections","/finance","/deliveries","/production"]
+        : ["/customers","/orders","/collections","/deliveries"];
+      for(const route of routes) {
         await page.goto(base+route,{waitUntil:"domcontentloaded"});
         await page.locator(".tabaa-page").waitFor({timeout:15000});
         await page.waitForTimeout(200);
