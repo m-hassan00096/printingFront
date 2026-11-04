@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, ClipboardList, Eye, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, ClipboardList, Eye, FileDown, Plus, Trash2 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
@@ -221,6 +221,10 @@ export function OrdersPage() {
               </td>
               <td className="px-4 py-3"><div className="flex gap-1">
                 {perms.includes("orders.view") && <Button variant="ghost" size="icon-sm" asChild><Link aria-label={`عرض أوردر ${order.orderNumber ?? order.id}`} to={`/orders/${order.id}`}><Eye /></Link></Button>}
+                {perms.includes("orders.view") && perms.includes("finance.collections.view") && <Button variant="ghost" size="icon-sm" asChild>
+                  <Link aria-label={`طباعة PDF للأوردر ${order.orderNumber ?? order.id}`}
+                    title="طباعة أو حفظ PDF" to={`/orders/${order.id}/print`} target="_blank" rel="noopener noreferrer"><FileDown /></Link>
+                </Button>}
                 {order.status === 0 && perms.includes("orders.delete") && <Button type="button" variant="ghost" size="icon-sm" aria-label={`حذف مسودة ${order.id}`} onClick={() => setDeleting(order)}><Trash2 className="text-destructive" /></Button>}
               </div></td>
             </tr>)}</tbody></table></div>
