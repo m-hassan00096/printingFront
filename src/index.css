@@ -159,6 +159,15 @@ a, button { transition-property: background-color, border-color, color, opacity,
    Do NOT set an unlayered max-width on [role="dialog"]: it overrides all
    Tailwind utility layers and stretches simple dialogs to viewport width. */
 
+/* Prevent wide application content from shifting the mobile layout viewport.
+   Scrollable tables keep their own overflow-x-auto containers. */
+@media (max-width: 1023px) {
+  html, body, #root { max-width: 100%; overflow-x: clip; }
+  .tabaa-app { width: 100%; max-width: 100%; overflow-x: clip; }
+  .tabaa-app > div:not(.tabaa-mobile-nav) { min-width: 0; max-width: 100%; }
+  .tabaa-mobile-nav { width: 100%; max-width: 100vw; }
+}
+
 /* Mobile app shell: fixed quick navigation stays above device home indicator.
    Only the shell reserves space; dialogs and independent print routes remain unchanged. */
 @media (max-width: 1023px) {

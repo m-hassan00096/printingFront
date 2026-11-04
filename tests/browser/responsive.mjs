@@ -186,6 +186,20 @@ try {
           `${where}: mobile layout viewport expanded ${report.layoutViewport} > ${width}`);
       };
       assertNoOverflow("dashboard");
+      if (mobile) {
+        // A sideways swipe or a programmatic horizontal scroll must not shift the app.
+        const scrollCheck = await page.evaluate(() => {
+          const root = document.scrollingElement;
+          if (!root) return {left: 0, extra: 0};
+          root.scrollLeft = 9999;
+          return {left: root.scrollLeft, extra: root.scrollWidth - root.clientWidth};
+        });
+        assert.ok(Math.abs(scrollCheck.left) <= 2 && scrollCheck.extra <= 2,
+          `mobile dashboard scrolls sideways: ${JSON.stringify(scrollCheck)}`);
+        const navPosition = await page.locator(".tabaa-mobile-nav").boundingBox();
+        assert.ok(navPosition && navPosition.x >= -2 && navPosition.x + navPosition.width <= width + 2,
+          "bottom nav shifts after horizontal scrolling");
+      }
       const available=width-(width>=1024?238:0);
       assert.ok(report.main?.width > available*0.98,`main too narrow: ${report.main?.width}/${available}`);
       assert.ok(report.main.left>=-2 && report.main.right<=width+2,
