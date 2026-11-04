@@ -51,7 +51,7 @@ export function Sidebar() {
       className={cn(
         "tabaa-mobile-sidebar fixed inset-y-0 right-0 z-40 flex w-[min(86vw,320px)] flex-col border-l border-sidebar-border bg-sidebar text-sidebar-foreground shadow-[2px_0_14px_#1d254009] transition-[width,transform] duration-150 lg:w-[238px]",
         isSidebarCollapsed && "lg:w-[66px]",
-        isMobileSidebarOpen ? "translate-x-0 shadow-2xl" : "translate-x-full lg:translate-x-0",
+        isMobileSidebarOpen ? "visible translate-x-0 shadow-2xl" : "invisible pointer-events-none translate-x-full lg:visible lg:pointer-events-auto lg:translate-x-0",
       )}>
       <div className="flex h-[72px] shrink-0 items-center gap-3 border-b border-sidebar-border bg-white px-4">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-[0_5px_12px_#6250c929]">

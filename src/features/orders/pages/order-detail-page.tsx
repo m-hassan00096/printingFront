@@ -249,7 +249,7 @@ export function OrderDetailPage() {
       onClose={() => setDeleteItem(null)} onConfirm={() => void removeItem()} />}
     {paymentDialog && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-4">
       <section role="dialog" aria-modal="true" aria-label={paymentDialog === "plan" ? "تعديل بيانات العربون" : "تأكيد الأوردر"}
-        className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-lg bg-card p-5 shadow-xl sm:p-6">
+        className="max-h-[calc(100dvh-24px)] min-w-0 w-full max-w-lg space-y-4 overflow-y-auto rounded-lg bg-card p-4 shadow-xl sm:max-h-[90dvh] sm:p-6">
         <header className="flex items-start justify-between gap-3">
           <h2 className="text-lg font-bold">{paymentDialog === "plan" ? "تعديل بيانات العربون" : "تأكيد الأوردر"}</h2>
           <Button type="button" variant="ghost" size="icon-sm" aria-label="إغلاق"
@@ -361,7 +361,7 @@ export function OrderDetailPage() {
       </section>
     </div>}
     {cancelOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-4">
-      <section role="dialog" aria-modal="true" aria-label="إلغاء الأوردر" className="w-full max-w-md space-y-4 rounded-lg bg-card p-6">
+      <section role="dialog" aria-modal="true" aria-label="إلغاء الأوردر" className="max-h-[calc(100dvh-24px)] w-full max-w-md space-y-4 overflow-y-auto rounded-lg bg-card p-4 sm:p-6">
         <h2 className="font-bold">سبب الإلغاء</h2>
         <textarea aria-label="سبب إلغاء الأوردر" className={fieldClass + " min-h-24 py-2"} value={reason} onChange={(e) => setReason(e.target.value)} />
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}

@@ -74,7 +74,7 @@ export function ConfirmDialog({
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1c2445]/35 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}>
     <div role="dialog" aria-modal="true" aria-labelledby="confirm-heading" aria-describedby="confirm-desc"
       onKeyDown={(e) => { if (e.key === "Escape" && !busy) onClose(); }}
-      className="w-full max-w-md space-y-5 rounded-lg bg-card p-6 shadow-[0_20px_48px_#27396b22]">
+      className="max-h-[calc(100dvh-24px)] w-full max-w-md space-y-4 overflow-y-auto rounded-lg bg-card p-4 shadow-[0_20px_48px_#27396b22] sm:space-y-5 sm:p-6">
       <div><h3 id="confirm-heading" className="text-lg font-extrabold">{title}</h3><p id="confirm-desc" className="mt-2 text-sm leading-7 text-muted-foreground">{description}</p></div>
       <div className="flex flex-wrap justify-end gap-2">
         <Button ref={first} type="button" variant="outline" onClick={onClose} disabled={busy}>رجوع</Button>
