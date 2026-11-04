@@ -56,7 +56,7 @@ export function LoginPage() {
               <Printer className="size-6" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-xl font-semibold tracking-tight">طَبعة</p>
+              <p className="text-xl font-semibold tracking-tight">مطبعة المصرية</p>
               <p className="text-xs text-muted-foreground">إدارة الطباعة والإنتاج</p>
             </div>
           </div>
@@ -68,7 +68,7 @@ export function LoginPage() {
             </span>
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">مرحبًا بعودتك</h1>
             <p className="text-sm leading-7 text-muted-foreground">
-              أدخل بيانات حسابك للمتابعة وإدارة أعمال المطبعة.
+              أدخل بيانات حسابك للمتابعة وإدارة أعمال الممطبعة المصرية.
             </p>
           </div>
 
@@ -135,12 +135,12 @@ export function LoginPage() {
             لو نسيت كلمة المرور، تواصل مع مسؤول النظام لإعادة تعيينها.
           </p>
           <p className="mt-12 text-center text-[11px] text-muted-foreground/75">
-            طَبعة · مساحة عمل آمنة
+            مطبعة المصرية · مساحة عمل آمنة
           </p>
         </div>
       </div>
 
-      <aside className="relative hidden min-h-screen flex-col justify-between overflow-hidden bg-gradient-to-bl from-[#f0edfc] via-[#f8f7fd] to-[#fbfaff] p-10 text-foreground lg:flex xl:p-16" aria-label="عن طَبعة">
+      <aside className="relative hidden min-h-screen flex-col justify-between overflow-hidden bg-gradient-to-bl from-[#f0edfc] via-[#f8f7fd] to-[#fbfaff] p-10 text-foreground lg:flex xl:p-16" aria-label="عن مطبعة المصرية">
         <div className="pointer-events-none absolute -top-32 -left-20 size-96 rounded-full border border-[#d6ddfa]" aria-hidden="true" />
         <div className="pointer-events-none absolute top-16 -left-28 size-[30rem] rounded-full border border-[#d6ddfa]" aria-hidden="true" />
         <div className="relative z-10 flex items-center gap-2 text-xs font-semibold text-primary">

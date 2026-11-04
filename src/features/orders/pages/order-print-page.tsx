@@ -105,7 +105,7 @@ export function OrderPrintPage() {
     <article id="order-print-document" className="order-print-paper">
       <header className="order-print-heading">
         <div>
-          <p className="order-print-brand">طَبعة</p>
+          <p className="order-print-brand">مطبعة المصرية</p>
           <h1>بيان تفاصيل الأوردر</h1>
           <p className="order-print-subtitle">بيان الشغل والأسعار والعربون المسجّل</p>
         </div>

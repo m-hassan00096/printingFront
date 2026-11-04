@@ -12,7 +12,7 @@ export function renderAccountSettlementEvidence(record: AccountSettlementRecord)
   const items = before.items.map(item => `<tr><td>${escape(item.orderNumber)}</td><td>${escape(item.description)}${item.widthCm && item.heightCm ? " — " + escape(item.widthCm) + " × " + escape(item.heightCm) + " سم" : ""}</td><td>${escape(item.quantity)}</td><td>${money(item.amount)}</td></tr>`).join("");
   return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${escape(record.number)}</title><style>
   body{font:14px Tahoma,Arial,sans-serif;color:#17243c;margin:24px}h1{font-size:24px}.notice{padding:12px;border:1px solid #aaa}table{border-collapse:collapse;width:100%;margin-top:16px}th,td{text-align:right;padding:10px;border-bottom:1px solid #ddd}.total{font-size:20px;font-weight:bold}.warn{border:2px solid #a33;padding:12px} @page{size:A4;margin:15mm}
-  </style></head><body><h1>طَبعة — إثبات تصفية مالية</h1><p>${escape(record.number)} · تاريخ التنفيذ: ${escape(record.settledOn)}</p>
+  </style></head><body><h1>مطبعة المصرية — إثبات تصفية مالية</h1><p>${escape(record.number)} · تاريخ التنفيذ: ${escape(record.settledOn)}</p>
   <p>العميل: <strong>${escape(before.customerName)}</strong> · الهاتف: ${escape(before.customerPhone)}</p>
   <p>شغل مسلّم حتى ${escape(record.dateTo)}، مع احتساب دفعات الحساب حتى ${escape(before.paymentsThrough)}.</p>
   <p class="notice">${escape(record.statusLabel)}</p>${record.needsReview ? '<p class="warn">حدث إلغاء أو رد مالي بعد تسجيل هذه التصفية. الأرقام التالية لقطة وقت التسجيل وليست إثباتًا بأن الرصيد الحالي مسدد.</p>' : ''}

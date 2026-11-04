@@ -1,4 +1,4 @@
-# لوحة التحكم — طَبعة
+# لوحة التحكم — مطبعة المصرية
 
 ## Purpose
 Dashboard replaces the old static Foundation page at `/` with a useful **read-only, live** operational overview. The layout takes high-level inspiration from a supplied screenshot but follows Tabaa's Arabic RTL palette, existing rounded cards and typography.

@@ -1,6 +1,6 @@
 # Identity Feature — Users, Roles & Permissions
 
-**Project:** طَبعة — printingFront  
+**Project:** مطبعة المصرية — printingFront  
 **Frontend branch:** `feature/identity`  
 **Backend reference:** `m-hassan00096/printingApi` → `develop` → `Modules/Identity`  
 **Status:** First implementation committed on `feature/identity`. Users CRUD/UI and Roles list/metadata UI. Permission catalog resolved via the existing Selects API.  
@@ -8,7 +8,7 @@
 
 ## 1. Goal and boundaries
 
-إدارة مستخدمي النظام وأدوارهم وصلاحياتهم بشكل واضح وآمن ومناسب لمدير المطبعة، بدون ازدحام الشاشة أو تكرار الـ Auth.
+إدارة مستخدمي النظام وأدوارهم وصلاحياتهم بشكل واضح وآمن ومناسب لمدير الممطبعة المصرية، بدون ازدحام الشاشة أو تكرار الـ Auth.
 
 - `features/auth`: Login / Logout / Me / session / guards فقط، كما هي.
 - `features/identity`: Users CRUD, Roles CRUD, permission selection and displays, profiles and authorization states.

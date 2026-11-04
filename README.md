@@ -1,4 +1,4 @@
-# طَبعة | Tabaa Frontend
+# مطبعة المصرية | Frontend
 
 واجهة نظام إدارة طلبات الطباعة والإنتاج والتسليمات والتحصيلات. مبنية باستخدام React وTypeScript، ومهيأة للتكامل مع Laravel API عبر Sanctum SPA authentication.
 

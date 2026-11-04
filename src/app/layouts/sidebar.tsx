@@ -42,7 +42,7 @@ export function Sidebar() {
           <Printer className="size-5" strokeWidth={2} aria-hidden="true" />
         </div>
         <div className={cn("min-w-0", isSidebarCollapsed && "lg:hidden")}>
-          <p className="text-lg leading-7 font-bold tracking-tight">طَبعة</p>
+          <p className="text-lg leading-7 font-bold tracking-tight">مطبعة المصرية</p>
         </div>
       </div>
       <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">

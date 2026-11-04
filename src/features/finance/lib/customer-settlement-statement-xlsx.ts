@@ -85,7 +85,7 @@ function buildSheet(source: CustomerSettlementStatement, target: "summary" | "de
   // Client-facing: show accounting context once in the summary, and keep
   // the details sheet for the delivered work and prior cash movements only.
   if (target === "summary") {
-    fullLine("طَبعة | تقرير تصفية الحساب", 1, 39);
+    fullLine("مطبعة المصرية | تقرير تصفية الحساب", 1, 39);
     fullLine("العميل: " + preview.customerName +
       (preview.customerPhone ? " | " + preview.customerPhone : ""), 4, 28);
     fullLine("الفترة: " + formattedDate(periodFrom) +
