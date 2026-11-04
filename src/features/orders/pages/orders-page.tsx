@@ -182,7 +182,54 @@ export function OrdersPage() {
         <ErrorState error={orders.error} retry={() => void orders.refetch()} /> :
         orders.data.orders.length === 0 ? <EmptyState title="لا توجد أوردرات" detail="أضف أوردر جديد أو غيّر الفلاتر." /> :
         <>
-          <div className="overflow-x-auto"><table className="w-full min-w-[1140px] text-right text-sm">
+
+          <div className="divide-y md:hidden" aria-label="قائمة الأوردرات للموبايل">
+            {orders.data.orders.map(order => <article key={order.id} className="space-y-3 px-3 py-4 sm:px-4"
+              aria-label={`أوردر ${order.orderNumber ?? order.id}`}>
+              <div className="flex min-w-0 items-start justify-between gap-2">
+                <div className="min-w-0">
+                  {perms.includes("orders.view") ? <Link to={`/orders/${order.id}`}
+                    className="block break-all text-sm font-bold text-primary hover:underline">
+                    {order.orderNumber ?? `مسودة #${order.id}`}
+                  </Link> : <span className="block break-all text-sm font-bold">{order.orderNumber ?? `مسودة #${order.id}`}</span>}
+                  <p className="mt-1 break-words text-sm font-semibold">{order.customerName}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground"><bdi dir="ltr">{order.customerPhone}</bdi></p>
+                </div>
+                <OrderStatusBadge order={order}/>
+              </div>
+              <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-3 text-xs">
+                <div className="min-w-0">
+                  <p className="text-muted-foreground">الإجمالي</p>
+                  <p className="mt-1 break-words text-sm font-bold"><MoneyAmount amount={order.totalAmount}/></p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-muted-foreground">موعد التسليم</p>
+                  <p className="mt-1 font-semibold">{order.dueDate ? formatCollectionDate(order.dueDate) : uiMessages.orders.noDueDate}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <ProductionBadge order={order}/>
+                <div className="flex flex-wrap items-center gap-2">
+                  {perms.includes("orders.view") && <Button variant="outline" size="sm" asChild>
+                    <Link aria-label={`موبايل: عرض أوردر ${order.orderNumber ?? order.id}`} to={`/orders/${order.id}`}>
+                      <Eye className="size-4"/> التفاصيل
+                    </Link>
+                  </Button>}
+                  {perms.includes("orders.view") && perms.includes("finance.collections.view") && <Button variant="outline" size="sm" asChild>
+                    <Link aria-label={`موبايل: طباعة PDF للأوردر ${order.orderNumber ?? order.id}`}
+                      to={`/orders/${order.id}/print`} target="_blank" rel="noopener noreferrer">
+                      <FileDown className="size-4"/> PDF
+                    </Link>
+                  </Button>}
+                  {order.status === 0 && perms.includes("orders.delete") && <Button variant="ghost" size="icon-sm"
+                    aria-label={`موبايل: حذف مسودة ${order.id}`} onClick={() => setDeleting(order)}>
+                    <Trash2 className="size-4 text-destructive"/>
+                  </Button>}
+                </div>
+              </div>
+            </article>)}
+          </div>
+          <div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[1140px] text-right text-sm">
             <thead className="bg-muted/50 text-xs text-muted-foreground"><tr>
               {["الأوردر", "العميل", "الهاتف", "الإجمالي", "الحالة", "الإنتاج", uiMessages.orders.createdAtColumn, uiMessages.orders.dueDateColumn, "الإجراءات"].map((label) =>
                 <th scope="col" key={label} className="px-4 py-3 font-semibold">{label}</th>)}
