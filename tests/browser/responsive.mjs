@@ -109,7 +109,10 @@ try {
         };
         const nav=document.querySelector('[aria-label="التنقل السريع للموبايل"]');
         return {
-          viewport:innerWidth,docWidth:document.documentElement.scrollWidth,
+          viewport:document.documentElement.clientWidth,
+          layoutViewport:innerWidth,
+          visualViewport:window.visualViewport?.width ?? null,
+          docWidth:document.documentElement.scrollWidth,
           bodyWidth:document.body.scrollWidth,
           header:rect(document.querySelector(".tabaa-app header")),
           main:rect(document.querySelector(".tabaa-app-main")),
@@ -125,19 +128,30 @@ try {
       metrics.push({name,...report});
       console.log('GEOMETRY',JSON.stringify({name,...report}));
       const assertNoOverflow=where=>{
-        assert.ok(report.docWidth<=report.viewport+2,
-          `${where}: document overflow ${report.docWidth} > ${report.viewport}`);
+        assert.ok(report.docWidth<=width+2,
+          `${where}: document width ${report.docWidth} > device viewport ${width}`);
+        assert.ok(report.bodyWidth<=width+2,
+          `${where}: body width ${report.bodyWidth} > device viewport ${width}`);
+        assert.ok(report.layoutViewport<=width+2,
+          `${where}: mobile layout viewport expanded ${report.layoutViewport} > ${width}`);
       };
       assertNoOverflow("dashboard");
       const available=width-(width>=1024?238:0);
       assert.ok(report.main?.width > available*0.98,`main too narrow: ${report.main?.width}/${available}`);
+      assert.ok(report.main.left>=-2 && report.main.right<=width+2,
+        `main shifted off physical screen: ${JSON.stringify(report.main)}`);
       assert.ok(report.stats?.width > available*0.85,`KPI grid too narrow: ${report.stats?.width}/${available}`);
       assert.ok(report.firstCard?.left >= -2 && report.firstCard?.right <= width+2,
         `KPI outside visible viewport: ${JSON.stringify(report.firstCard)}`);
+      assert.ok(report.metric.every(s => /0/.test(s)),
+        "Expected legible Western zero in dashboard metric cards");
       assert.ok(report.metric.every(s=>!s.includes("NaN")&&!s.includes("undefined")),
         "Metric missing or malformed");
       if(mobile) {
-        assert.ok(report.nav?.width >= width-2, `bottom nav too narrow: ${report.nav?.width}/${width}`);
+        assert.ok(report.nav?.width >= width-2 && report.nav?.width <= width+2,
+          `bottom nav width incorrect: ${report.nav?.width}/${width}`);
+        assert.ok(report.nav?.left>=-2 && report.nav?.right<=width+2,
+          `bottom nav shifted outside viewport: ${JSON.stringify(report.nav)}`);
         assert.ok(report.navLinks?.length===4, `expected 4 nav slots: ${report.navLinks?.length}`);
         for(const link of report.navLinks) assert.ok(link.left>=-2 && link.right<=width+2,
           `clipped nav link: ${JSON.stringify(link)}`);
@@ -155,10 +169,13 @@ try {
         await page.goto(base+route,{waitUntil:"domcontentloaded"});
         await page.locator(".tabaa-page").waitFor({timeout:15000});
         const info=await page.evaluate(()=>({
-          docWidth:document.documentElement.scrollWidth,viewport:innerWidth,
+          docWidth:document.documentElement.scrollWidth,
+          bodyWidth:document.body.scrollWidth,
+          viewport:document.documentElement.clientWidth,
           navWidth:document.querySelector(".tabaa-mobile-nav")?.getBoundingClientRect().width,
         }));
-        assert.ok(info.docWidth<=info.viewport+2,`${route}: overflow ${info.docWidth}/${info.viewport}`);
+        assert.ok(info.docWidth<=width+2 && info.bodyWidth<=width+2,
+          `${route}: overflow ${info.docWidth}/${info.bodyWidth} vs device ${width}`);
       }
       assert.deepEqual(errors,[],"Browser uncaught JS errors");
       console.log("PASS",name,JSON.stringify({docWidth:report.docWidth,main:report.main?.width,nav:report.nav?.width,metric:report.metric.map(s=>s.slice(0,48))}));

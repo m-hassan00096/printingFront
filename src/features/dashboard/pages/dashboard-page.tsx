@@ -161,8 +161,8 @@ export function DashboardPage(){
               detail={uiMessages.orders.readyDueTodayDetail} icon={CalendarDays} tone="amber"/>
           </Link>
         </section>
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(310px,1fr)]">
-          <div className="space-y-4">
+        <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+          <div className="min-w-0 space-y-4">
             <section aria-label="أوردرات تحتاج المتابعة" className="rounded-lg border bg-card p-4  sm:p-5">
               <SectionTitle title="أوردرات تحتاج المتابعة" detail="الأقرب في موعد التسليم، مع إظهار المتأخر أولًا"
                 link="/orders?lateOnly=1" label="عرض المتأخرة"/>
@@ -173,11 +173,15 @@ export function DashboardPage(){
                     لا توجد أوردرات بمواعيد تسليم تحتاج المتابعة حاليًا.
                   </div>}
             </section>
-            <section aria-label="آخر الأوردرات" className="overflow-hidden rounded-lg border bg-card ">
+            <section aria-label="آخر الأوردرات" className="min-w-0 overflow-hidden rounded-lg border bg-card">
               <div className="p-4 sm:p-5">
                 <SectionTitle title="آخر الأوردرات" detail="أحدث الأوردرات المؤكدة" link="/orders"/>
               </div>
-              {data.latestOrders.length?<div className="overflow-x-auto">
+              {data.latestOrders.length?<>
+                <div className="divide-y px-2 pb-2 md:hidden" aria-label="آخر الأوردرات للموبايل">
+                  {data.latestOrders.map(order => <OrderSummary key={order.id} order={order} allowView={canOrderDetail}/>)}
+                </div>
+                <div className="hidden min-w-0 max-w-full overflow-x-auto md:block">
                 <table className="w-full min-w-[570px] text-right text-sm">
                   <thead className="bg-muted/50 text-xs text-foreground/65">
                     <tr>{["الأوردر","العميل","موعد التسليم","حالة الإنتاج"].map(h=>
@@ -194,10 +198,10 @@ export function DashboardPage(){
                       {o.productionStatusLabel??"—"}</span></td>
                   </tr>)}</tbody>
                 </table>
-              </div>:<div className="p-6 text-center text-sm text-foreground/65">لا توجد أوردرات مؤَكدة حتى الآن.</div>}
+              </div></>:<div className="p-6 text-center text-sm text-foreground/65">لا توجد أوردرات مؤَكدة حتى الآن.</div>}
             </section>
           </div>
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             <PressureCard data={data.productionPressure} canProduction={canProduction}/>
             <QuickActions permissions={permissions}/>
             <div className="flex items-start gap-2 rounded-xl border border-primary/10 bg-primary/5 p-3 text-xs leading-6 text-foreground/70">
