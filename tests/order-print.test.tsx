@@ -86,6 +86,14 @@ describe("Print order as PDF",()=>{
     expect(screen.getByText("01012345678")).toBeTruthy();
     expect(screen.getByText("الباقي بعد العربون")).toBeTruthy();
     expect(screen.getByText("500.00 ج.م")).toBeTruthy();
+    expect(screen.getByRole("heading",{name:"بنود الأوردر"})).toBeTruthy();
+    expect(screen.getByRole("heading",{name:"ملخص الحساب"})).toBeTruthy();
+    const summary=within(screen.getByRole("region",{name:"ملخص مبالغ الأوردر"}));
+    expect(summary.getByText("العربون المدفوع فعليًا")).toBeTruthy();
+    expect(summary.getByText("300.00 ج.م")).toBeTruthy();
+    expect(summary.getByText("500.00 ج.م")).toBeTruthy();
+    expect(screen.getAllByText("800.00 ج.م")).toHaveLength(1);
+    expect(screen.queryByText("الإجمالي النهائي")).toBeNull();
     await userEvent.setup().click(screen.getByRole("button",{name:"طباعة / حفظ PDF"}));
     expect(printed).toHaveBeenCalled();
     expect(requests.some(r=>r.url==="/finance/collections" &&
