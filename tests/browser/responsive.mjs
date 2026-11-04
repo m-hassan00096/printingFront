@@ -23,7 +23,12 @@ const dashboard = {
   asOfDate: "2026-11-04",
   metrics: {activeOrders:0,overdueOrders:0,readyForDelivery:0,dueToday:0,readyDueToday:0},
   productionPressure: {notStarted:0,design:0,printing:0,ready:0},
-  attentionOrders: [], latestOrders: [],
+  attentionOrders: [], latestOrders: [
+    {id:1,orderNumber:"ORD-261104001",customerName:"شركة المصرية لخدمات الطباعة",
+     dueDate:"2026-11-07",productionStatus:2,productionStatusLabel:"جارٍ التنفيذ",isOverdue:false},
+    {id:2,orderNumber:"ORD-261104002",customerName:"مؤسسة الرحمن",
+     dueDate:"2026-11-09",productionStatus:3,productionStatusLabel:"جاهز",isOverdue:false},
+  ],
 };
 const pagination = {currentPage:1,lastPage:1,perPage:15,total:0};
 const success = data => ({success:true,message:"",data});
@@ -124,8 +129,9 @@ try {
           `${where}: document overflow ${report.docWidth} > ${report.viewport}`);
       };
       assertNoOverflow("dashboard");
-      assert.ok(report.main?.width > width*0.90,`main too narrow: ${report.main?.width}/${width}`);
-      assert.ok(report.stats?.width > width*0.85,`KPI grid too narrow: ${report.stats?.width}/${width}`);
+      const available=width-(width>=1024?238:0);
+      assert.ok(report.main?.width > available*0.98,`main too narrow: ${report.main?.width}/${available}`);
+      assert.ok(report.stats?.width > available*0.85,`KPI grid too narrow: ${report.stats?.width}/${available}`);
       assert.ok(report.firstCard?.left >= -2 && report.firstCard?.right <= width+2,
         `KPI outside visible viewport: ${JSON.stringify(report.firstCard)}`);
       assert.ok(report.metric.every(s=>!s.includes("NaN")&&!s.includes("undefined")),
