@@ -54,7 +54,7 @@ function sheetXml(statement: CustomerSettlement): string {
   const rows: string[] = [], merges: string[] = [];
   const merge = (from: string, to: string): void => {merges.push(from + ":" + to);};
 
-  rows.push(tableRow(1, [textCell(0,1,"طَبعة | تقرير الشغل المستلّم للعميل",1)],42)); merge("A1","F1");
+  rows.push(tableRow(1, [textCell(0,1,"مطبعة المصرية | تقرير الشغل المستلّم للعميل",1)],42)); merge("A1","F1");
   rows.push(tableRow(2, [textCell(0,2,"العميل: " + statement.customerName,2)],29)); merge("A2","F2");
   rows.push(tableRow(3, [textCell(0,3,"الفترة: " + statement.dateFrom + " إلى " + statement.dateTo,2)],27)); merge("A3","F3");
   rows.push(tableRow(4, [textCell(0,4,"رقم الهاتف: " + (statement.customerPhone || "—"),0)],24)); merge("A4","F4");

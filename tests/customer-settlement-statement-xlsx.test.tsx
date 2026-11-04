@@ -114,7 +114,7 @@ describe("Customer statement tied to the last saved settlement", () => {
     const sheet = summary + details;
     expect(summary).toContain('rightToLeft="1"');
     expect(details).toContain('rightToLeft="1"');
-    expect(summary).toContain("طَبعة | تقرير تصفية الحساب");
+    expect(summary).toContain("مطبعة المصرية | تقرير تصفية الحساب");
     expect(details).toContain("تفاصيل الشغل والمدفوعات");
     expect(summary).toContain("ملخص الحساب");
     expect(summary).not.toContain("ORD-11");

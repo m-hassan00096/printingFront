@@ -28,7 +28,7 @@ export function renderDeliveredWorkHtml(statement: CustomerSettlement): string {
   ].map(([label, value]) => "<div><span>" + escapeHtml(label) +
     "</span><strong>" + escapeHtml(value) + "</strong></div>").join("");
   return '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">' +
-    '<title>طَبعة — تقرير الشغل المستلّم</title><style>' +
+    '<title>مطبعة المصرية — تقرير الشغل المستلّم</title><style>' +
     'body{font:14px Tahoma,Arial,sans-serif;color:#18243b;padding:20px}' +
     'table{border-collapse:collapse;width:100%;margin-top:20px;font-size:12px}' +
     'th,td{border-bottom:1px solid #dce3ed;padding:9px;text-align:right}' +
@@ -37,7 +37,7 @@ export function renderDeliveredWorkHtml(statement: CustomerSettlement): string {
     '.summary strong{display:block;font-size:18px;margin-top:8px}' +
     '.muted{color:#53637c}tfoot{font-weight:bold;background:#edf1f9}' +
     '@page{size:A4 landscape;margin:12mm}</style></head><body>' +
-    '<h1>طَبعة — تقرير الشغل المستلّم</h1><p><strong>العميل: </strong>' + escapeHtml(statement.customerName) +
+    '<h1>مطبعة المصرية — تقرير الشغل المستلّم</h1><p><strong>العميل: </strong>' + escapeHtml(statement.customerName) +
     '</p><p>الفترة من ' + escapeHtml(formatCollectionDate(statement.dateFrom)) +
     ' إلى ' + escapeHtml(formatCollectionDate(statement.dateTo)) + '</p>' +
     '<div class="summary">' + summary + '</div>' +

@@ -37,7 +37,7 @@ function worksheet(record: AccountSettlementRecord): string {
     rows.push(row(r, [textCell('A', r, label, style)], 29));
     merge('A' + r, 'F' + r);
   };
-  heading(1, 'طَبعة | إثبات تصفية حساب العميل', 1);
+  heading(1, 'مطبعة المصرية | إثبات تصفية حساب العميل', 1);
   heading(2, 'رقم التصفية: ' + record.number);
   heading(3, 'العميل: ' + before.customerName + ' — ' + (before.customerPhone || '—'));
   heading(4, 'الشغل حتى: ' + record.dateTo + ' · تاريخ التصفية: ' + record.settledOn);

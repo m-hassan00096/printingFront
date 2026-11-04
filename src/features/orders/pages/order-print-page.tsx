@@ -84,8 +84,12 @@ export function OrderPrintPage() {
     return <p role="alert" className="p-6">تفاصيل بنود الأوردر غير مكتملة. لا يمكن طباعة مستند غير مكتمل.</p>;
 
   const paid = needsReceipts ? receipts.data ?? [] : [];
-  const paidAmount = depositedCents(paid) / 100;
-  const total = exactMoneyCents(item.totalAmount) / 100;
+  const depositCents = depositedCents(paid);
+  const paidAmount = depositCents / 100;
+  const totalCents = exactMoneyCents(item.totalAmount);
+  const total = totalCents / 100;
+  const remaining = Math.max(0, totalCents - depositCents) / 100;
+  const overpaid = Math.max(0, depositCents - totalCents) / 100;
   const print = () => {
     autoPrintTriggered.current = true;
     window.print();
@@ -104,37 +108,33 @@ export function OrderPrintPage() {
 
     <article id="order-print-document" className="order-print-paper">
       <header className="order-print-heading">
-        <div>
-          <p className="order-print-brand">طَبعة</p>
+        <div className="order-print-identity">
+          <p className="order-print-brand">مطبعة المصرية</p>
           <h1>بيان تفاصيل الأوردر</h1>
-          <p className="order-print-subtitle">بيان الشغل والأسعار والعربون المسجّل</p>
         </div>
         <div className="order-print-number">
           <span>رقم الأوردر</span>
           <strong dir="ltr">{item.orderNumber ?? "مسودة #" + item.id}</strong>
-          <small>{item.statusLabel}</small>
+          <small>الحالة: {item.statusLabel}</small>
         </div>
       </header>
 
       <section aria-label="بيانات الأوردر والعميل" className="order-print-metadata">
         <div><span>اسم العميل</span><strong>{item.customerName}</strong></div>
-        <div><span>رقم الهاتف</span><strong dir="ltr">{item.customerPhone || "—"}</strong></div>
-        <div><span>تاريخ الأوردر</span><strong dir="ltr">{cairoDate(item.confirmedAt ?? item.createdAt)}</strong></div>
-        <div><span>موعد التسليم</span><strong dir="ltr">{formatCollectionDate(item.dueDate)}</strong></div>
+        <div><span>رقم الهاتف</span><strong><bdi dir="ltr">{item.customerPhone || "—"}</bdi></strong></div>
+        <div><span>تاريخ الأوردر</span><strong><bdi dir="ltr">{cairoDate(item.confirmedAt ?? item.createdAt)}</bdi></strong></div>
+        <div><span>موعد التسليم</span><strong><bdi dir="ltr">{formatCollectionDate(item.dueDate)}</bdi></strong></div>
       </section>
 
-      {item.status === 0 && <p className="order-print-warning">مسودة غير مؤكدة — لا توجد عملية تحصيل عربون مسجّلة.</p>}
-      {item.status === 2 && <p className="order-print-warning">هذا الأوردر ملغي؛ البيانات أدناه للرجوع إليها فقط.</p>}
-
       <section aria-label="بنود الأوردر" className="order-print-section">
-        <h2>تفاصيل الشغل</h2>
-        <table className="order-print-table">
+        <h2>بنود الأوردر</h2>
+        <table className="order-print-table order-print-items-table">
           <thead>
             <tr>
-              <th>البند</th>
-              <th>الكمية</th>
-              <th>سعر الوحدة (ج.م)</th>
-              <th>الإجمالي (ج.م)</th>
+              <th scope="col">البند</th>
+              <th scope="col">الكمية</th>
+              <th scope="col">سعر الوحدة (ج.م)</th>
+              <th scope="col">الإجمالي (ج.م)</th>
             </tr>
           </thead>
           <tbody>
@@ -142,7 +142,7 @@ export function OrderPrintPage() {
               <td>
                 <strong>{line.serviceName}</strong>
                 {line.specifications && <p className="order-print-item-note">{line.specifications}</p>}
-                {line.widthCm && line.heightCm && <p className="order-print-item-note" dir="rtl">
+                {line.widthCm && line.heightCm && <p className="order-print-item-note">
                   المقاس: {line.widthCm} × {line.heightCm} سم
                 </p>}
               </td>
@@ -152,44 +152,55 @@ export function OrderPrintPage() {
             </tr>)}
           </tbody>
         </table>
-        <div className="order-print-total">
-          <span>الإجمالي النهائي</span>
-          <strong dir="ltr">{amount(total)} ج.م</strong>
-        </div>
       </section>
 
-      <section aria-label="تحصيل العربون" className="order-print-section">
-        <h2>العربون</h2>
-        {paid.length > 0
-          ? <>
-            <table className="order-print-table">
-              <thead><tr><th>رقم إيصال التحصيل</th><th>طريقة الدفع</th><th>التاريخ</th><th>المبلغ (ج.م)</th></tr></thead>
-              <tbody>{paid.map(receipt => <tr key={receipt.id}>
-                <td><strong dir="ltr">{receipt.receiptNumber}</strong>
-                  {receipt.actualReceiptNumber && <p className="order-print-item-note">
-                    مرجع خارجي: <span dir="ltr">{receipt.actualReceiptNumber}</span>
-                  </p>}
-                </td>
-                <td>{receipt.paymentMethodLabel}
-                  {receipt.destinationLabel && <p className="order-print-item-note">{receipt.destinationLabel}</p>}
-                </td>
-                <td className="order-print-numeric" dir="ltr">{formatCollectionDate(receipt.collectedOn)}</td>
-                <td className="order-print-numeric" dir="ltr">{amount(receipt.amount)}</td>
-              </tr>)}</tbody>
-            </table>
-            <div className="order-print-deposit-total">
-              <span>إجمالي العربون المحصّل</span>
-              <strong dir="ltr">{amount(paidAmount)} ج.م</strong>
-            </div>
-          </>
-          : <p className="order-print-no-deposit">
-            {item.status === 0 ? "العربون المخطّط للمسودة ليس تحصيلًا فعليًا." : "لم يتم تسجيل عربون سارٍ لهذا الأوردر."}
-          </p>}
+      {paid.length > 0 && <section aria-label="تحصيل العربون" className="order-print-section">
+        <h2>إيصالات العربون</h2>
+        <table className="order-print-table order-print-receipts-table">
+          <thead>
+            <tr>
+              <th scope="col">رقم الإيصال</th>
+              <th scope="col">طريقة الدفع</th>
+              <th scope="col">التاريخ</th>
+              <th scope="col">المبلغ (ج.م)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paid.map(receipt => <tr key={receipt.id}>
+              <td>
+                <strong dir="ltr">{receipt.receiptNumber}</strong>
+                {receipt.actualReceiptNumber && <p className="order-print-item-note">
+                  مرجع خارجي: <span dir="ltr">{receipt.actualReceiptNumber}</span>
+                </p>}
+              </td>
+              <td>
+                {receipt.paymentMethodLabel}
+                {receipt.destinationLabel && <p className="order-print-item-note">{receipt.destinationLabel}</p>}
+              </td>
+              <td className="order-print-numeric" dir="ltr">{formatCollectionDate(receipt.collectedOn)}</td>
+              <td className="order-print-numeric" dir="ltr">{amount(receipt.amount)}</td>
+            </tr>)}
+          </tbody>
+        </table>
+      </section>}
+
+      <section aria-label="ملخص مبالغ الأوردر" className="order-print-summary-section">
+        <h2>ملخص الحساب</h2>
+        <dl className="order-print-balance-summary">
+          <div><dt>إجمالي الأوردر</dt><dd dir="ltr">{amount(total)} ج.م</dd></div>
+          <div><dt>العربون المدفوع فعليًا</dt><dd dir="ltr">{amount(paidAmount)} ج.م</dd></div>
+          <div className="order-print-remaining"><dt>الباقي بعد العربون</dt><dd dir="ltr">{amount(remaining)} ج.م</dd></div>
+        </dl>
+        {overpaid > 0 && <p className="order-print-overpayment">
+          العربون المحصّل يزيد عن إجمالي الأوردر بمبلغ {amount(overpaid)} ج.م؛ راجع رصيد العميل.
+        </p>}
+        {item.status === 0 && <p className="order-print-no-deposit">
+          العربون المخطّط للمسودة ليس تحصيلًا فعليًا.
+        </p>}
       </section>
 
       <footer className="order-print-footnote">
-        هذا بيان أوردر، وليس إيصال سداد مستقلًا. لا يشمل تحصيلات التسليم أو التسويات أو ردود الأموال اللاحقة؛
-        تُراجع تلك الحركات من حساب العميل.
+        بيان أوردر وليس إيصال سداد. الباقي بعد العربون فقط، ولا يشمل التحصيلات أو التسويات اللاحقة.
       </footer>
     </article>
   </main>;
