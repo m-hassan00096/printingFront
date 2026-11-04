@@ -173,7 +173,7 @@ describe("Customer statement tied to the last saved settlement", () => {
     expect(summary).toContain("المتبقي بعد التصفية");
     expect(summary).not.toContain("ORD-11");
     expect(summary).not.toContain("لون: أسود");
-    expect(details).toContain("الأوردرات التي تم استلامها");
+    expect(details).toContain("الشغل المستلّم (1 أوردر)");
     expect(details).toContain("ORD-11");
     expect(details).toContain("@SUM(A1) &lt;بنر&gt;");
     expect(details).toContain("صافي المدفوعات والردود");
