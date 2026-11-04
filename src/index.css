@@ -164,6 +164,14 @@ a, button { transition-property: background-color, border-color, color, opacity,
 @media (max-width: 1023px) {
   .tabaa-app-main { padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
   .tabaa-mobile-nav { padding-bottom: max(6px, env(safe-area-inset-bottom, 0px)); }
+  .tabaa-app > div > header {
+    height: calc(60px + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .tabaa-mobile-sidebar > div:first-child {
+    min-height: calc(72px + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+  }
   .tabaa-mobile-sidebar { height: 100dvh; }
   .tabaa-sidebar-footer { padding-bottom: max(12px, env(safe-area-inset-bottom, 0px)); }
   .order-create-workspace footer.sticky {

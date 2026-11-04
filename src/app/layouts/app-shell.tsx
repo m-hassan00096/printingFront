@@ -37,7 +37,7 @@ export function AppShell() {
       <Sidebar />
       {isMobileSidebarOpen && (
         <button type="button" aria-label="إغلاق القائمة الجانبية"
-          className="fixed inset-0 z-30 bg-[#1b2340]/40 lg:hidden"
+          className="fixed inset-0 z-[35] bg-[#1b2340]/40 lg:hidden"
           onClick={closeMobileSidebar} />
       )}
       <div className={cn("min-h-[100dvh] min-w-0 transition-[margin] duration-150",
