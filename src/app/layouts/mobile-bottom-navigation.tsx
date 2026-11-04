@@ -20,7 +20,8 @@ export function getMobileShortcuts(
     : ["/customers", "/orders", "/collections"];
   const choices = primary
     .map(to => allowed.find(item => item.to === to))
-    .filter((item): item is NavigationItem => Boolean(item));
+    .filter((item): item is NavigationItem => Boolean(item))
+    .map(item => isAdmin && item.to === "/orders" ? {...item, label: "الأوردرات"} : item);
   // Designers and other restricted roles must still be able to reach their work.
   if (!choices.length) {
     return ["/production", "/deliveries", "/printing-services", "/"]

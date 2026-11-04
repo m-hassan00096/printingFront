@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AxiosError, type AxiosAdapter, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 import { App } from "@/App";
@@ -204,6 +204,49 @@ describe("Auth browser workflows", () => {
     expect(window.location.pathname).toBe("/");
     expect(screen.queryByRole("link", { name: "الإنتاج" })).toBeNull();
     expect(screen.queryByRole("link", { name: "المستخدمون" })).toBeNull();
+  });
+
+  it("shows reception shortcuts and opens the existing full sidebar from more", async () => {
+    serverUser = {
+      ...initialUser, role: "reception", roleAlias: "الاستقبال",
+      permissions: ["customers.view", "orders.list", "finance.collections.view", "deliveries.list"],
+    };
+    openPage("/");
+    const nav = await screen.findByRole("navigation", {name: "التنقل السريع للموبايل"});
+    expect(within(nav).getAllByRole("link").map(link => link.getAttribute("aria-label"))).toEqual([
+      "التنقل السريع: العملاء", "التنقل السريع: الطلبات", "التنقل السريع: التحصيلات",
+    ]);
+    expect(within(nav).queryByRole("link", {name: /الحسابات/})).toBeNull();
+    const user = userEvent.setup();
+    const more = within(nav).getByRole("button", {name: "المزيد"});
+    await user.click(more);
+    expect(more.getAttribute("aria-expanded")).toBe("true");
+    const drawer = await screen.findByRole("dialog", {name: "القائمة الرئيسية"});
+    expect(within(drawer).getByRole("link", {name: "التسليمات"})).toBeTruthy();
+    await user.click(within(drawer).getByRole("button", {name: "إغلاق القائمة الرئيسية"}));
+    expect(more.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("dialog", {name: "القائمة الرئيسية"})).toBeNull();
+  });
+
+  it("shows admin accounts instead of collections, still respecting permissions", async () => {
+    serverUser = {...initialUser, role: "superadmin",
+      permissions: ["customers.view", "finance.balances.view", "orders.list", "finance.collections.view"]};
+    openPage("/");
+    const nav = await screen.findByRole("navigation", {name: "التنقل السريع للموبايل"});
+    expect(within(nav).getAllByRole("link").map(link => link.getAttribute("aria-label"))).toEqual([
+      "التنقل السريع: العملاء", "التنقل السريع: الحسابات", "التنقل السريع: الأوردرات",
+    ]);
+    expect(within(nav).queryByRole("link", {name: /التحصيلات/})).toBeNull();
+  });
+
+  it("never invents unauthorized links and gives production-only designers their workspace", async () => {
+    serverUser = {...initialUser, role: "designers", permissions: ["production.items.list"]};
+    openPage("/");
+    const nav = await screen.findByRole("navigation", {name: "التنقل السريع للموبايل"});
+    expect(within(nav).getAllByRole("link").map(link => link.getAttribute("aria-label"))).toEqual([
+      "التنقل السريع: الإنتاج",
+    ]);
+    expect(within(nav).getByRole("button", {name: "المزيد"})).toBeTruthy();
   });
 
   it("does not show protected content for a logged-in account lacking permissions", async () => {
