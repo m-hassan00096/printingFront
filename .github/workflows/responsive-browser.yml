@@ -1,0 +1,40 @@
+name: Responsive Browser QA
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - "src/**"
+      - "index.html"
+      - "tests/browser/**"
+      - ".github/workflows/responsive-browser.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  responsive:
+    name: Real Chromium mobile viewport matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci --no-audit --no-fund
+      - name: Install Playwright and browser
+        run: |
+          mkdir -p /tmp/playwright-qa
+          npm install --prefix /tmp/playwright-qa --no-audit --no-fund playwright
+          /tmp/playwright-qa/node_modules/.bin/playwright install --with-deps chromium
+      - run: node tests/browser/responsive.mjs
+        env:
+          PLAYWRIGHT_MODULE_PATH: /tmp/playwright-qa/node_modules/playwright/index.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: responsive-browser-screenshots
+          path: .artifacts/responsive/
+          retention-days: 7
