@@ -1,3 +1,4 @@
+import { useMobileListLayout } from "@/shared/hooks/use-mobile-list-layout";
 import { useEffect, useState } from "react";
 import { Eye, Pencil, Plus, Trash2, UsersRound } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -20,6 +21,7 @@ function positivePage(raw: string | null): number {
 
 export function CustomersPage() {
   const { data: session } = useCurrentUser();
+  const mobile = useMobileListLayout();
   const permissions = session?.permissions ?? [];
   const canCreate = permissions.includes("customers.create");
   const canEdit = permissions.includes("customers.update");
@@ -107,7 +109,7 @@ export function CustomersPage() {
       list.data.customers.length === 0 ? <EmptyState detail="لا يوجد عملاء مطابقون للبحث أو الفلاتر." /> :
       <>
 
-        <div className="divide-y md:hidden" aria-label="قائمة العملاء للموبايل">
+        {mobile && <div className="divide-y md:hidden" aria-label="قائمة العملاء للموبايل">
           {list.data.customers.map(customer => <article key={customer.id} className="px-3 py-4 sm:px-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-start gap-2.5">
@@ -138,8 +140,8 @@ export function CustomersPage() {
               </div>
             </div>
           </article>)}
-        </div>
-        <div className="hidden overflow-x-auto md:block">
+        </div>}
+        {!mobile && <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[720px] text-right text-sm">
             <thead className="bg-muted/50 text-xs text-muted-foreground"><tr>
               {["اسم العميل", "رقم الهاتف", "نوع العميل", "الحالة", "الإجراءات"].map((name) =>
@@ -164,7 +166,7 @@ export function CustomersPage() {
               </tr>)}
             </tbody>
           </table>
-        </div>
+        </div>}
         <PaginationBar pagination={list.data.pagination} onPage={(p) => filter("page", String(p))} />
       </>}
     </section>

@@ -1,3 +1,4 @@
+import { useMobileListLayout } from "@/shared/hooks/use-mobile-list-layout";
 import { useEffect, useState } from "react";
 import { CalendarDays, ClipboardList, Eye, FileDown, Plus, Trash2 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -64,6 +65,7 @@ function OrderStatusBadge({ order }: { order: Pick<Order, "status" | "statusLabe
 
 export function OrdersPage() {
   const { data: session } = useCurrentUser();
+  const mobile = useMobileListLayout();
   const perms = session?.permissions ?? [];
   const [params, setParams] = useSearchParams();
   const search = params.get("search") ?? "";
@@ -183,7 +185,7 @@ export function OrdersPage() {
         orders.data.orders.length === 0 ? <EmptyState title="لا توجد أوردرات" detail="أضف أوردر جديد أو غيّر الفلاتر." /> :
         <>
 
-          <div className="divide-y md:hidden" aria-label="قائمة الأوردرات للموبايل">
+        {mobile && <div className="divide-y md:hidden" aria-label="قائمة الأوردرات للموبايل">
             {orders.data.orders.map(order => <article key={order.id} className="space-y-3 px-3 py-4 sm:px-4"
               aria-label={`أوردر ${order.orderNumber ?? order.id}`}>
               <div className="flex min-w-0 items-start justify-between gap-2">
@@ -228,8 +230,8 @@ export function OrdersPage() {
                 </div>
               </div>
             </article>)}
-          </div>
-          <div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[1140px] text-right text-sm">
+          </div>}
+          {!mobile && <div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[1140px] text-right text-sm">
             <thead className="bg-muted/50 text-xs text-muted-foreground"><tr>
               {["الأوردر", "العميل", "الهاتف", "الإجمالي", "الحالة", "الإنتاج", uiMessages.orders.createdAtColumn, uiMessages.orders.dueDateColumn, "الإجراءات"].map((label) =>
                 <th scope="col" key={label} className="px-4 py-3 font-semibold">{label}</th>)}
@@ -274,7 +276,7 @@ export function OrdersPage() {
                 </Button>}
                 {order.status === 0 && perms.includes("orders.delete") && <Button type="button" variant="ghost" size="icon-sm" aria-label={`حذف مسودة ${order.id}`} onClick={() => setDeleting(order)}><Trash2 className="text-destructive" /></Button>}
               </div></td>
-            </tr>)}</tbody></table></div>
+            </tr>)}</tbody></table></div>}
           <PaginationBar pagination={orders.data.pagination} onPage={(page) => setFilter("page", String(page))} />
         </>}
     </section>

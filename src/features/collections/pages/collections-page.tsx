@@ -1,3 +1,4 @@
+import { useMobileListLayout } from "@/shared/hooks/use-mobile-list-layout";
 import { useEffect,useState } from "react";
 import { uiMessages } from "@/shared/translations/ar/ui";
 import { Link,useSearchParams } from "react-router-dom";
@@ -17,6 +18,7 @@ const defaults:CollectionFilters={search:"",dateFrom:"",dateTo:"",paymentMethod:
 const compactFieldClass="h-9 w-full rounded-lg border border-input bg-card px-3 text-sm text-foreground outline-none transition-colors focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/20";
 export function CollectionsPage(){
   const qc=useQueryClient();
+  const mobile = useMobileListLayout();
   const [params,setParams]=useSearchParams();
   const session=useCurrentUser();
   const permissions=session.data?.permissions??[];
@@ -148,7 +150,7 @@ export function CollectionsPage(){
           </span>
         </div>
 
-        <div className="divide-y md:hidden" aria-label="سجل التحصيلات للموبايل">
+        {mobile && <div className="divide-y md:hidden" aria-label="سجل التحصيلات للموبايل">
           {list.data.collections.map(c => <article key={c.id} className="space-y-3 px-3 py-4">
             <div className="flex min-w-0 items-start justify-between gap-2">
               <div className="min-w-0">
@@ -191,8 +193,8 @@ export function CollectionsPage(){
               </Button>
             </div>
           </article>)}
-        </div>
-        <div className="hidden overflow-x-auto md:block">
+        </div>}
+        {!mobile && <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[1270px] text-right text-sm">
             <thead className="bg-muted/60 text-xs text-muted-foreground">
               <tr>{["الإيصال",uiMessages.collectionReceipts.actualReceiptNumber,"العميل","الهاتف","المبلغ","طريقة الدفع","المصدر","رقم الأوردر","تاريخ التحصيل","الحالة","الإجراء"].map((label,i)=>
@@ -221,7 +223,7 @@ export function CollectionsPage(){
               </tr>)}
             </tbody>
           </table>
-        </div>
+        </div>}
       </section>:<EmptyState title="لا توجد إيصالات مطابقة" detail="غيّر البحث أو الفلاتر لعرض التحصيلات."/>) }
     {list.data?.pagination&&list.data.pagination.lastPage>1&&<div className="overflow-hidden rounded-lg border bg-card">
       <PaginationBar pagination={list.data.pagination} onPage={setPage}/></div>}
