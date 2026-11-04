@@ -82,6 +82,10 @@ describe("Print order as PDF",()=>{
     expect(screen.getByText("COL-2026-31")).toBeTruthy();
     expect(screen.getByText("800.00 ج.م")).toBeTruthy();
     expect(screen.getByText("300.00 ج.م")).toBeTruthy();
+    expect(screen.getByText("مطبعة المصرية")).toBeTruthy();
+    expect(screen.getByText("01012345678")).toBeTruthy();
+    expect(screen.getByText("الباقي بعد العربون")).toBeTruthy();
+    expect(screen.getByText("500.00 ج.م")).toBeTruthy();
     await userEvent.setup().click(screen.getByRole("button",{name:"طباعة / حفظ PDF"}));
     expect(printed).toHaveBeenCalled();
     expect(requests.some(r=>r.url==="/finance/collections" &&
@@ -96,11 +100,13 @@ describe("Print order as PDF",()=>{
     expect(screen.queryByText("COL-2026-31")).toBeNull();
     expect(screen.queryByText("COL-2026-33")).toBeNull();
     expect(screen.getByText("275.50 ج.م")).toBeTruthy();
+    expect(screen.getByText("524.50 ج.م")).toBeTruthy();
   });
   it("never treats a planned draft deposit as paid",async()=>{
     isDraft=true;visit("/orders/101/print");
     expect(await screen.findByText("مسودة غير مؤكدة — لا توجد عملية تحصيل عربون مسجّلة.")).toBeTruthy();
     expect(screen.getByText("العربون المخطّط للمسودة ليس تحصيلًا فعليًا.")).toBeTruthy();
+    expect(screen.getByText("800.00 ج.م")).toBeTruthy();
     expect(requests.some(r=>r.url==="/finance/collections")).toBe(false);
   });
   it("does not silently print zero deposit on financial API failure",async()=>{

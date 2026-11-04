@@ -85,7 +85,11 @@ export function OrderPrintPage() {
 
   const paid = needsReceipts ? receipts.data ?? [] : [];
   const paidAmount = depositedCents(paid) / 100;
-  const total = exactMoneyCents(item.totalAmount) / 100;
+  const totalCents = exactMoneyCents(item.totalAmount);
+  const depositCents = depositedCents(paid);
+  const total = totalCents / 100;
+  const remaining = Math.max(0, totalCents - depositCents) / 100;
+  const overpaid = Math.max(0, depositCents - totalCents) / 100;
   const print = () => {
     autoPrintTriggered.current = true;
     window.print();
@@ -187,8 +191,15 @@ export function OrderPrintPage() {
           </p>}
       </section>
 
+      <section aria-label="ملخص مبالغ الأوردر" className="order-print-balance-summary">
+        <div><span>إجمالي الأوردر</span><strong dir="ltr">{amount(total)} ج.م</strong></div>
+        <div><span>العربون المدفوع فعليًا</span><strong dir="ltr">{amount(paidAmount)} ج.م</strong></div>
+        <div className="order-print-remaining"><span>الباقي بعد العربون</span><strong dir="ltr">{amount(remaining)} ج.م</strong></div>
+        {overpaid > 0 && <p className="order-print-overpayment">العربون المحصّل يزيد عن إجمالي الأوردر بمبلغ {amount(overpaid)} ج.م؛ راجع رصيد العميل.</p>}
+      </section>
+
       <footer className="order-print-footnote">
-        هذا بيان أوردر، وليس إيصال سداد مستقلًا. لا يشمل تحصيلات التسليم أو التسويات أو ردود الأموال اللاحقة؛
+        هذا بيان أوردر، وليس إيصال سداد مستقلًا. المبلغ الباقي محسوب بعد عربون الأوردر فقط، ولا يشمل تحصيلات التسليم أو التسويات أو ردود الأموال اللاحقة؛
         تُراجع تلك الحركات من حساب العميل.
       </footer>
     </article>

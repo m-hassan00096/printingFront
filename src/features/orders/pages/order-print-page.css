@@ -113,6 +113,28 @@
 }
 .order-print-total { background: #f0edfc; color: #5140ad; font-size: 16px; }
 .order-print-deposit-total { background: #f4f6f9; font-size: 14px; }
+.order-print-balance-summary {
+  margin-top: 22px;
+  border: 1px solid #e5e8f1;
+  border-radius: 9px;
+  padding: 11px 15px;
+  break-inside: avoid;
+}
+.order-print-balance-summary > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 13px;
+}
+.order-print-balance-summary > div + div { border-top: 1px solid #e5e8f1; }
+.order-print-balance-summary strong { font-variant-numeric: tabular-nums; }
+.order-print-balance-summary .order-print-remaining {
+  color: #5140ad;
+  font-size: 16px;
+  font-weight: 700;
+}
+.order-print-overpayment { margin-top: 8px; color: #8b5c17; font-size: 12px; }
 .order-print-warning {
   border: 1px solid #efce9e;
   background: #fffaf1;
