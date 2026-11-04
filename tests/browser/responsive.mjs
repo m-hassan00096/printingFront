@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
-import { chromium } from "playwright";
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE_PATH || "playwright");
 
 const base = "http://127.0.0.1:5173";
 const screenshotDir = ".artifacts/responsive";
@@ -118,6 +118,7 @@ try {
         };
       });
       metrics.push({name,...report});
+      console.log('GEOMETRY',JSON.stringify({name,...report}));
       const assertNoOverflow=where=>{
         assert.ok(report.docWidth<=report.viewport+2,
           `${where}: document overflow ${report.docWidth} > ${report.viewport}`);
