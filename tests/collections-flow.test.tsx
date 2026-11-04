@@ -98,6 +98,22 @@ beforeEach(()=>{apiClient.defaults.adapter=adapter;records=[general,fromDelivery
 ];});
 afterEach(()=>{apiClient.defaults.adapter=originalAdapter;});
 describe("Collections frontend against Laravel Finance API",()=>{
+  it("shows readable mobile receipt cards with a details action", async () => {
+    const previous = window.innerWidth;
+    try {
+      window.innerWidth = 375;
+      visit();
+      const cards = await screen.findByLabelText("سجل التحصيلات للموبايل");
+      expect(within(cards).getByText("COL-2026-00051")).toBeTruthy();
+      const button = within(cards).getByRole("button",{name:"موبايل: تفاصيل الإيصال COL-2026-00051"});
+      await userEvent.setup().click(button);
+      expect(await screen.findByRole("dialog",{name:"تفاصيل إيصال التحصيل"})).toBeTruthy();
+      expect(screen.queryByRole("table")).toBeNull();
+    } finally {
+      window.innerWidth = previous;
+    }
+  });
+
   it("loads receipt rows and posted-only summary, filters status only in list",async()=>{
     visit();const user=userEvent.setup();
     expect(await screen.findByText("COL-2026-00051")).toBeTruthy();

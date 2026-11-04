@@ -105,6 +105,21 @@ beforeEach(() => {
 afterEach(() => { apiClient.defaults.adapter = original; });
 
 describe("Customers Laravel integration", () => {
+  it("shows a phone-friendly customer card with authorized actions", async () => {
+    const previous = window.innerWidth;
+    try {
+      window.innerWidth = 375;
+      visit("/customers");
+      const cards = await screen.findByLabelText("قائمة العملاء للموبايل");
+      expect(within(cards).getByText("أحمد محمد")).toBeTruthy();
+      expect(within(cards).getByRole("link",{name:"موبايل: عرض أحمد محمد"})).toBeTruthy();
+      expect(within(cards).getByRole("button",{name:"موبايل: تعديل أحمد محمد"})).toBeTruthy();
+      expect(screen.queryByRole("table")).toBeNull();
+    } finally {
+      window.innerWidth = previous;
+    }
+  });
+
   it("loads customers and searches by name using the real filter contract", async () => {
     visit("/customers");
     expect(await screen.findByText("أحمد محمد")).toBeTruthy();
