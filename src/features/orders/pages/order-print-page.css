@@ -139,6 +139,11 @@
 .order-print-items-table th:nth-child(2) { width: 13%; }
 .order-print-items-table th:nth-child(3) { width: 22%; }
 .order-print-items-table th:nth-child(4) { width: 22%; }
+/* Keep quantities and amounts directly under their corresponding headers.
+   The item name column stays right-aligned for Arabic reading. */
+.order-print-items-table thead th:not(:first-child) {
+  text-align: center;
+}
 .order-print-receipts-table th:first-child { width: 34%; }
 .order-print-receipts-table th:nth-child(2) { width: 26%; }
 .order-print-receipts-table th:nth-child(3) { width: 20%; }
