@@ -1,4 +1,4 @@
-import { Menu, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 import { Button } from "@/shared/components/ui/button";
 import { useUiStore } from "@/shared/stores/ui-store";
@@ -7,24 +7,12 @@ type TopbarProps = { title: string; hidePageContext?: boolean };
 
 export function Topbar({ title, hidePageContext = false }: TopbarProps) {
   const isSidebarCollapsed = useUiStore((state) => state.isSidebarCollapsed);
-  const isMobileSidebarOpen = useUiStore((state) => state.isMobileSidebarOpen);
   const toggleSidebar = useUiStore((state) => state.toggleSidebar);
-  const toggleMobileSidebar = useUiStore((state) => state.toggleMobileSidebar);
   const { data: user } = useCurrentUser();
   return (
-    <header className="sticky top-0 z-20 flex h-[72px] items-center justify-between gap-3 border-b border-border bg-white/95 px-4 shadow-[0_2px_9px_#1d2b5805] backdrop-blur sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-20 flex h-[60px] items-center justify-between gap-3 border-b border-border bg-white/95 px-4 shadow-[0_2px_9px_#1d2b5805] backdrop-blur sm:px-6 lg:h-[72px] lg:px-8">
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="lg:hidden"
-          aria-label={isMobileSidebarOpen ? "إغلاق القائمة الجانبية" : "فتح القائمة الجانبية"}
-          aria-expanded={isMobileSidebarOpen}
-          onClick={toggleMobileSidebar}
-        >
-          <Menu className="size-5" />
-        </Button>
-
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary lg:hidden" aria-hidden="true">م</span>
         <Button
           variant="ghost"
           size="icon"

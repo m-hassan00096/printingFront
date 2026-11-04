@@ -160,7 +160,7 @@ describe("Finance account page against Laravel existing contracts",()=>{
     permissions=["finance.opening_balances.create"];
     visit();
     const user=userEvent.setup();
-    const more=await screen.findByText("المزيد");
+    const more=await within(await screen.findByRole("region",{name:"بيانات حساب العميل"})).findByText("المزيد");
     await user.click(more);
     expect(await screen.findByRole("button",{name:"رصيد افتتاحي"})).toBeTruthy();
     expect(calls.some(c=>c.url==="/finance/customers/7/ledger")).toBe(false);
@@ -238,7 +238,7 @@ describe("Finance account page against Laravel existing contracts",()=>{
     expect(screen.queryByText("500.00 ج.م")).toBeNull();
     expect(screen.queryByText("بيانات الحساب وتغيير العميل")).toBeNull();
     expect(screen.queryByRole("button",{name:"رصيد افتتاحي"})).toBeNull();
-    expect(screen.queryByText("المزيد")).toBeNull();
+    expect(within(screen.getByRole("region",{name:"بيانات حساب العميل"})).queryByText("المزيد")).toBeNull();
     expect(calls.some(c=>c.url==="/finance/customers/7/opening-balance-status")).toBe(true);
   });
   it("links ledger movements to real receipt and linked order and opens complete notes",async()=>{

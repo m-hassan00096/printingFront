@@ -1,3 +1,4 @@
+import { useMobileListLayout } from "@/shared/hooks/use-mobile-list-layout";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, RefreshCw, RotateCcw, X } from "lucide-react";
@@ -33,6 +34,7 @@ const movementTypes = [
 type AccountView = "ledger" | "settlements" | "refunds";
 
 export function FinancePage() {
+  const mobile = useMobileListLayout();
   const permissions = useCurrentUser().data?.permissions ?? [];
   const location = useLocation();
   const navigate = useNavigate();
@@ -200,9 +202,9 @@ export function FinancePage() {
           {!canBalance && canLedger && ledger.isError && <ErrorState error={ledger.error} retry={() => void ledger.refetch()}/>}
           {(accountViews.length > 0 || (view === "refunds" && canRefundHistory)) && <div className="pt-2">
             <section aria-label="تفاصيل الحساب" className="rounded-xl border bg-card">
-              {accountViews.length > 0 && <div role="tablist" aria-label="تفاصيل حساب العميل" className="flex flex-wrap gap-6 border-b px-4 sm:px-5">
+              {accountViews.length > 0 && <div role="tablist" aria-label="تفاصيل حساب العميل" className="flex flex-nowrap gap-5 overflow-x-auto border-b px-4 sm:gap-6 sm:px-5">
                 {accountViews.map(tab => <button type="button" key={tab.key} role="tab" id={`account-${tab.key}-tab`} aria-controls={`account-${tab.key}-panel`} aria-selected={view === tab.key} onClick={() => changeView(tab.key)}
-                  className={"-mb-px border-b-2 px-1 py-3 text-sm font-semibold transition-colors focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary " +
+                  className={"-mb-px shrink-0 whitespace-nowrap border-b-2 px-1 py-3 text-sm font-semibold transition-colors focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary " +
                     (view === tab.key ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>{tab.title}</button>)}
               </div>}
               <div className="space-y-4 p-4 sm:p-5">
@@ -217,7 +219,57 @@ export function FinancePage() {
             </div>
             {ledger.isPending ? <LoadingState/> : ledger.isError ? <ErrorState error={ledger.error} retry={() => void ledger.refetch()}/> : ledger.data?.entries.length ? <div className="overflow-hidden rounded-xl border bg-card">
               <header className="flex justify-between border-b px-4 py-3"><h3 className="font-bold">سجل الحركات</h3><span className="text-sm text-muted-foreground">{ledger.data.pagination.total.toLocaleString("ar-EG")} حركة</span></header>
-              <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-right text-sm"><thead className="bg-muted/50"><tr>
+
+              {mobile && <div className="divide-y md:hidden" aria-label="حركات كشف الحساب للموبايل">
+                {ledger.data.entries.map(entry => {
+                  const credit=entry.signedAmount.startsWith("-");
+                  const effective=formatCollectionDate(entry.effectiveDate);
+                  const recorded=formatLedgerRecordedAt(entry.createdAt);
+                  const reference=entry.collectionId&&entry.receiptNumber ? entry.receiptNumber :
+                    entry.refundId&&entry.refundNumber ? entry.refundNumber : entry.orderNumber??null;
+                  return <article key={entry.id} className="space-y-3 p-3 sm:p-4">
+                    <div className="flex min-w-0 items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h4 className="break-words text-sm font-bold">
+                          {entry.type===4 ? "إلغاء تحصيل سابق" : entry.type===5 ? "رد مبلغ للعميل" : entry.typeLabel}
+                        </h4>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {recorded ? <>سُجّلت <bdi dir="ltr">{recorded.date} · {recorded.time}</bdi></> :
+                            <bdi dir="ltr">{effective}</bdi>}
+                        </p>
+                      </div>
+                      <span dir="ltr" className="shrink-0 text-xs font-semibold">{effective}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-3">
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground">{credit ? "دفعة / تخفيض (−)" : "زيادة على الحساب (+)"}</p>
+                        <p className="mt-1 break-words text-sm font-bold"><MoneyAmount amount={entry.amount}/></p>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground">الرصيد بعد الحركة</p>
+                        <p className="mt-1 break-words text-sm font-semibold">
+                          {accountTypeLabel(entry.runningBalance.type)} · <MoneyAmount amount={entry.runningBalance.amount}/>
+                        </p>
+                      </div>
+                    </div>
+                    {reference && <div className="text-xs">
+                      <span className="text-muted-foreground">المرجع: </span>
+                      {entry.collectionId&&canViewCollections ?
+                        <Link className="text-primary underline" to={`/collections?receiptId=${entry.collectionId}`}><bdi dir="ltr">{reference}</bdi></Link> :
+                      entry.refundId&&canRefundHistory ?
+                        <button className="text-primary underline" onClick={()=>setRefundDetailsId(entry.refundId)}>
+                          <bdi dir="ltr">{reference}</bdi>
+                        </button> :
+                      entry.orderId&&canViewOrders ?
+                        <Link className="text-primary underline" to={`/orders/${entry.orderId}`}><bdi dir="ltr">{reference}</bdi></Link> :
+                        <bdi dir="ltr">{reference}</bdi>}
+                    </div>}
+                    {entry.note && <button type="button" className="max-w-full truncate text-right text-xs text-muted-foreground underline"
+                      onClick={()=>setSelectedNote(entry.note)}>{copy.showNote}</button>}
+                  </article>;
+                })}
+              </div>}
+              {!mobile && <div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[760px] text-right text-sm"><thead className="bg-muted/50"><tr>
                 {["التاريخ والوقت", "العملية والتفاصيل", "زيادة على الحساب (+)", "دفعة / تخفيض (−)", "الرصيد بعد الحركة"].map(title => <th key={title} className="whitespace-nowrap px-3 py-3 text-xs font-semibold">{title}</th>)}
               </tr></thead><tbody className="divide-y">
                 {ledger.data.entries.map(entry => {
@@ -251,7 +303,7 @@ export function FinancePage() {
                     </td>
                   </tr>;
                 })}
-              </tbody></table></div>
+              </tbody></table></div>}
               {ledger.data.pagination.total > 20 && <PaginationBar pagination={ledger.data.pagination}
                 onPage={page => setFilters(previous => ({...previous, page}))}
                 pageSizeOptions={[20, 50]} onPageSizeChange={perPage => changeFilter("perPage", perPage === 50 ? 50 : 20)}/>}

@@ -121,6 +121,20 @@ beforeEach(() => {
 afterEach(() => {apiClient.defaults.adapter=originalAdapter;});
 
 describe("Orders Laravel API workflow", () => {
+  it("renders touch-friendly order cards on phones and keeps order actions", async () => {
+    const previous = window.innerWidth;
+    try {
+      window.innerWidth = 375;
+      visit("/orders");
+      const cards = await screen.findByLabelText("قائمة الأوردرات للموبايل");
+      expect(within(cards).getByText("مسودة #101")).toBeTruthy();
+      expect(within(cards).getByRole("link", {name: "موبايل: عرض أوردر 101"})).toBeTruthy();
+      expect(screen.queryByRole("table")).toBeNull();
+    } finally {
+      window.innerWidth = previous;
+    }
+  });
+
   it("shows distinct status badges and a readable delivery date without changing the API data", async () => {
     orders = [
       orders[0],

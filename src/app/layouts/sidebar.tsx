@@ -1,4 +1,5 @@
-import { LoaderCircle, LogOut, Printer } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { LoaderCircle, LogOut, Printer, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useLogout } from "@/features/auth/hooks/use-logout";
@@ -14,6 +15,9 @@ export function Sidebar() {
   const isSidebarCollapsed = useUiStore(state => state.isSidebarCollapsed);
   const isMobileSidebarOpen = useUiStore(state => state.isMobileSidebarOpen);
   const closeMobileSidebar = useUiStore(state => state.closeMobileSidebar);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
+  useEffect(() => { if (isMobileSidebarOpen) closeButton.current?.focus(); }, [isMobileSidebarOpen]);
   const { data: user } = useCurrentUser();
   const logout = useLogout();
   const navigate = useNavigate();
@@ -31,21 +35,37 @@ export function Sidebar() {
   })).filter(group => group.items.length > 0);
 
   return (
-    <aside aria-label="القائمة الرئيسية"
+    <aside id="tabaa-mobile-sidebar" ref={drawerRef} aria-label="القائمة الرئيسية"
+      role={isMobileSidebarOpen ? "dialog" : undefined} aria-modal={isMobileSidebarOpen ? true : undefined}
+      onKeyDown={event => {
+        if (!isMobileSidebarOpen || event.key !== "Tab" || !drawerRef.current) return;
+        const tabbable = Array.from(drawerRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href]:not([aria-disabled="true"]), [tabindex]:not([tabindex="-1"])',
+        ));
+        if (!tabbable.length) return;
+        const first = tabbable[0];
+        const last = tabbable[tabbable.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }}
       className={cn(
-        "fixed inset-y-0 right-0 z-40 flex w-[238px] flex-col border-l border-sidebar-border bg-sidebar text-sidebar-foreground shadow-[2px_0_14px_#1d254009] transition-[width,transform] duration-150",
+        "tabaa-mobile-sidebar fixed inset-y-0 right-0 z-40 flex w-[min(86vw,320px)] flex-col border-l border-sidebar-border bg-sidebar text-sidebar-foreground shadow-[2px_0_14px_#1d254009] transition-[width,transform] duration-150 lg:w-[238px]",
         isSidebarCollapsed && "lg:w-[66px]",
-        isMobileSidebarOpen ? "translate-x-0 shadow-2xl" : "translate-x-full lg:translate-x-0",
+        isMobileSidebarOpen ? "visible translate-x-0 shadow-2xl" : "invisible pointer-events-none translate-x-full lg:visible lg:pointer-events-auto lg:translate-x-0",
       )}>
       <div className="flex h-[72px] shrink-0 items-center gap-3 border-b border-sidebar-border bg-white px-4">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-[0_5px_12px_#6250c929]">
           <Printer className="size-5" strokeWidth={2} aria-hidden="true" />
         </div>
-        <div className={cn("min-w-0", isSidebarCollapsed && "lg:hidden")}>
-          <p className="text-lg leading-7 font-bold tracking-tight">مطبعة المصرية</p>
+        <div className={cn("min-w-0 flex-1", isSidebarCollapsed && "lg:hidden")}>
+          <p className="truncate text-base leading-7 font-bold tracking-tight">مطبعة المصرية</p>
         </div>
+        <button ref={closeButton} type="button" onClick={closeMobileSidebar} aria-label="إغلاق القائمة الرئيسية"
+          className="flex size-11 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted lg:hidden">
+          <X className="size-5" aria-hidden="true"/>
+        </button>
       </div>
-      <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
+      <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-3 py-4">
         {groups.map(group => (
           <section key={group.label} className="space-y-1.5">
             <h2 className={cn("px-3 text-[11px] font-semibold text-sidebar-muted", isSidebarCollapsed && "lg:hidden")}>{group.label}</h2>
@@ -70,7 +90,7 @@ export function Sidebar() {
           </section>
         ))}
       </nav>
-      <div className="shrink-0 border-t border-sidebar-border bg-white p-3">
+      <div className="tabaa-sidebar-footer shrink-0 border-t border-sidebar-border bg-white p-3">
         <button type="button" aria-label={uiMessages.sidebar.logout} title={uiMessages.sidebar.logout}
           disabled={logout.isPending} onClick={() => void handleLogout()}
           className={cn(

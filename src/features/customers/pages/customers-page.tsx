@@ -1,3 +1,4 @@
+import { useMobileListLayout } from "@/shared/hooks/use-mobile-list-layout";
 import { useEffect, useState } from "react";
 import { Eye, Pencil, Plus, Trash2, UsersRound } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -20,6 +21,7 @@ function positivePage(raw: string | null): number {
 
 export function CustomersPage() {
   const { data: session } = useCurrentUser();
+  const mobile = useMobileListLayout();
   const permissions = session?.permissions ?? [];
   const canCreate = permissions.includes("customers.create");
   const canEdit = permissions.includes("customers.update");
@@ -77,24 +79,24 @@ export function CustomersPage() {
     <SectionHeader title="العملاء" detail="قائمة العملاء وبيانات التواصل والحالات وأنواع العملاء."
       actions={canCreate && <Button onClick={() => setEditing("new")}><Plus /> إضافة عميل</Button>} />
     <section className="overflow-hidden rounded-lg border bg-card ">
-      <div className="flex flex-wrap items-center gap-3 border-b p-4">
+      <div className="flex flex-wrap items-stretch gap-3 border-b p-3 sm:items-center sm:p-4">
         <SearchField value={draftSearch} onChange={setDraftSearch} placeholder="بحث باسم العميل أو رقم الهاتف" />
-        <label className="flex items-center gap-2 text-xs font-bold text-muted-foreground">نوع العميل
-          <select className={fieldClass + " w-40"} aria-label="فلتر نوع العميل" value={filters.customerTypeId}
+        <label className="flex w-full flex-col gap-1 text-xs font-bold text-muted-foreground sm:w-auto sm:flex-row sm:items-center sm:gap-2">نوع العميل
+          <select className={fieldClass + " w-full sm:w-40"} aria-label="فلتر نوع العميل" value={filters.customerTypeId}
             onChange={(e) => filter("customerTypeId", e.target.value)}>
             <option value="">كل الأنواع</option>
             {types.data?.map((type) => <option value={type.value} key={type.value}>{type.label}</option>)}
             {types.isError && <option disabled>تعذّر تحميل الأنواع</option>}
           </select>
         </label>
-        <label className="flex items-center gap-2 text-xs font-bold text-muted-foreground">الحالة
-          <select className={fieldClass + " w-32"} aria-label="فلتر الحالة" value={filters.status}
+        <label className="flex w-full flex-col gap-1 text-xs font-bold text-muted-foreground sm:w-auto sm:flex-row sm:items-center sm:gap-2">الحالة
+          <select className={fieldClass + " w-full sm:w-32"} aria-label="فلتر الحالة" value={filters.status}
             onChange={(e) => filter("status", e.target.value)}>
             <option value="">كل الحالات</option><option value="1">نشط</option><option value="0">غير نشط</option>
           </select>
         </label>
-        <label className="flex items-center gap-2 text-xs font-bold text-muted-foreground">الترتيب
-          <select className={fieldClass + " w-44"} aria-label="ترتيب العملاء" value={filters.sort}
+        <label className="flex w-full flex-col gap-1 text-xs font-bold text-muted-foreground sm:w-auto sm:flex-row sm:items-center sm:gap-2">الترتيب
+          <select className={fieldClass + " w-full sm:w-44"} aria-label="ترتيب العملاء" value={filters.sort}
             onChange={(e) => filter("sort", e.target.value)}>
             <option value="-id">الأحدث أولًا</option>
             <option value="id">الأقدم أولًا</option>
@@ -106,7 +108,40 @@ export function CustomersPage() {
       {list.isPending ? <LoadingState /> : list.isError ? <ErrorState error={list.error} retry={() => void list.refetch()} /> :
       list.data.customers.length === 0 ? <EmptyState detail="لا يوجد عملاء مطابقون للبحث أو الفلاتر." /> :
       <>
-        <div className="overflow-x-auto">
+
+        {mobile && <div className="divide-y md:hidden" aria-label="قائمة العملاء للموبايل">
+          {list.data.customers.map(customer => <article key={customer.id} className="px-3 py-4 sm:px-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-2.5">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
+                  <UsersRound className="size-4" aria-hidden="true"/>
+                </span>
+                <div className="min-w-0">
+                  <Link to={`/customers/${customer.id}`} className="block break-words text-sm font-bold text-foreground">
+                    {customer.name}
+                  </Link>
+                  <p className="mt-1 text-xs text-muted-foreground"><bdi dir="ltr">{customer.phone}</bdi></p>
+                </div>
+              </div>
+              <IdentityStatus status={customer.status} label={customer.statusLabel}/>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs text-muted-foreground">{customer.customerType?.name ?? uiMessages.customers.unclassified}</span>
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="outline" asChild>
+                  <Link aria-label={`موبايل: عرض ${customer.name}`} to={`/customers/${customer.id}`}>
+                    <Eye className="size-4"/> التفاصيل
+                  </Link>
+                </Button>
+                {canEdit && <Button size="icon-sm" variant="ghost" aria-label={`موبايل: تعديل ${customer.name}`}
+                  onClick={() => setEditing(customer)}><Pencil className="size-4"/></Button>}
+                {canDelete && <Button size="icon-sm" variant="ghost" aria-label={`موبايل: حذف ${customer.name}`}
+                  onClick={() => setDeleting(customer)}><Trash2 className="size-4 text-destructive"/></Button>}
+              </div>
+            </div>
+          </article>)}
+        </div>}
+        {!mobile && <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[720px] text-right text-sm">
             <thead className="bg-muted/50 text-xs text-muted-foreground"><tr>
               {["اسم العميل", "رقم الهاتف", "نوع العميل", "الحالة", "الإجراءات"].map((name) =>
@@ -131,7 +166,7 @@ export function CustomersPage() {
               </tr>)}
             </tbody>
           </table>
-        </div>
+        </div>}
         <PaginationBar pagination={list.data.pagination} onPage={(p) => filter("page", String(p))} />
       </>}
     </section>

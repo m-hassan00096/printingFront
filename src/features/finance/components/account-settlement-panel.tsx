@@ -1,3 +1,4 @@
+import { useMobileListLayout } from "@/shared/hooks/use-mobile-list-layout";
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ChevronDown, FileSpreadsheet, History, Plus, RefreshCw, TriangleAlert } from "lucide-react";
@@ -21,6 +22,7 @@ import { suggestedStatementFrom } from "../lib/customer-settlement-period";
 export function AccountSettlementPanel({customerId, customerName, canConfirm, canViewCollections, canDiscount = false}: {
   customerId: number; customerName?: string; canConfirm: boolean; canViewCollections: boolean; canDiscount?: boolean;
 }) {
+  const mobile = useMobileListLayout();
   const qc = useQueryClient();
   const [cutoff, setCutoff] = useState(cairoToday);
   const [statementFromOverride, setStatementFromOverride] = useState<string | null>(null);
@@ -273,7 +275,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
       className="fixed inset-0 z-50 flex items-center justify-center bg-[#1d2b51]/35 p-2 sm:p-4"
       >
       <section role="dialog" aria-modal="true" aria-label="تصفية حساب جديدة" dir="rtl"
-        className="flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border bg-card shadow-2xl sm:max-h-[92vh]"
+        className="flex max-h-[calc(100dvh-16px)] min-w-0 w-full max-w-4xl flex-col overflow-hidden rounded-xl border bg-card shadow-2xl sm:max-h-[92dvh]"
         onKeyDown={event => {if (event.key === "Escape" && !busy) setMode("history");}}>
         <header className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
           <div className="min-w-0">
@@ -528,7 +530,49 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
           {!history.data?.settlements.length
             ? <p className="py-8 text-center text-sm text-muted-foreground">لا توجد تصفيات مسجلة لهذا العميل.</p>
             : <>
-                <div className="overflow-x-auto">
+
+                {mobile && <div className="divide-y rounded-lg border md:hidden" aria-label="التصفيات السابقة للموبايل">
+                  {history.data.settlements.map(item => <article key={item.id} className="space-y-3 p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="break-all text-sm font-bold"><bdi dir="ltr">{item.number}</bdi></p>
+                        <p className="mt-1 text-xs text-muted-foreground">تاريخ التنفيذ: {formatCollectionDate(item.settledOn)}</p>
+                      </div>
+                      <span className={"text-xs font-semibold " + (item.needsReview?"text-destructive":"text-muted-foreground")}>
+                        {item.statusLabel}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      الفترة: {item.dateFrom ? formatCollectionDate(item.dateFrom) : "غير مسجّل"} — {historyPeriodEnd(item.dateTo)}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-3 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">المحصّل</span>
+                        <p className="mt-1 font-semibold"><MoneyAmount amount={item.amountCollected}/></p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">الخصم</span>
+                        <p className="mt-1 font-semibold"><MoneyAmount amount={item.discountAmount ?? "0.00"}/></p>
+                      </div>
+                      <div className="col-span-2 border-t pt-2">
+                        <span className="text-muted-foreground">المتبقي وقت التصفية</span>
+                        <p className="mt-1 font-bold">
+                          {item.balanceAfter.startsWith("-") ? "للعميل رصيد " : ""}
+                          <MoneyAmount amount={absoluteAmount(item.balanceAfter)}/>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" size="sm" disabled={openingRecord}
+                        onClick={() => void openRecord(item.id)}>عرض التفاصيل</Button>
+                      <Button variant="outline" size="sm" disabled={exportingClient}
+                        onClick={() => void exportClientSaved(item.id)}>
+                        <FileSpreadsheet className="size-4"/> تقرير التصفية Excel
+                      </Button>
+                    </div>
+                  </article>)}
+                </div>}
+                {!mobile && <div className="hidden overflow-x-auto md:block">
                   <table className="w-full min-w-[930px] text-right text-sm">
                     <thead><tr>{["رقم التصفية", "تاريخ التنفيذ", "فترة التصفية", "الخصم", "المحصّل", "المتبقي بعد العملية", "النتيجة", ""].map((title, index) =>
                       <th key={index} scope="col" className="whitespace-nowrap p-3">{title}</th>)}</tr></thead>
@@ -560,7 +604,7 @@ export function AccountSettlementPanel({customerId, customerName, canConfirm, ca
                         </td>
                       </tr>)}</tbody>
                   </table>
-                </div>
+                </div>}
                 <p className="text-xs leading-5 text-muted-foreground">
                   التواريخ المعروضة محفوظة مع التصفيات الجديدة. التصفيات القديمة التي لم تسجّل بداية فترة تظهر «غير مسجّل».
                   الحساب المالي يظل تراكميًا، والمتبقي هو الرصيد وقت التسجيل وليس بالضرورة رصيد العميل الحالي.
