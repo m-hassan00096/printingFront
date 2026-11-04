@@ -211,7 +211,8 @@ describe("Auth browser workflows", () => {
       ...initialUser, role: "reception", roleAlias: "الاستقبال",
       permissions: ["customers.view", "orders.list", "finance.collections.view", "deliveries.list"],
     };
-    openPage("/");
+    openPage("/orders");
+    await screen.findByRole("heading", {name: "الأوردرات"});
     const nav = await screen.findByRole("navigation", {name: "التنقل السريع للموبايل"});
     expect(within(nav).getAllByRole("link").map(link => link.getAttribute("aria-label"))).toEqual([
       "التنقل السريع: العملاء", "التنقل السريع: الطلبات", "التنقل السريع: التحصيلات",
@@ -220,7 +221,7 @@ describe("Auth browser workflows", () => {
     const user = userEvent.setup();
     const more = within(nav).getByRole("button", {name: "المزيد"});
     await user.click(more);
-    expect(more.getAttribute("aria-expanded")).toBe("true");
+    await waitFor(() => expect(more.getAttribute("aria-expanded")).toBe("true"));
     const drawer = await screen.findByRole("dialog", {name: "القائمة الرئيسية"});
     expect(within(drawer).getByRole("link", {name: "التسليمات"})).toBeTruthy();
     await user.click(within(drawer).getByRole("button", {name: "إغلاق القائمة الرئيسية"}));
@@ -231,7 +232,8 @@ describe("Auth browser workflows", () => {
   it("shows admin accounts instead of collections, still respecting permissions", async () => {
     serverUser = {...initialUser, role: "superadmin",
       permissions: ["customers.view", "finance.balances.view", "orders.list", "finance.collections.view"]};
-    openPage("/");
+    openPage("/orders");
+    await screen.findByRole("heading", {name: "الأوردرات"});
     const nav = await screen.findByRole("navigation", {name: "التنقل السريع للموبايل"});
     expect(within(nav).getAllByRole("link").map(link => link.getAttribute("aria-label"))).toEqual([
       "التنقل السريع: العملاء", "التنقل السريع: الحسابات", "التنقل السريع: الأوردرات",
@@ -241,7 +243,8 @@ describe("Auth browser workflows", () => {
 
   it("never invents unauthorized links and gives production-only designers their workspace", async () => {
     serverUser = {...initialUser, role: "designers", permissions: ["production.items.list"]};
-    openPage("/");
+    openPage("/production");
+    await screen.findByRole("heading", {name: "لوحة الإنتاج"});
     const nav = await screen.findByRole("navigation", {name: "التنقل السريع للموبايل"});
     expect(within(nav).getAllByRole("link").map(link => link.getAttribute("aria-label"))).toEqual([
       "التنقل السريع: الإنتاج",
