@@ -66,7 +66,7 @@ export function CollectionsPage(){
         <h3 className="text-sm font-bold text-foreground">ملخص التحصيلات المعتمدة فقط</h3>
         <p className="text-xs font-medium text-foreground/70">يشمل الفلاتر الحالية باستثناء الحالة · لا يحتسب الإيصالات المعكوسة.</p>
       </div>
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-2 min-[370px]:grid-cols-2 md:grid-cols-4">
         {[
           ["إجمالي المعتمد",summary.data.totalCollected],
           ["نقدي",summary.data.cashTotal],
@@ -147,7 +147,52 @@ export function CollectionsPage(){
             {list.data.pagination.total.toLocaleString("ar-EG")} إيصال
           </span>
         </div>
-        <div className="overflow-x-auto">
+
+        <div className="divide-y md:hidden" aria-label="سجل التحصيلات للموبايل">
+          {list.data.collections.map(c => <article key={c.id} className="space-y-3 px-3 py-4">
+            <div className="flex min-w-0 items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="break-all text-sm font-bold"><bdi dir="ltr">{c.receiptNumber}</bdi></p>
+                <p className="mt-1 break-words text-sm">{c.customerName}</p>
+                <p className="mt-1 text-xs text-muted-foreground"><bdi dir="ltr">{c.customerPhone}</bdi></p>
+              </div>
+              <span className={"shrink-0 rounded-full px-2 py-1 text-xs font-bold " +
+                (c.status===1?"bg-[#e5f7ee] text-[#15845f]":"bg-[#fff5df] text-[#a66a19]")}>
+                {c.statusLabel}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-3 text-xs">
+              <div className="min-w-0">
+                <p className="text-muted-foreground">المبلغ</p>
+                <p className="mt-1 break-words text-sm font-bold"><MoneyAmount amount={c.amount}/></p>
+              </div>
+              <div className="min-w-0">
+                <p className="text-muted-foreground">تاريخ التحصيل</p>
+                <p dir="ltr" className="mt-1 text-right font-semibold">{formatCollectionDate(c.collectedOn)}</p>
+              </div>
+              <div className="min-w-0">
+                <p className="text-muted-foreground">طريقة الدفع</p>
+                <p className="mt-1 font-semibold">{c.paymentMethodLabel}</p>
+              </div>
+              <div className="min-w-0">
+                <p className="text-muted-foreground">المصدر</p>
+                <p className="mt-1 font-semibold">{c.sourceLabel}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0 text-xs">
+                {c.actualReceiptNumber && <p>مرجع: <bdi dir="ltr">{c.actualReceiptNumber}</bdi></p>}
+                {c.source!==0&&c.orderNumber && <p className="mt-1">الأوردر: {canViewOrders&&c.orderId ?
+                  <Link className="text-primary underline" to={`/orders/${c.orderId}`}><bdi dir="ltr">{c.orderNumber}</bdi></Link> :
+                  <bdi dir="ltr">{c.orderNumber}</bdi>}</p>}
+              </div>
+              <Button variant="outline" size="sm" onClick={()=>setDetails(c.id)} aria-label={`موبايل: تفاصيل الإيصال ${c.receiptNumber}`}>
+                <Eye className="size-4"/> التفاصيل
+              </Button>
+            </div>
+          </article>)}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[1270px] text-right text-sm">
             <thead className="bg-muted/60 text-xs text-muted-foreground">
               <tr>{["الإيصال",uiMessages.collectionReceipts.actualReceiptNumber,"العميل","الهاتف","المبلغ","طريقة الدفع","المصدر","رقم الأوردر","تاريخ التحصيل","الحالة","الإجراء"].map((label,i)=>
