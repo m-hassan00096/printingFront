@@ -158,3 +158,28 @@ a, button { transition-property: background-color, border-color, color, opacity,
 /* Dialog width is owned by each modal's max-w-* size utility.
    Do NOT set an unlayered max-width on [role="dialog"]: it overrides all
    Tailwind utility layers and stretches simple dialogs to viewport width. */
+
+/* Mobile app shell: fixed quick navigation stays above device home indicator.
+   Only the shell reserves space; dialogs and independent print routes remain unchanged. */
+@media (max-width: 1023px) {
+  .tabaa-app-main { padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
+  .tabaa-mobile-nav { padding-bottom: max(6px, env(safe-area-inset-bottom, 0px)); }
+  .tabaa-mobile-sidebar { height: 100dvh; }
+  .tabaa-sidebar-footer { padding-bottom: max(12px, env(safe-area-inset-bottom, 0px)); }
+  .order-create-workspace footer.sticky {
+    bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+  }
+}
+/* Forms must not trigger iOS Safari auto-zoom when a field receives focus. */
+@media (max-width: 767px) {
+  .tabaa-app :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    font-size: 16px;
+  }
+  .tabaa-page :where(section, article, [role="tabpanel"]) { min-width: 0; }
+  .tabaa-page :where(.overflow-x-auto) {
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+  .tabaa-page :where(.overflow-x-auto) > table { width: max-content; }
+}
