@@ -12,6 +12,7 @@ const original = apiClient.defaults.adapter;
 const printed = vi.fn();
 let allowed = true;
 let isDraft = false;
+let isCancelled = false;
 let fails = false;
 let records: Collection[] = [];
 let requests: Array<{url:string;params:URLSearchParams}> = [];
@@ -49,7 +50,7 @@ const adapter:AxiosAdapter = async (config:InternalAxiosRequestConfig) => {
       : ["orders.list","orders.view"]});
   if(url==="/orders")return payload({orders:[base],pagination:{currentPage:1,lastPage:1,perPage:15,total:1}});
   if(url==="/orders/101")return payload(isDraft?{...base,status:0,statusLabel:"مسودة",orderNumber:null,
-    plannedDepositAmount:"500.00",confirmedAt:null}:base);
+    plannedDepositAmount:"500.00",confirmedAt:null}:isCancelled?{...base,status:2,statusLabel:"ملغي"}:base);
   if(url==="/finance/collections"){
     if(fails)throw Error("Could not verify receipts");
     return payload({collections:records,pagination:{currentPage:1,lastPage:1,perPage:100,total:records.length}});
@@ -58,7 +59,7 @@ const adapter:AxiosAdapter = async (config:InternalAxiosRequestConfig) => {
 };
 const visit=(path:string)=>{window.history.replaceState({},"",path);return render(<App/>);};
 beforeEach(()=>{
-  allowed=true;isDraft=false;fails=false;records=[receipt(31)];requests=[];printed.mockReset();
+  allowed=true;isDraft=false;isCancelled=false;fails=false;records=[receipt(31)];requests=[];printed.mockReset();
   vi.stubGlobal("print",printed);apiClient.defaults.adapter=adapter;
 });
 afterEach(()=>{apiClient.defaults.adapter=original;vi.unstubAllGlobals();});
@@ -84,6 +85,9 @@ describe("Print order as PDF",()=>{
     expect(screen.getAllByText("300.00 ج.م")[0]).toBeTruthy();
     expect(screen.getByText("مطبعة المصرية")).toBeTruthy();
     expect(screen.getByText("01012345678")).toBeTruthy();
+    const metadata=screen.getByRole("region",{name:"بيانات الأوردر والعميل"});
+    expect(metadata.querySelectorAll("strong[dir='ltr']")).toHaveLength(0);
+    expect(metadata.querySelectorAll("bdi[dir='ltr']")).toHaveLength(3);
     expect(screen.getByText("الباقي بعد العربون")).toBeTruthy();
     expect(screen.getByText("500.00 ج.م")).toBeTruthy();
     expect(screen.getByRole("heading",{name:"بنود الأوردر"})).toBeTruthy();
@@ -112,10 +116,16 @@ describe("Print order as PDF",()=>{
   });
   it("never treats a planned draft deposit as paid",async()=>{
     isDraft=true;visit("/orders/101/print");
-    expect(await screen.findByText("مسودة غير مؤكدة — لا توجد عملية تحصيل عربون مسجّلة.")).toBeTruthy();
+    expect(await screen.findByText("الحالة: مسودة")).toBeTruthy();
     expect(screen.getByText("العربون المخطّط للمسودة ليس تحصيلًا فعليًا.")).toBeTruthy();
     expect(screen.getAllByText("800.00 ج.م")[0]).toBeTruthy();
     expect(requests.some(r=>r.url==="/finance/collections")).toBe(false);
+  });
+  it("shows a cancelled order status only once in the print header",async()=>{
+    isCancelled=true;visit("/orders/101/print");
+    expect(await screen.findByRole("heading",{name:"بيان تفاصيل الأوردر"})).toBeTruthy();
+    expect(screen.getAllByText(/ملغي/)).toHaveLength(1);
+    expect(screen.queryByText("الأوردر ملغي — هذا البيان للرجوع إليه فقط.")).toBeNull();
   });
   it("does not silently print zero deposit on financial API failure",async()=>{
     fails=true;visit("/orders/101/print");

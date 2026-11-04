@@ -121,13 +121,10 @@ export function OrderPrintPage() {
 
       <section aria-label="بيانات الأوردر والعميل" className="order-print-metadata">
         <div><span>اسم العميل</span><strong>{item.customerName}</strong></div>
-        <div><span>رقم الهاتف</span><strong dir="ltr">{item.customerPhone || "—"}</strong></div>
-        <div><span>تاريخ الأوردر</span><strong dir="ltr">{cairoDate(item.confirmedAt ?? item.createdAt)}</strong></div>
-        <div><span>موعد التسليم</span><strong dir="ltr">{formatCollectionDate(item.dueDate)}</strong></div>
+        <div><span>رقم الهاتف</span><strong><bdi dir="ltr">{item.customerPhone || "—"}</bdi></strong></div>
+        <div><span>تاريخ الأوردر</span><strong><bdi dir="ltr">{cairoDate(item.confirmedAt ?? item.createdAt)}</bdi></strong></div>
+        <div><span>موعد التسليم</span><strong><bdi dir="ltr">{formatCollectionDate(item.dueDate)}</bdi></strong></div>
       </section>
-
-      {item.status === 0 && <p className="order-print-warning">مسودة غير مؤكدة — لا توجد عملية تحصيل عربون مسجّلة.</p>}
-      {item.status === 2 && <p className="order-print-warning">الأوردر ملغي — هذا البيان للرجوع إليه فقط.</p>}
 
       <section aria-label="بنود الأوردر" className="order-print-section">
         <h2>بنود الأوردر</h2>
@@ -203,7 +200,7 @@ export function OrderPrintPage() {
       </section>
 
       <footer className="order-print-footnote">
-        هذا بيان أوردر، وليس إيصال سداد. الباقي محسوب بعد العربون فقط، ولا يشمل تحصيلات التسليم أو التسويات أو ردود الأموال اللاحقة.
+        بيان أوردر وليس إيصال سداد. الباقي بعد العربون فقط، ولا يشمل التحصيلات أو التسويات اللاحقة.
       </footer>
     </article>
   </main>;
