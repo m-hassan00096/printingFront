@@ -28,6 +28,7 @@ const PrintingServiceFormPage = lazy(async () => ({ default: (await import("@/fe
 const OrdersPage = lazy(async () => ({ default: (await import("@/features/orders/pages/orders-page")).OrdersPage }));
 const OrderCreatePage = lazy(async () => ({ default: (await import("@/features/orders/pages/order-create-page")).OrderCreatePage }));
 const OrderDetailPage = lazy(async () => ({ default: (await import("@/features/orders/pages/order-detail-page")).OrderDetailPage }));
+const OrderPrintPage = lazy(async () => ({ default: (await import("@/features/orders/pages/order-print-page")).OrderPrintPage }));
 const ProductionPage = lazy(async () => ({ default: (await import("@/features/production/pages/production-page")).ProductionPage }));
 const DeliveriesPage = lazy(async () => ({ default: (await import("@/features/deliveries/pages/deliveries-page")).DeliveriesPage }));
 const CollectionsPage = lazy(async () => ({ default: (await import("@/features/collections/pages/collections-page")).CollectionsPage }));
@@ -47,6 +48,13 @@ export function AppRouter() {
         </Route>
 
         <Route element={<RequireAuth />}>
+          <Route path="orders/:id/print" element={
+            <RequirePermission anyOf={["orders.view"]}>
+              <RequirePermission anyOf={["finance.collections.view"]}>
+                <Suspense fallback={<AuthLoading />}><OrderPrintPage /></Suspense>
+              </RequirePermission>
+            </RequirePermission>
+          } />
           <Route element={<AppShell />}>
             <Route index element={<RoleHomePage />} />
 
