@@ -12,7 +12,8 @@ import { formatCollectionDate } from "@/features/collections/lib/collection-date
 import { dashboardKey,useDashboard } from "../hooks/use-dashboard";
 import type { DashboardData,DashboardOrder } from "../types/dashboard.types";
 
-const integer = (n:number)=>n.toLocaleString("ar-EG");
+// Use Latin digits for operational KPI counts: Arabic zero (٠) reads like a dot on phones.
+const integer = (n: number) => Number.isFinite(n) ? n.toLocaleString("en-US") : "—";
 function DateLabel({value}:{value:string|null}){
   return <span className="tabular-nums">{value?formatCollectionDate(value):"بدون موعد"}</span>;
 }
