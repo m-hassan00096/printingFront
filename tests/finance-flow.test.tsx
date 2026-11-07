@@ -160,12 +160,12 @@ describe("Finance account page against Laravel existing contracts",()=>{
     permissions=["finance.opening_balances.create"];
     visit();
     const user=userEvent.setup();
-    const more=await within(await screen.findByRole("region",{name:"بيانات حساب العميل"})).findByText("المزيد");
-    await user.click(more);
-    expect(await screen.findByRole("button",{name:"رصيد افتتاحي"})).toBeTruthy();
+    const openingButton=await screen.findByRole("button",{name:"رصيد افتتاحي"});
+    await waitFor(()=>expect(openingButton.hasAttribute("disabled")).toBe(false));
+    expect(within(await screen.findByRole("region",{name:"بيانات حساب العميل"})).queryByText("المزيد")).toBeNull();
     expect(calls.some(c=>c.url==="/finance/customers/7/ledger")).toBe(false);
     expect(calls.some(c=>c.url==="/finance/customers/7/balance")).toBe(false);
-    await user.click(screen.getByRole("button",{name:"رصيد افتتاحي"}));
+    await user.click(openingButton);
     const dialog=await screen.findByRole("dialog",{name:"تسجيل الرصيد الافتتاحي"});
     await user.selectOptions(within(dialog).getByRole("combobox",{name:"نوع الرصيد"}),"2");
     await user.type(within(dialog).getByRole("textbox",{name:"قيمة الرصيد"}),"150.50");
@@ -175,6 +175,11 @@ describe("Finance account page against Laravel existing contracts",()=>{
     await waitFor(()=>expect(calls.some(c=>c.url==="/finance/customers/7/opening-balance"&&c.method==="post")).toBe(true));
     expect(calls.find(c=>c.url==="/finance/customers/7/opening-balance"&&c.method==="post")?.body)
       .toEqual({type:2,amount:"150.50"});
+    await waitFor(()=>expect(openingButton.hasAttribute("disabled")).toBe(true));
+    expect(screen.getByText("تم تسجيل الرصيد الافتتاحي لهذا العميل بالفعل.")).toBeTruthy();
+    await user.click(openingButton);
+    expect(screen.queryByRole("dialog",{name:"تسجيل الرصيد الافتتاحي"})).toBeNull();
+    expect(calls.filter(c=>c.url==="/finance/customers/7/opening-balance"&&c.method==="post")).toHaveLength(1);
   });
   it("combines customer selection and account summary while explaining why debit customers cannot receive refunds",async()=>{
     permissions=["finance.balances.view","finance.ledger.view","finance.refunds.create"];
@@ -231,15 +236,38 @@ describe("Finance account page against Laravel existing contracts",()=>{
     expect(within(card).queryByText("ملف العميل")).toBeNull();
     expect(within(card).queryByRole("navigation",{name:"مسار حساب العميل"})).toBeNull();
   });
-  it("hides a previously registered opening balance, without relying on a disabled submit",async()=>{
+  it("keeps the opening balance button visible but disabled when already registered",async()=>{
     hasOpening=true;
     visit();
     await screen.findByRole("region",{name:"بيانات حساب العميل"});
+    const tabs=await screen.findByRole("tablist",{name:"تفاصيل حساب العميل"});
+    const openingButton=screen.getByRole("button",{name:"رصيد افتتاحي"});
+    expect(tabs.parentElement?.contains(openingButton)).toBe(true);
+    expect(within(tabs).queryByRole("button",{name:"رصيد افتتاحي"})).toBeNull();
+    await waitFor(()=>expect(openingButton.hasAttribute("disabled")).toBe(true));
+    expect(openingButton.getAttribute("aria-describedby")).toBe("account-opening-disabled-reason");
+    expect(screen.getByText("تم تسجيل الرصيد الافتتاحي لهذا العميل بالفعل.")).toBeTruthy();
     expect(screen.queryByText("500.00 ج.م")).toBeNull();
-    expect(screen.queryByText("بيانات الحساب وتغيير العميل")).toBeNull();
-    expect(screen.queryByRole("button",{name:"رصيد افتتاحي"})).toBeNull();
     expect(within(screen.getByRole("region",{name:"بيانات حساب العميل"})).queryByText("المزيد")).toBeNull();
+    await userEvent.setup().click(openingButton);
+    expect(screen.queryByRole("dialog",{name:"تسجيل الرصيد الافتتاحي"})).toBeNull();
+    expect(calls.filter(c=>c.url==="/finance/customers/7/opening-balance"&&c.method==="post")).toHaveLength(0);
     expect(calls.some(c=>c.url==="/finance/customers/7/opening-balance-status")).toBe(true);
+  });
+  it("shows the direct opening balance action next to the account tabs when authorized",async()=>{
+    visit();
+    const tabs=await screen.findByRole("tablist",{name:"تفاصيل حساب العميل"});
+    const openingButton=screen.getByRole("button",{name:"رصيد افتتاحي"});
+    expect(tabs.parentElement?.contains(openingButton)).toBe(true);
+    await waitFor(()=>expect(openingButton.hasAttribute("disabled")).toBe(false));
+    expect(within(tabs).getByRole("tab",{name:"كشف الحساب"})).toBeTruthy();
+  });
+  it("does not expose opening balance action or fetch its status without permission",async()=>{
+    permissions=["finance.balances.view","finance.ledger.view"];
+    visit();
+    await screen.findByText("سداد دين");
+    expect(screen.queryByRole("button",{name:"رصيد افتتاحي"})).toBeNull();
+    expect(calls.some(c=>c.url==="/finance/customers/7/opening-balance-status")).toBe(false);
   });
   it("links ledger movements to real receipt and linked order and opens complete notes",async()=>{
     permissions=["finance.balances.view","finance.ledger.view","finance.collections.view","orders.view"];

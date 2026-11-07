@@ -146,7 +146,10 @@ describe("Finance refunds within the account workspace", () => {
     expect(within(actions).queryByRole("button", {name: "عرض ردود رصيد العميل"})).toBeNull();
     expect(screen.queryByRole("button", {name: "سجل ردود الأموال"})).toBeNull();
     expect(screen.queryByRole("link", {name: "سجل ردود الأموال"})).toBeNull();
-    expect(within(card).queryByText("المزيد")).toBeNull(); // No opening-balance action when already registered
+    expect(within(card).queryByText("المزيد")).toBeNull(); // No duplicate opening-balance action
+    const openingButton = screen.getByRole("button", {name: "رصيد افتتاحي"});
+    await waitFor(() => expect(openingButton.hasAttribute("disabled")).toBe(true));
+    expect(screen.getByText("تم تسجيل الرصيد الافتتاحي لهذا العميل بالفعل.")).toBeTruthy();
     expect(window.location.search).not.toContain("view=refunds");
     await user.click(refund);
     const dialog = await screen.findByRole("dialog", {name: "رد رصيد دائن للعميل"});
