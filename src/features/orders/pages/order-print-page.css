@@ -75,7 +75,7 @@
 }
 .order-print-metadata {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 11px 24px;
   padding: 13px 0 14px;
   border-bottom: 1px solid #e0e0e0;
@@ -213,7 +213,7 @@
   .order-print-heading { gap: 15px; }
   .order-print-brand { font-size: 16px; }
   .order-print-number strong { font-size: 12px; }
-  .order-print-metadata { gap: 10px 14px; }
+  .order-print-metadata { grid-template-columns: minmax(0, 1fr); gap: 10px 14px; }
   .order-print-table { font-size: 10.5px; }
   .order-print-table th, .order-print-table td { padding: 7px 5px; }
   .order-print-table thead th { font-size: 10px; }
@@ -236,6 +236,8 @@
     border-radius: 0;
     box-shadow: none;
   }
+  /* A4 print uses a balanced three-field header regardless of mobile preview width. */
+  .order-print-metadata { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .order-print-table thead { display: table-header-group; }
   .order-print-table tr { break-inside: avoid; page-break-inside: avoid; }
   .order-print-heading, .order-print-metadata,

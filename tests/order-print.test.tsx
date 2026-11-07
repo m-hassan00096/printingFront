@@ -87,7 +87,13 @@ describe("Print order as PDF",()=>{
     expect(screen.getByText("01012345678")).toBeTruthy();
     const metadata=screen.getByRole("region",{name:"بيانات الأوردر والعميل"});
     expect(metadata.querySelectorAll("strong[dir='ltr']")).toHaveLength(0);
-    expect(metadata.querySelectorAll("bdi[dir='ltr']")).toHaveLength(3);
+    expect(metadata.querySelectorAll("bdi[dir='ltr']")).toHaveLength(2);
+    expect(within(metadata).getByText("اسم العميل")).toBeTruthy();
+    expect(within(metadata).getByText("رقم الهاتف")).toBeTruthy();
+    expect(within(metadata).getByText("تاريخ الأوردر")).toBeTruthy();
+    expect(within(metadata).queryByText("موعد التسليم")).toBeNull();
+    expect(within(metadata).queryByText("10/11/2026")).toBeNull();
+    expect(metadata.children).toHaveLength(3);
     expect(screen.getByText("الباقي بعد العربون")).toBeTruthy();
     expect(screen.getByText("500.00 ج.م")).toBeTruthy();
     expect(screen.getByRole("heading",{name:"بنود الأوردر"})).toBeTruthy();
