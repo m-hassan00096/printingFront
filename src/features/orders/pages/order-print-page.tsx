@@ -123,7 +123,6 @@ export function OrderPrintPage() {
         <div><span>اسم العميل</span><strong>{item.customerName}</strong></div>
         <div><span>رقم الهاتف</span><strong><bdi dir="ltr">{item.customerPhone || "—"}</bdi></strong></div>
         <div><span>تاريخ الأوردر</span><strong><bdi dir="ltr">{cairoDate(item.confirmedAt ?? item.createdAt)}</bdi></strong></div>
-        <div><span>موعد التسليم</span><strong><bdi dir="ltr">{formatCollectionDate(item.dueDate)}</bdi></strong></div>
       </section>
 
       <section aria-label="بنود الأوردر" className="order-print-section">
