@@ -258,11 +258,13 @@ describe("Finance account page against Laravel existing contracts",()=>{
       visit("");
       const section=await screen.findByRole("region",{name:"قائمة حسابات العملاء"});
       const cards=await within(section).findByLabelText("قائمة حسابات العملاء للموبايل");
-      const account=within(cards).getByRole("article",{name:/أحمد خالد/});
-      expect(within(account).getByRole("button",{name:"رصيد افتتاحي للعميل أحمد خالد"})).toBeTruthy();
-      expect(within(account).getByRole("button",{name:"كشف الحساب"})).toBeTruthy();
-      const second=within(cards).getByRole("article",{name:/مؤسسة النور/});
-      expect(within(second).getByRole("button",{name:"رصيد افتتاحي للعميل مؤسسة النور"}).hasAttribute("disabled")).toBe(true);
+      const account=within(cards).getByText("أحمد خالد").closest("article");
+      expect(account).not.toBeNull();
+      expect(within(account!).getByRole("button",{name:"رصيد افتتاحي للعميل أحمد خالد"})).toBeTruthy();
+      expect(within(account!).getByRole("button",{name:"كشف الحساب"})).toBeTruthy();
+      const second=within(cards).getByText("مؤسسة النور").closest("article");
+      expect(second).not.toBeNull();
+      expect(within(second!).getByRole("button",{name:"رصيد افتتاحي للعميل مؤسسة النور"}).hasAttribute("disabled")).toBe(true);
     } finally {
       window.innerWidth=previous;
       window.dispatchEvent(new Event("resize"));
