@@ -108,6 +108,25 @@ export function FinancePage() {
     void Promise.all(["finance", "customers", "collections"].map(name => qc.invalidateQueries({queryKey: [name]})));
   }
   const hasOpening = openingStatus.isSuccess && openingStatus.data.openingBalanceExists;
+  const openingDisabledReason = hasOpening
+    ? "تم تسجيل الرصيد الافتتاحي لهذا العميل بالفعل."
+    : openingStatus.isError
+      ? "تعذّر التحقق من حالة الرصيد الافتتاحي. حاول تحديث الصفحة."
+      : (!openingStatus.isSuccess || openingStatus.isFetching)
+        ? "جاري التحقق من حالة الرصيد الافتتاحي..."
+        : "";
+  const canRegisterOpening = canOpening && openingStatus.isSuccess && !openingStatus.isFetching && !hasOpening;
+  const openingAction = canOpening && <div className="flex min-w-0 flex-wrap items-center gap-2">
+    <span title={openingDisabledReason || undefined}>
+      <Button type="button" variant="outline" size="sm" disabled={!canRegisterOpening}
+        aria-describedby={openingDisabledReason ? "account-opening-disabled-reason" : undefined}
+        onClick={() => { if (canRegisterOpening) setOpening(true); }}>
+        <Plus className="size-4"/> رصيد افتتاحي
+      </Button>
+    </span>
+    {openingDisabledReason && <span id="account-opening-disabled-reason" role="status"
+      className="text-xs leading-5 text-muted-foreground">{openingDisabledReason}</span>}
+  </div>;
   // A ledger credit can include non-refundable amounts; only enable refund when
   // the existing backend refundable-credit preview confirms an available amount.
   const canRefundSelected = canRefund && customerId > 0 && refundableCredit.isSuccess &&
@@ -170,7 +189,7 @@ export function FinancePage() {
                 <p className="text-xs text-muted-foreground">يشمل الأوردرات المؤكدة حتى غير المستلّمة.</p>
               </div>
             </div>
-            {(canCollect || canRefund || (canOpening && openingStatus.isSuccess && !hasOpening)) &&
+            {(canCollect || canRefund || (!canLedger && canOpening)) &&
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-3" aria-label={copy.accountActions}>
                 {canCollect && <Button onClick={() => setCollecting(true)}><Plus className="size-4"/> تسجيل تحصيل</Button>}
                 {canRefund && <>
@@ -185,15 +204,7 @@ export function FinancePage() {
                     {refundUnavailableReason}
                   </span>}
                 </>}
-                {canOpening && openingStatus.isSuccess && !hasOpening &&
-                  <details className="relative">
-                    <summary className="cursor-pointer rounded-lg border border-input bg-card px-3 py-2.5 text-sm font-semibold hover:bg-muted">المزيد</summary>
-                    <div className="absolute start-0 z-20 mt-2 w-52 rounded-xl border bg-card p-2 shadow-lg">
-                      <Button className="w-full justify-start" size="sm" variant="ghost" onClick={() => setOpening(true)}>
-                        <Plus className="size-4"/>{copy.openingAction}
-                      </Button>
-                    </div>
-                  </details>}
+                {!canLedger && openingAction}
               </div>}
           </section>
           {customers.isError && <ErrorState error={customers.error} retry={() => void customers.refetch()}/>}
@@ -202,10 +213,13 @@ export function FinancePage() {
           {!canBalance && canLedger && ledger.isError && <ErrorState error={ledger.error} retry={() => void ledger.refetch()}/>}
           {(accountViews.length > 0 || (view === "refunds" && canRefundHistory)) && <div className="pt-2">
             <section aria-label="تفاصيل الحساب" className="rounded-xl border bg-card">
-              {accountViews.length > 0 && <div role="tablist" aria-label="تفاصيل حساب العميل" className="flex flex-nowrap gap-5 overflow-x-auto border-b px-4 sm:gap-6 sm:px-5">
-                {accountViews.map(tab => <button type="button" key={tab.key} role="tab" id={`account-${tab.key}-tab`} aria-controls={`account-${tab.key}-panel`} aria-selected={view === tab.key} onClick={() => changeView(tab.key)}
-                  className={"-mb-px shrink-0 whitespace-nowrap border-b-2 px-1 py-3 text-sm font-semibold transition-colors focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary " +
-                    (view === tab.key ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>{tab.title}</button>)}
+              {accountViews.length > 0 && <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 border-b px-3 sm:px-5">
+                <div role="tablist" aria-label="تفاصيل حساب العميل" className="flex min-w-0 flex-nowrap gap-5 overflow-x-auto sm:gap-6">
+                  {accountViews.map(tab => <button type="button" key={tab.key} role="tab" id={`account-${tab.key}-tab`} aria-controls={`account-${tab.key}-panel`} aria-selected={view === tab.key} onClick={() => changeView(tab.key)}
+                    className={"-mb-px shrink-0 whitespace-nowrap border-b-2 px-1 py-3 text-sm font-semibold transition-colors focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary " +
+                      (view === tab.key ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>{tab.title}</button>)}
+                </div>
+                {openingAction}
               </div>}
               <div className="space-y-4 p-4 sm:p-5">
           {view === "refunds" && canRefundHistory && <><Button size="sm" variant="ghost" onClick={() => changeView("ledger")}>{copy.backToLedger}</Button><RefundsPanel key={customerId} customerId={customerId}/></>}
@@ -322,7 +336,7 @@ export function FinancePage() {
       <header className="mb-3 flex justify-between"><h3 className="font-bold">{copy.noteDialog}</h3><Button variant="ghost" size="icon-sm" aria-label={copy.returnAccount} onClick={() => setSelectedNote(null)}><X className="size-4"/></Button></header><p className="whitespace-pre-wrap break-words text-sm">{selectedNote}</p>
     </section></div>}
     {refundDetailsId !== null && canRefundHistory && <RefundDetailsDialog id={refundDetailsId} onClose={() => setRefundDetailsId(null)}/>}
-    {opening && customerId > 0 && canOpening && openingStatus.isSuccess && !hasOpening && <OpeningBalanceDialog key={customerId} customerId={customerId} customerName={customerName} onClose={() => setOpening(false)} onSuccess={() => {setOpening(false); refresh();}}/>}
+    {opening && customerId > 0 && canRegisterOpening && <OpeningBalanceDialog key={customerId} customerId={customerId} customerName={customerName} onClose={() => setOpening(false)} onSuccess={() => {setOpening(false); refresh();}}/>}
     {refunding && canRefund && <CreateRefundDialog initialCustomerId={customerId} onClose={() => setRefunding(false)} onSuccess={() => {setRefunding(false); refresh();}}/>}
     {collecting && canCollect && customerId > 0 && <AccountCollectionDialog customerId={customerId} customerName={customerName} onClose={() => setCollecting(false)} onSuccess={() => {setCollecting(false); refresh();}}/>}
   </div>;
