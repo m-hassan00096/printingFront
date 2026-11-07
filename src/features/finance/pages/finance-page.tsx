@@ -336,7 +336,7 @@ export function FinancePage() {
       <header className="mb-3 flex justify-between"><h3 className="font-bold">{copy.noteDialog}</h3><Button variant="ghost" size="icon-sm" aria-label={copy.returnAccount} onClick={() => setSelectedNote(null)}><X className="size-4"/></Button></header><p className="whitespace-pre-wrap break-words text-sm">{selectedNote}</p>
     </section></div>}
     {refundDetailsId !== null && canRefundHistory && <RefundDetailsDialog id={refundDetailsId} onClose={() => setRefundDetailsId(null)}/>}
-    {opening && customerId > 0 && canRegisterOpening && <OpeningBalanceDialog key={customerId} customerId={customerId} customerName={customerName} onClose={() => setOpening(false)} onSuccess={() => {setOpening(false); refresh();}}/>}
+    {opening && customerId > 0 && canOpening && openingStatus.isSuccess && !hasOpening && <OpeningBalanceDialog key={customerId} customerId={customerId} customerName={customerName} onClose={() => setOpening(false)} onSuccess={() => {setOpening(false); refresh();}}/>}
     {refunding && canRefund && <CreateRefundDialog initialCustomerId={customerId} onClose={() => setRefunding(false)} onSuccess={() => {setRefunding(false); refresh();}}/>}
     {collecting && canCollect && customerId > 0 && <AccountCollectionDialog customerId={customerId} customerName={customerName} onClose={() => setCollecting(false)} onSuccess={() => {setCollecting(false); refresh();}}/>}
   </div>;
