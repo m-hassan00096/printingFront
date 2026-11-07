@@ -30,6 +30,7 @@ export function useOpeningBalance(){
       await Promise.all([
         qc.invalidateQueries({queryKey:financeKeys.balance(id)}),
         qc.invalidateQueries({queryKey:financeKeys.opening(id)}),
+        qc.invalidateQueries({queryKey:financeKeys.overview}),
         qc.invalidateQueries({queryKey:financeKeys.ledger(id)}),
         qc.invalidateQueries({queryKey:["customers","balance",id]}),
         qc.invalidateQueries({queryKey:["customers","ledger",id]}),

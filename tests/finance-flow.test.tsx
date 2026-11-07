@@ -216,6 +216,58 @@ describe("Finance account page against Laravel existing contracts",()=>{
     expect(screen.queryByRole("button",{name:"العودة إلى الحسابات"})).toBeNull();
     expect(screen.queryByRole("combobox",{name:"اختيار حساب العميل"})).toBeNull();
   });
+  it("shows an opening balance button beside كشف الحساب for every permitted account in the list",async()=>{
+    visit(""); const user=userEvent.setup();
+    const section=await screen.findByRole("region",{name:"قائمة حسابات العملاء"});
+    const row=await within(section).findByRole("row",{name:/أحمد خالد/});
+    const view=within(row).getByRole("button",{name:"كشف الحساب"});
+    const opening=within(row).getByRole("button",{name:"رصيد افتتاحي للعميل أحمد خالد"});
+    expect(view.closest("td")).toBe(opening.closest("td"));
+    expect(opening.hasAttribute("disabled")).toBe(false);
+    const existing=await within(section).findByRole("row",{name:/مؤسسة النور/});
+    const disabled=within(existing).getByRole("button",{name:"رصيد افتتاحي للعميل مؤسسة النور"});
+    expect(disabled.hasAttribute("disabled")).toBe(true);
+    expect(disabled.getAttribute("aria-describedby")).toBe("opening-recorded-8");
+    await user.click(disabled);
+    expect(calls.some(c=>c.url==="/finance/customers/8/opening-balance-status")).toBe(false);
+    await user.click(opening);
+    const dialog=await screen.findByRole("dialog",{name:"تسجيل الرصيد الافتتاحي"});
+    expect(within(dialog).getByText("أحمد خالد")).toBeTruthy();
+    expect(calls.some(c=>c.url==="/finance/customers/7/opening-balance-status")).toBe(true);
+    await user.type(within(dialog).getByRole("textbox",{name:"قيمة الرصيد"}),"90.00");
+    await user.click(within(dialog).getByRole("checkbox",{name:"تأكيد تسجيل الرصيد الافتتاحي"}));
+    await user.click(within(dialog).getByRole("button",{name:"تأكيد الرصيد الافتتاحي"}));
+    await waitFor(()=>{
+      const freshRow=within(section).getByRole("row",{name:/أحمد خالد/});
+      expect(within(freshRow).getByRole("button",{name:"رصيد افتتاحي للعميل أحمد خالد"}).hasAttribute("disabled")).toBe(true);
+    });
+    expect(calls.filter(c=>c.url==="/finance/customers/7/opening-balance"&&c.method==="post")).toHaveLength(1);
+  });
+  it("does not expose the opening balance action in the list without its permission",async()=>{
+    permissions=["finance.balances.view","finance.ledger.view"];
+    visit("");
+    const section=await screen.findByRole("region",{name:"قائمة حسابات العملاء"});
+    await within(section).findByRole("row",{name:/أحمد خالد/});
+    expect(within(section).queryByRole("button",{name:/رصيد افتتاحي للعميل/})).toBeNull();
+    expect(calls.some(c=>c.url.includes("opening-balance-status"))).toBe(false);
+  });
+  it("shows the opening balance action beside كشف الحساب in a phone account card",async()=>{
+    const previous=window.innerWidth;
+    try {
+      window.innerWidth=375;
+      visit("");
+      const section=await screen.findByRole("region",{name:"قائمة حسابات العملاء"});
+      const cards=await within(section).findByLabelText("قائمة حسابات العملاء للموبايل");
+      const account=within(cards).getByRole("article",{name:/أحمد خالد/});
+      expect(within(account).getByRole("button",{name:"رصيد افتتاحي للعميل أحمد خالد"})).toBeTruthy();
+      expect(within(account).getByRole("button",{name:"كشف الحساب"})).toBeTruthy();
+      const second=within(cards).getByRole("article",{name:/مؤسسة النور/});
+      expect(within(second).getByRole("button",{name:"رصيد افتتاحي للعميل مؤسسة النور"}).hasAttribute("disabled")).toBe(true);
+    } finally {
+      window.innerWidth=previous;
+      window.dispatchEvent(new Event("resize"));
+    }
+  });
   it("opens the selected account without duplicate customer switch or back navigation",async()=>{
     visit("");const user=userEvent.setup();
     const section=await screen.findByRole("region",{name:"قائمة حسابات العملاء"});

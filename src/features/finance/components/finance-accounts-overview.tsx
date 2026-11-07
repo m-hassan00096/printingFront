@@ -1,18 +1,31 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
+import { toast } from "sonner";
 import { useMobileListLayout } from "@/shared/hooks/use-mobile-list-layout";
 import { Button } from "@/shared/components/ui/button";
 import { MoneyAmount } from "@/shared/components/money-amount";
+import { getApiErrorMessage } from "@/shared/api/http";
 import { EmptyState, ErrorState, LoadingState, PaginationBar } from "@/features/identity/components/identity-ui";
 import { uiMessages } from "@/shared/translations/ar/ui";
-import { useFinanceAccounts } from "../hooks/use-finance";
+import { financeOpeningStatus } from "../api/finance.api";
+import { OpeningBalanceDialog } from "./opening-balance-dialog";
+import { useFinanceAccounts, financeKeys } from "../hooks/use-finance";
 import { accountTypeLabel } from "../lib/account-display";
-import type { AccountListFilters } from "../types/finance.types";
+import type { AccountListFilters, FinanceAccount } from "../types/finance.types";
 
 const copy = uiMessages.financeAccounts;
 const initial: AccountListFilters = {search: "", type: "", sort: "-balance", page: 1};
 const inputClass = "h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/20";
-export function FinanceAccountsOverview({onSelect}: {onSelect: (id: number) => void}) {
+export function FinanceAccountsOverview({onSelect, canOpening = false}: {
+  onSelect: (id: number) => void;
+  canOpening?: boolean;
+}) {
   const mobile = useMobileListLayout();
+  const qc = useQueryClient();
+  const [openingCustomer, setOpeningCustomer] = useState<FinanceAccount | null>(null);
+  const [checkingCustomerId, setCheckingCustomerId] = useState<number | null>(null);
+  const [registeredIds, setRegisteredIds] = useState<number[]>([]);
   const [filters, setFilters] = useState<AccountListFilters>(initial);
   const [search, setSearch] = useState("");
   const query = useFinanceAccounts(filters, true);
@@ -25,6 +38,59 @@ export function FinanceAccountsOverview({onSelect}: {onSelect: (id: number) => v
       setFilters(previous => ({...previous, page: query.data!.pagination.lastPage}));
   }, [filters.page, query.data]);
   const hasFilters = Boolean(search || filters.search || filters.type || filters.sort !== initial.sort);
+
+  const alreadyRegistered = (account: FinanceAccount): boolean =>
+    account.openingBalanceExists || registeredIds.includes(account.customerId);
+
+  // The list flag keeps the button disabled; recheck the live state on click
+  // so a stale list never opens a second opening balance dialog.
+  async function startOpening(account: FinanceAccount) {
+    if (!canOpening || alreadyRegistered(account) || checkingCustomerId !== null) return;
+    setCheckingCustomerId(account.customerId);
+    try {
+      const status = await qc.fetchQuery({
+        queryKey: financeKeys.opening(account.customerId),
+        queryFn: () => financeOpeningStatus(account.customerId),
+        staleTime: 0,
+      });
+      if (status.openingBalanceExists) {
+        setRegisteredIds(previous => previous.includes(account.customerId)
+          ? previous : [...previous, account.customerId]);
+        void qc.invalidateQueries({queryKey: financeKeys.overview});
+        return;
+      }
+      setOpeningCustomer(account);
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, "تعذّر التحقق من الرصيد الافتتاحي. حاول مرة أخرى."));
+    } finally {
+      setCheckingCustomerId(null);
+    }
+  }
+
+  function openingButton(account: FinanceAccount) {
+    if (!canOpening) return null;
+    const exists = alreadyRegistered(account);
+    const disabled = exists || checkingCustomerId !== null;
+    return <span className="inline-flex flex-col gap-1"
+      title={exists ? "تم تسجيل الرصيد الافتتاحي لهذا العميل بالفعل." : undefined}>
+      <Button type="button" variant="outline" size="sm" disabled={disabled}
+        aria-label={`رصيد افتتاحي للعميل ${account.customerName}`}
+        aria-describedby={exists ? `opening-recorded-${account.customerId}` : undefined}
+        onClick={() => { void startOpening(account); }}>
+        <Plus className="size-4" /> {checkingCustomerId === account.customerId ? "جاري التحقق..." : "رصيد افتتاحي"}
+      </Button>
+      {exists && <span id={`opening-recorded-${account.customerId}`}
+        className="text-[11px] leading-4 text-muted-foreground">مسجّل بالفعل</span>}
+    </span>;
+  }
+
+  function openingSaved(customerId: number) {
+    setRegisteredIds(previous => previous.includes(customerId)
+      ? previous : [...previous, customerId]);
+    setOpeningCustomer(null);
+    void qc.invalidateQueries({queryKey: financeKeys.overview});
+  }
+
   return <section aria-label={copy.accountsTitle} className="space-y-3">
     <div className="grid gap-3 rounded-xl border bg-card p-4 md:grid-cols-3">
       <label className="space-y-1.5 text-sm font-semibold"><span>{copy.accountsSearch}</span>
@@ -61,9 +127,12 @@ export function FinanceAccountsOverview({onSelect}: {onSelect: (id: number) => v
                   {accountTypeLabel(account.type)} · <MoneyAmount amount={account.amount}/>
                 </p>
               </div>
-              <Button type="button" size="sm" variant="outline" onClick={() => onSelect(account.customerId)}>
-                {copy.viewAccount}
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button type="button" size="sm" variant="outline" onClick={() => onSelect(account.customerId)}>
+                  {copy.viewAccount}
+                </Button>
+                {openingButton(account)}
+              </div>
             </div>
           </article>)}
         </div>}
@@ -75,11 +144,18 @@ export function FinanceAccountsOverview({onSelect}: {onSelect: (id: number) => v
             <td className={"whitespace-nowrap px-4 py-4 font-semibold " + (account.type === 1 ? "text-destructive" : account.type === 2 ? "text-emerald-700" : "")}>
               {accountTypeLabel(account.type)} · <MoneyAmount amount={account.amount}/>
             </td>
-            <td className="px-4 py-4"><Button type="button" size="sm" variant="outline" onClick={() => onSelect(account.customerId)}>{copy.viewAccount}</Button></td>
+            <td className="px-4 py-4"><div className="flex flex-wrap items-center gap-2">
+              <Button type="button" size="sm" variant="outline" onClick={() => onSelect(account.customerId)}>{copy.viewAccount}</Button>
+              {openingButton(account)}
+            </div></td>
           </tr>)}</tbody>
         </table></div>}
         <p className="border-t px-4 py-3 text-xs leading-5 text-muted-foreground">الرصيد يشمل الأوردرات المؤكدة حتى لو لم تُسلّم. افتح الحساب لمراجعة التفاصيل أو تسجيل تحصيل أو تصفية الشغل المسلّم.</p>
       </div> : <EmptyState title={copy.noAccounts} detail={copy.noAccountsHint}/>}
     {query.data && query.data.pagination.lastPage > 1 && <PaginationBar pagination={query.data.pagination} onPage={page => setFilters(previous => ({...previous, page}))}/>}
+    {openingCustomer && canOpening && <OpeningBalanceDialog key={openingCustomer.customerId}
+      customerId={openingCustomer.customerId} customerName={openingCustomer.customerName}
+      onClose={() => setOpeningCustomer(null)}
+      onSuccess={() => openingSaved(openingCustomer.customerId)}/>}
   </section>;
 }
