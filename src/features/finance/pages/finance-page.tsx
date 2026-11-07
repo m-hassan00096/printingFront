@@ -162,7 +162,7 @@ export function FinancePage() {
     </div>
     {canAccountDetails && <div hidden={globalRefunds} className="space-y-4">
       {!globalRefunds && <>
-        {canBalance && !customerId && <FinanceAccountsOverview onSelect={id => chooseCustomer(String(id))}/>}
+        {canBalance && !customerId && <FinanceAccountsOverview canOpening={canOpening} onSelect={id => chooseCustomer(String(id))}/>}
         {!customerId && !canBalance && <section className="rounded-xl border bg-card p-5" aria-label="اختيار حساب العميل">
           <h2 className="mb-3 font-bold">اختَر عميلًا لعرض بيانات حسابه</h2>
           <SearchableSelect label="اختيار حساب العميل" placeholder="ابحث باسم العميل أو رقم هاتفه..." value={rawId} options={customers.data ?? []}
